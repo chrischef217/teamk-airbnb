@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터 로딩 디버깅</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .section h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: #000; }
+        .btn-danger { background: #dc3545; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .highlight { background: yellow; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 데이터 로딩 디버깅 도구</h1>
+        <p>현재 시스템의 데이터 저장 상태와 로딩 과정을 분석합니다.</p>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="btn btn-success" onclick="checkAllData()">🔍 전체 데이터 검사</button>
+            <button class="btn" onclick="testDataLoading()">🧪 데이터 로딩 테스트</button>
+            <button class="btn btn-warning" onclick="showFirebaseStatus()">🔥 Firebase 상태 확인</button>
+            <button class="btn btn-danger" onclick="clearAndReload()">🔄 새로고침</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="accommodation.html" class="btn">🏠 숙소관리</a>
+            <a href="accounting.html" class="btn">💰 수익관리</a>
+            <a href="investor.html" class="btn">👥 투자관리</a>
+            <a href="dashboard.html" class="btn">📊 대시보드</a>
+            <a href="index.html" class="btn">🏠 메인</a>
+        </div>
+    </div>
+
+    <!-- Firebase 설정 로드 -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-storage.js"></script>
+
+    <script>
+        function checkAllData() {
+            const results = document.getElementById('results');
+            let html = '<div class="section"><h3>📊 전체 데이터 검사 결과</h3>';
+            
+            try {
+                // localStorage 데이터 확인
+                const accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+                const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                
+                html += '<h4>💾 localStorage 데이터:</h4>';
+                html += `<div class="status info">
+                    숙소: ${accommodationData.length}개 |
+                    투자자: ${investorData.length}명 |
+                    회계: ${accountingData.length}건
+                </div>`;
+                
+                // 숙소 데이터 상세 표시
+                html += '<h5>🏠 숙소 데이터:</h5><pre>';
+                if (accommodationData.length === 0) {
+                    html += '<span class="highlight">⚠️ 숙소 데이터가 없습니다!</span>';
+                } else {
+                    accommodationData.forEach((item, index) => {
+                        html += `${index + 1}. ID: ${item.id}\n`;
+                        html += `   이름: ${item.accommodationName || item.name || '이름없음'}\n`;
+                        html += `   투자금: ${item.totalInvestment || item.investment || 0} THB\n`;
+                        html += `   투자자: ${item.investorName || '투자자없음'}\n`;
+                        html += `   위치: ${item.location || '위치없음'}\n`;
+                        html += `   임대료: ${item.monthlyRent || item.rent || 0} THB\n\n`;
+                    });
+                }
+                html += '</pre>';
+                
+                // 투자자 데이터 상세 표시
+                html += '<h5>👥 투자자 데이터:</h5><pre>';
+                if (investorData.length === 0) {
+                    html += '<span class="highlight">⚠️ 투자자 데이터가 없습니다!</span>';
+                } else {
+                    investorData.forEach((item, index) => {
+                        html += `${index + 1}. ID: ${item.id}\n`;
+                        html += `   이름: ${item.name || '이름없음'}\n`;
+                        html += `   이메일: ${item.email || '이메일없음'}\n`;
+                        html += `   투자비율: ${item.investorRatio || 0}%\n\n`;
+                    });
+                }
+                html += '</pre>';
+                
+                // 회계 데이터 상세 표시 (최근 10개만)
+                html += '<h5>💰 회계 데이터 (최근 10개):</h5><pre>';
+                if (accountingData.length === 0) {
+                    html += '<span class="highlight">⚠️ 회계 데이터가 없습니다!</span>';
+                } else {
+                    const recentAccounting = accountingData.slice(-10);
+                    recentAccounting.forEach((item, index) => {
+                        html += `${index + 1}. 숙소ID: ${item.accommodationId}\n`;
+                        html += `   숙소명: ${item.accommodationName || '숙소명없음'}\n`;
+                        html += `   타입: ${item.type} (${item.category || '카테고리없음'})\n`;
+                        html += `   금액: ${item.amount || 0} THB\n`;
+                        html += `   날짜: ${item.date || item.transactionDate || '날짜없음'}\n`;
+                        html += `   설명: ${item.description || '설명없음'}\n\n`;
+                    });
+                    if (accountingData.length > 10) {
+                        html += `... 총 ${accountingData.length}건 중 최근 10건만 표시\n`;
+                    }
+                }
+                html += '</pre>';
+                
+                html += '</div>';
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ 데이터 검사 중 오류: ${error.message}</div>`;
+            }
+        }
+        
+        async function testDataLoading() {
+            const results = document.getElementById('results');
+            let html = '<div class="section"><h3>🧪 데이터 로딩 테스트</h3>';
+            
+            try {
+                html += '<h4>1️⃣ Firebase 연결 테스트:</h4>';
+                
+                if (typeof firebaseStorage !== 'undefined' && firebaseStorage.isConfigured()) {
+                    html += '<div class="status success">✅ Firebase 설정 완료</div>';
+                    
+                    // Firebase에서 데이터 로드 시도
+                    try {
+                        html += '<h4>2️⃣ Firebase 데이터 로드 테스트:</h4>';
+                        
+                        const fbAccommodations = await firebaseStorage.loadAccommodations();
+                        const fbInvestors = await firebaseStorage.loadInvestors();
+                        const fbAccounting = await firebaseStorage.loadAccounting();
+                        
+                        html += `<div class="status info">
+                            Firebase 데이터:<br>
+                            • 숙소: ${fbAccommodations.length}개<br>
+                            • 투자자: ${fbInvestors.length}명<br>
+                            • 회계: ${fbAccounting.length}건
+                        </div>`;
+                        
+                        if (fbAccommodations.length > 0 || fbInvestors.length > 0 || fbAccounting.length > 0) {
+                            html += '<div class="status success">✅ Firebase에서 실제 데이터 발견!</div>';
+                            
+                            // Firebase 데이터를 localStorage에 동기화
+                            if (fbAccommodations.length > 0) {
+                                localStorage.setItem('accommodationData', JSON.stringify(fbAccommodations));
+                            }
+                            if (fbInvestors.length > 0) {
+                                localStorage.setItem('investorData', JSON.stringify(fbInvestors));
+                            }
+                            if (fbAccounting.length > 0) {
+                                localStorage.setItem('accountingData', JSON.stringify(fbAccounting));
+                            }
+                            
+                            html += '<div class="status success">✅ localStorage에 Firebase 데이터 동기화 완료</div>';
+                        } else {
+                            html += '<div class="status error">⚠️ Firebase에 실제 데이터가 없습니다</div>';
+                        }
+                        
+                    } catch (fbError) {
+                        html += `<div class="status error">❌ Firebase 로드 실패: ${fbError.message}</div>`;
+                    }
+                    
+                } else {
+                    html += '<div class="status error">❌ Firebase 설정이 되지 않았습니다</div>';
+                    html += '<div class="status info">💡 localStorage 데이터만 사용합니다</div>';
+                }
+                
+                html += '<h4>3️⃣ 데이터 로딩 시뮬레이션:</h4>';
+                
+                // 대시보드 스타일 데이터 로딩 시뮬레이션
+                const accommodations = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const investors = JSON.parse(localStorage.getItem('investorData') || '[]');
+                const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                
+                html += `<div class="status info">
+                    로딩된 데이터:<br>
+                    • 숙소: ${accommodations.length}개<br>
+                    • 투자자: ${investors.length}명<br>
+                    • 회계: ${accountingData.length}건
+                </div>`;
+                
+                if (accommodations.length === 0 && investors.length === 0 && accountingData.length === 0) {
+                    html += '<div class="status error">⚠️ 모든 데이터가 비어있습니다!</div>';
+                    html += '<div class="status info">💡 먼저 숙소관리, 수익관리, 투자관리에서 데이터를 입력해주세요.</div>';
+                } else {
+                    html += '<div class="status success">✅ 실제 데이터가 있습니다!</div>';
+                }
+                
+                html += '</div>';
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ 테스트 중 오류: ${error.message}</div>`;
+            }
+        }
+        
+        function showFirebaseStatus() {
+            const results = document.getElementById('results');
+            let html = '<div class="section"><h3>🔥 Firebase 연결 상태</h3>';
+            
+            if (typeof firebase !== 'undefined' && typeof firebaseStorage !== 'undefined') {
+                html += '<div class="status success">✅ Firebase SDK 로드됨</div>';
+                
+                if (firebaseStorage.isConfigured()) {
+                    html += '<div class="status success">✅ Firebase 설정 완료</div>';
+                    html += '<div class="status info">Firebase를 통해 실시간 데이터 동기화가 가능합니다.</div>';
+                } else {
+                    html += '<div class="status error">❌ Firebase 설정이 완료되지 않았습니다</div>';
+                    html += '<div class="status info">💡 firebase-setup.html에서 설정을 완료해주세요.</div>';
+                }
+            } else {
+                html += '<div class="status error">❌ Firebase SDK가 로드되지 않았습니다</div>';
+                html += '<div class="status info">💡 인터넷 연결을 확인하고 페이지를 새로고침해주세요.</div>';
+            }
+            
+            html += '</div>';
+            results.innerHTML = html;
+        }
+        
+        function clearAndReload() {
+            window.location.reload();
+        }
+        
+        // 페이지 로드시 자동 실행
+        window.addEventListener('load', () => {
+            checkAllData();
+        });
+    </script>
+</body>
+</html>

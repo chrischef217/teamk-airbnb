@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>localStorage 가짜 데이터 즉시 삭제</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: #ff4757;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .btn-success {
+            background: #2ed573;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧹 localStorage 가짜 데이터 즉시 삭제</h1>
+            <p>브라우저의 localStorage에 저장된 가짜 데이터를 완전히 제거합니다</p>
+        </div>
+        
+        <div id="result"></div>
+        
+        <div style="text-align: center;">
+            <button class="btn" onclick="clearFakeDataNow()">
+                🗑️ 가짜 데이터 즉시 삭제
+            </button>
+            
+            <button class="btn btn-success" onclick="showCurrentData()">
+                👀 현재 저장된 데이터 확인
+            </button>
+            
+            <br><br>
+            
+            <a href="index.html" class="btn btn-success" style="text-decoration: none;">
+                🏠 메인페이지로 이동
+            </a>
+            
+            <a href="clear-all-fake-data.html" class="btn" style="background: #5352ed; text-decoration: none;">
+                🔧 고급 정리 도구
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 가짜 데이터 식별 패턴
+        const FAKE_PATTERNS = [
+            '방콕 콘도 A동 101호',
+            '방콕 콘도 A동 102호',
+            '방콕 콘도 101호',
+            '방콕 콘도 102호',
+            '파타야 빌라',
+            '지알미미 빌라',
+            '테스트 숙소 1',
+            '테스트 숙소 2',
+            '테스트 숙소 3',
+            '김투자',
+            '이투자',
+            '박투자'
+        ];
+
+        function clearFakeDataNow() {
+            const result = document.getElementById('result');
+            
+            try {
+                // 삭제된 항목 추적
+                let deletedItems = [];
+                
+                // 숙소 데이터 정리
+                const accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const cleanAccommodations = accommodationData.filter(item => {
+                    const name = item.accommodationName || item.name || '';
+                    const investorName = item.investorName || '';
+                    
+                    const isFake = FAKE_PATTERNS.some(pattern => 
+                        name.includes(pattern) || investorName.includes(pattern)
+                    );
+                    
+                    if (isFake) {
+                        deletedItems.push(`숙소: ${name} (투자자: ${investorName})`);
+                    }
+                    return !isFake;
+                });
+                localStorage.setItem('accommodationData', JSON.stringify(cleanAccommodations));
+                
+                // 투자자 데이터 정리
+                const investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+                const cleanInvestors = investorData.filter(item => {
+                    const name = item.name || '';
+                    const isFake = FAKE_PATTERNS.includes(name);
+                    
+                    if (isFake) {
+                        deletedItems.push(`투자자: ${name}`);
+                    }
+                    return !isFake;
+                });
+                localStorage.setItem('investorData', JSON.stringify(cleanInvestors));
+                
+                // 회계 데이터 정리
+                const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                const cleanAccounting = accountingData.filter(item => {
+                    const accommodationName = item.accommodationName || '';
+                    const investorName = item.investorName || '';
+                    
+                    const isFake = FAKE_PATTERNS.some(pattern => 
+                        accommodationName.includes(pattern) || investorName.includes(pattern)
+                    );
+                    
+                    if (isFake) {
+                        deletedItems.push(`회계: ${accommodationName || '알수없음'}`);
+                    }
+                    return !isFake;
+                });
+                localStorage.setItem('accountingData', JSON.stringify(cleanAccounting));
+                
+                // 결과 표시
+                if (deletedItems.length > 0) {
+                    result.innerHTML = `
+                        <div class="status success">
+                            ✅ 가짜 데이터 삭제 완료! (총 ${deletedItems.length}개)
+                            <pre>${deletedItems.join('\\n')}</pre>
+                            
+                            <strong>이제 새로고침해서 확인해보세요!</strong>
+                        </div>`;
+                        
+                    // 3초 후 자동 새로고침
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    result.innerHTML = `
+                        <div class="status info">
+                            ℹ️ 삭제할 가짜 데이터를 찾지 못했습니다.
+                            localStorage가 이미 정리된 상태입니다.
+                        </div>`;
+                }
+                
+            } catch (error) {
+                console.error('데이터 삭제 중 오류:', error);
+                result.innerHTML = `
+                    <div class="status error">
+                        ❌ 데이터 삭제 중 오류가 발생했습니다: ${error.message}
+                    </div>`;
+            }
+        }
+        
+        function showCurrentData() {
+            const result = document.getElementById('result');
+            
+            try {
+                const accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+                const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                
+                let html = '<div class="status info"><h3>📊 현재 localStorage 저장 데이터</h3>';
+                
+                html += '<h4>🏠 숙소 데이터:</h4><pre>';
+                accommodationData.forEach((item, index) => {
+                    const name = item.accommodationName || item.name || '이름없음';
+                    const investor = item.investorName || '투자자없음';
+                    html += `${index + 1}. ${name} (${investor})\\n`;
+                });
+                html += '</pre>';
+                
+                html += '<h4>👥 투자자 데이터:</h4><pre>';
+                investorData.forEach((item, index) => {
+                    html += `${index + 1}. ${item.name || '이름없음'}\\n`;
+                });
+                html += '</pre>';
+                
+                html += '<h4>💰 회계 데이터:</h4><pre>';
+                html += `총 ${accountingData.length}건의 회계 데이터가 있습니다.\\n`;
+                accountingData.slice(0, 5).forEach((item, index) => {
+                    const name = item.accommodationName || '숙소명없음';
+                    const amount = item.amount || 0;
+                    const type = item.type || '타입없음';
+                    html += `${index + 1}. ${name} - ${type}: ${amount}\\n`;
+                });
+                if (accountingData.length > 5) {
+                    html += `... 외 ${accountingData.length - 5}건\\n`;
+                }
+                html += '</pre>';
+                
+                html += '</div>';
+                
+                result.innerHTML = html;
+                
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="status error">
+                        ❌ 데이터 조회 중 오류: ${error.message}
+                    </div>`;
+            }
+        }
+        
+        // 페이지 로드시 현재 데이터 표시
+        window.addEventListener('load', showCurrentData);
+    </script>
+</body>
+</html>

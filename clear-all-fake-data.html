@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가짜 데이터 완전 정리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .warning-box h3 {
+            color: #d63031;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .data-section h4 {
+            color: #2d3436;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-item {
+            background: white;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #74b9ff;
+        }
+
+        .fake-data {
+            border-left-color: #e17055;
+            background: #fff5f5;
+        }
+
+        .real-data {
+            border-left-color: #00b894;
+            background: #f0fff4;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            margin: 10px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 65, 108, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #ddd;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span>🧹</span> 가짜 데이터 완전 정리</h1>
+            <p>localStorage에서 모든 가짜/테스트 데이터를 정리합니다</p>
+        </div>
+        
+        <div class="content">
+            <div class="warning-box">
+                <h3><span>⚠️</span> 중요 안내사항</h3>
+                <p><strong>이 도구는 localStorage에 저장된 가짜 데이터를 완전히 삭제합니다.</strong></p>
+                <p>• 방콕 콘도 A동 101호, 102호, 파타야 빌라 등 테스트 숙소 데이터</p>
+                <p>• 김투자, 이투자 등 테스트 투자자 데이터</p>
+                <p>• 관련된 모든 가짜 회계 데이터</p>
+                <br>
+                <p><strong style="color: #d63031;">실제 입력한 진짜 데이터는 보존됩니다.</strong></p>
+            </div>
+
+            <div id="dataStatus"></div>
+            
+            <div class="actions">
+                <button class="btn btn-success" onclick="analyzeData()">
+                    <span>🔍</span> 현재 데이터 분석
+                </button>
+                
+                <button class="btn btn-danger" onclick="clearFakeData()" id="clearBtn" disabled>
+                    <span>🗑️</span> 가짜 데이터 삭제
+                </button>
+                
+                <button class="btn btn-secondary" onclick="clearAllData()" id="clearAllBtn">
+                    <span>💥</span> 모든 데이터 삭제 (주의!)
+                </button>
+                
+                <br><br>
+                
+                <a href="dashboard.html" class="btn btn-success">
+                    <span>📊</span> 대시보드로 돌아가기
+                </a>
+            </div>
+            
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // 가짜 데이터 식별을 위한 패턴
+        const FAKE_PATTERNS = {
+            accommodationNames: [
+                '방콕 콘도 A동 101호',
+                '방콕 콘도 A동 102호', 
+                '방콕 콘도 101호',
+                '방콕 콘도 102호',
+                '파타야 빌라',
+                '테스트 숙소 1',
+                '테스트 숙소 2', 
+                '테스트 숙소 3'
+            ],
+            investorNames: [
+                '김투자',
+                '이투자'
+            ],
+            buildingNames: [
+                '방콕 프리미엄 콘도',
+                '파타야 리조트 빌라'
+            ]
+        };
+
+        function analyzeData() {
+            const status = document.getElementById('dataStatus');
+            const result = document.getElementById('result');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            let html = '<h3><span>📊</span> 데이터 분석 결과</h3>';
+            
+            try {
+                // localStorage에서 데이터 로드
+                const accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+                const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                
+                let fakeCount = 0;
+                let realCount = 0;
+                
+                // 숙소 데이터 분석
+                html += '<div class="data-section"><h4><span>🏠</span> 숙소 데이터</h4>';
+                accommodationData.forEach(item => {
+                    const isFake = FAKE_PATTERNS.accommodationNames.some(pattern => 
+                        item.accommodationName?.includes(pattern) || item.name?.includes(pattern)
+                    );
+                    
+                    if (isFake) {
+                        html += `<div class="data-item fake-data">🚫 가짜: ${item.accommodationName || item.name}</div>`;
+                        fakeCount++;
+                    } else {
+                        html += `<div class="data-item real-data">✅ 진짜: ${item.accommodationName || item.name}</div>`;
+                        realCount++;
+                    }
+                });
+                html += '</div>';
+                
+                // 투자자 데이터 분석
+                html += '<div class="data-section"><h4><span>👥</span> 투자자 데이터</h4>';
+                investorData.forEach(item => {
+                    const isFake = FAKE_PATTERNS.investorNames.includes(item.name);
+                    
+                    if (isFake) {
+                        html += `<div class="data-item fake-data">🚫 가짜: ${item.name}</div>`;
+                        fakeCount++;
+                    } else {
+                        html += `<div class="data-item real-data">✅ 진짜: ${item.name}</div>`;
+                        realCount++;
+                    }
+                });
+                html += '</div>';
+                
+                // 회계 데이터 분석
+                html += '<div class="data-section"><h4><span>💰</span> 회계 데이터</h4>';
+                let fakeAccountingCount = 0;
+                let realAccountingCount = 0;
+                
+                accountingData.forEach(item => {
+                    const isFake = FAKE_PATTERNS.accommodationNames.some(pattern => 
+                        item.accommodationName?.includes(pattern)
+                    ) || FAKE_PATTERNS.investorNames.some(pattern =>
+                        item.investorName?.includes(pattern)
+                    );
+                    
+                    if (isFake) {
+                        fakeAccountingCount++;
+                    } else {
+                        realAccountingCount++;
+                    }
+                });
+                
+                html += `<div class="data-item fake-data">🚫 가짜 회계 데이터: ${fakeAccountingCount}건</div>`;
+                html += `<div class="data-item real-data">✅ 진짜 회계 데이터: ${realAccountingCount}건</div>`;
+                html += '</div>';
+                
+                // 총계
+                html += `<div class="status info">
+                    📊 전체 분석 결과: 가짜 데이터 ${fakeCount + fakeAccountingCount}개, 진짜 데이터 ${realCount + realAccountingCount}개
+                </div>`;
+                
+                // 가짜 데이터가 있으면 삭제 버튼 활성화
+                if (fakeCount > 0 || fakeAccountingCount > 0) {
+                    clearBtn.disabled = false;
+                    html += '<div class="status error">⚠️ 가짜 데이터가 발견되었습니다. 삭제를 권장합니다.</div>';
+                } else {
+                    clearBtn.disabled = true;
+                    html += '<div class="status success">✅ 가짜 데이터가 없습니다. 정리가 완료된 상태입니다!</div>';
+                }
+                
+                status.innerHTML = html;
+                
+            } catch (error) {
+                console.error('데이터 분석 중 오류:', error);
+                status.innerHTML = '<div class="status error">❌ 데이터 분석 중 오류가 발생했습니다.</div>';
+            }
+        }
+        
+        function clearFakeData() {
+            if (!confirm('정말로 가짜 데이터를 삭제하시겠습니까?\n\n진짜 데이터는 보존되고, 가짜/테스트 데이터만 삭제됩니다.')) {
+                return;
+            }
+            
+            const result = document.getElementById('result');
+            
+            try {
+                let deletedCount = 0;
+                
+                // 숙소 데이터 정리
+                const accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const cleanAccommodations = accommodationData.filter(item => {
+                    const isFake = FAKE_PATTERNS.accommodationNames.some(pattern => 
+                        item.accommodationName?.includes(pattern) || item.name?.includes(pattern)
+                    ) || FAKE_PATTERNS.investorNames.includes(item.investorName);
+                    
+                    if (isFake) deletedCount++;
+                    return !isFake;
+                });
+                localStorage.setItem('accommodationData', JSON.stringify(cleanAccommodations));
+                
+                // 투자자 데이터 정리
+                const investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+                const cleanInvestors = investorData.filter(item => {
+                    const isFake = FAKE_PATTERNS.investorNames.includes(item.name);
+                    if (isFake) deletedCount++;
+                    return !isFake;
+                });
+                localStorage.setItem('investorData', JSON.stringify(cleanInvestors));
+                
+                // 회계 데이터 정리 (가짜 숙소나 투자자와 연결된 데이터)
+                const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                const cleanAccounting = accountingData.filter(item => {
+                    const isFake = FAKE_PATTERNS.accommodationNames.some(pattern => 
+                        item.accommodationName?.includes(pattern)
+                    ) || FAKE_PATTERNS.investorNames.some(pattern =>
+                        item.investorName?.includes(pattern)
+                    );
+                    
+                    if (isFake) deletedCount++;
+                    return !isFake;
+                });
+                localStorage.setItem('accountingData', JSON.stringify(cleanAccounting));
+                
+                result.innerHTML = `
+                    <div class="status success">
+                        ✅ 가짜 데이터 정리 완료!<br>
+                        총 ${deletedCount}개의 가짜 데이터가 삭제되었습니다.<br>
+                        진짜 데이터는 모두 보존되었습니다.
+                    </div>`;
+                
+                // 다시 분석
+                setTimeout(analyzeData, 1000);
+                
+            } catch (error) {
+                console.error('가짜 데이터 삭제 중 오류:', error);
+                result.innerHTML = '<div class="status error">❌ 가짜 데이터 삭제 중 오류가 발생했습니다.</div>';
+            }
+        }
+        
+        function clearAllData() {
+            if (!confirm('⚠️ 경고: 모든 데이터를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!\n진짜 데이터도 모두 삭제됩니다.')) {
+                return;
+            }
+            
+            if (!confirm('정말 확실하신가요? 모든 투자자, 숙소, 회계 데이터가 삭제됩니다!')) {
+                return;
+            }
+            
+            const result = document.getElementById('result');
+            
+            try {
+                localStorage.removeItem('accommodationData');
+                localStorage.removeItem('investorData');
+                localStorage.removeItem('accountingData');
+                
+                result.innerHTML = `
+                    <div class="status success">
+                        💥 모든 데이터가 삭제되었습니다.<br>
+                        이제 깨끗한 상태에서 시작할 수 있습니다.
+                    </div>`;
+                
+                // 다시 분석
+                setTimeout(analyzeData, 1000);
+                
+            } catch (error) {
+                console.error('전체 데이터 삭제 중 오류:', error);
+                result.innerHTML = '<div class="status error">❌ 데이터 삭제 중 오류가 발생했습니다.</div>';
+            }
+        }
+        
+        // 페이지 로드 시 자동 분석
+        window.addEventListener('load', analyzeData);
+    </script>
+</body>
+</html>

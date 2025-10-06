@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>투자자 관리 - Teamk 공유숙박 관리 시스템</title>
+    <!-- SUPER SERVICE WORKER BLOCKER (100% 완전 차단) -->
+    <script src="js/super-block-sw.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
@@ -18,6 +20,20 @@
         }
         .tab-button:hover {
             background-color: #f3f4f6;
+        }
+        
+        /* 모달 스크롤 개선 */
+        .modal-overlay {
+            backdrop-filter: blur(4px);
+        }
+        
+        /* 모바일에서 더 나은 스크롤 */
+        @media (max-height: 700px) {
+            .modal-overlay .flex.items-start {
+                align-items: flex-start !important;
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
         }
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.5);
@@ -70,8 +86,8 @@
                         <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
                     </button>
 
-                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    <button onclick="window.location.href='data-migration.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-database mr-1"></i> 데이터 관리
                     </button>
                 </div>
             </div>
@@ -119,10 +135,10 @@
     </div>
 
     <!-- 투자자 모달 -->
-    <div id="investorModal" class="fixed inset-0 z-50 hidden modal-overlay">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl modal-content">
-                <div class="flex justify-between items-center p-6 border-b">
+    <div id="investorModal" class="fixed inset-0 z-50 hidden modal-overlay overflow-y-auto">
+        <div class="flex items-start justify-center min-h-screen p-4 pt-8 pb-8">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[calc(100vh-4rem)] flex flex-col modal-content">
+                <div class="flex justify-between items-center p-6 border-b flex-shrink-0">
                     <h3 id="modalTitle" class="text-xl font-semibold text-gray-800">투자자 정보</h3>
                     <div class="flex items-center gap-2">
                         <button id="editButton" onclick="window.toggleEditMode && window.toggleEditMode()" class="text-blue-600 hover:text-blue-800">
@@ -135,7 +151,8 @@
                     </div>
                 </div>
                 
-                <form id="investorForm" class="p-6 space-y-6">
+                <div class="flex-1 overflow-y-auto">
+                    <form id="investorForm" class="p-6 space-y-6">
                     <!-- 기본 정보 -->
                     <div>
                         <h4 class="text-lg font-medium text-gray-800 mb-4">기본 정보</h4>
@@ -243,15 +260,16 @@
                             삭제
                         </button>
                     </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 숙소 상세보기 모달 -->
-    <div id="accommodationDetailModal" class="fixed inset-0 z-50 hidden modal-overlay">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+    <div id="accommodationDetailModal" class="fixed inset-0 z-50 hidden modal-overlay overflow-y-auto">
+        <div class="flex items-start justify-center min-h-screen p-4 pt-8 pb-8">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[calc(100vh-4rem)] flex flex-col">
                 <div class="flex justify-between items-center p-6 border-b">
                     <h3 class="text-xl font-semibold text-gray-800">숙소 상세 정보</h3>
                     <button onclick="window.closeAccommodationDetailModal && window.closeAccommodationDetailModal()" class="text-gray-400 hover:text-gray-600">
@@ -271,20 +289,24 @@
         let currentMode = 'view';
         let currentId = null;
         let isEditMode = false;
-        // Firebase 저장소 함수들
+        // Firebase 저장소 함수들 (수정된 버전)
         async function loadInvestorData() {
+            console.log('📊 투자자 데이터 로드 시작...');
             return await firebaseStorage.loadInvestors();
         }
 
         async function saveInvestorToServer(investor) {
+            console.log('💾 투자자 저장 시작:', investor.name);
             return await firebaseStorage.saveInvestor(investor);
         }
 
         async function updateInvestorOnServer(id, investor) {
+            console.log('🔄 투자자 수정 시작:', id);
             return await firebaseStorage.updateInvestor(id, investor);
         }
 
         async function deleteInvestorFromServer(id) {
+            console.log('🗑️ 투자자 삭제 시작:', id);
             return await firebaseStorage.deleteInvestor(id);
         }
 
@@ -294,7 +316,68 @@
 
         // 숙소 데이터 로드 함수 (Firebase 사용)
         async function loadAccommodationsFromServer() {
+            console.log('🏠 숙소 데이터 로드 시작...');
             return await firebaseStorage.loadAccommodations();
+        }
+        
+        // 테스트용 더미 숙소 데이터 생성
+        function createDummyAccommodations() {
+            return [
+                {
+                    id: '1',
+                    accommodationName: '테스트 숙소 1',
+                    buildingName: '테스트 빌딩 A',
+                    address: '방콕 시내',
+                    floor: 5,
+                    roomNumber: '501',
+                    keyCount: 2,
+                    parkingMethod: '무료주차',
+                    contractDate: '2024-01-01',
+                    deposit: 50000,
+                    monthlyRent: 15000,
+                    rentDate: 1,
+                    agencyName: '테스트 부동산',
+                    agencyContact: '02-1234-5678',
+                    notes: '테스트용 숙소입니다',
+                    websiteUrl: 'https://example.com/accommodation1'
+                },
+                {
+                    id: '2',
+                    accommodationName: '테스트 숙소 2',
+                    buildingName: '테스트 빌딩 B',
+                    address: '방콩 근교',
+                    floor: 3,
+                    roomNumber: '302',
+                    keyCount: 1,
+                    parkingMethod: '유료주차',
+                    contractDate: '2024-02-01',
+                    deposit: 40000,
+                    monthlyRent: 12000,
+                    rentDate: 5,
+                    agencyName: '테스트 부동산',
+                    agencyContact: '02-9876-5432',
+                    notes: '두 번째 테스트 숙소',
+                    websiteUrl: 'https://example.com/accommodation2'
+                },
+                {
+                    id: '3',
+                    accommodationName: '테스트 숙소 3',
+                    buildingName: '테스트 빌딩 C',
+                    address: '파타야 해변',
+                    floor: 7,
+                    roomNumber: '701',
+                    keyCount: 3,
+                    parkingMethod: '주차불가',
+                    contractDate: '2024-03-01',
+                    deposit: 60000,
+                    monthlyRent: 18000,
+                    rentDate: 10,
+                    agencyName: '해변 부동산',
+                    agencyContact: '076-123-4567',
+                    notes: '해변가 전망 좋은 숙소',
+                    websiteUrl: 'https://example.com/accommodation3'
+                }
+            ];
         }
 
         // 숙소 목록 - Cloudflare D1에서 로드
@@ -331,21 +414,21 @@
             // Firebase 연결 상태 확인
             if (!firebaseStorage.isConfigured()) {
                 console.warn('⚠️ Firebase 설정이 되지 않았습니다.');
-                const firebaseWarning = document.createElement('div');
-                firebaseWarning.className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6';
-                firebaseWarning.innerHTML = `
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
-                        <div class="text-yellow-800">
-                            <strong>Firebase 연동이 필요합니다!</strong>
-                            <p class="text-sm mt-1">PC와 모바일 간 데이터 동기화를 위해 Firebase 설정을 완료해주세요.</p>
-                            <a href="firebase-setup.html" class="inline-block mt-2 bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700">
-                                Firebase 연동하기
-                            </a>
-                        </div>
-                    </div>
-                `;
-                document.querySelector('.container').insertBefore(firebaseWarning, document.querySelector('.bg-white'));
+                
+                // Firebase 연동 페이지로 리다이렉션
+                const goToFirebase = confirm(`
+🔥 Firebase 연동이 필요합니다!
+
+PC와 모바일 간 데이터 동기화를 위해 Firebase 설정이 필요합니다.
+Firebase 연동 페이지로 이동하시겠습니까?
+                `);
+                
+                if (goToFirebase) {
+                    window.location.href = 'firebase-setup.html';
+                    return;
+                }
+                
+                console.log('⚠️ Firebase 없이 localStorage 모드로 실행');
             }
             
             if (checkLoginStatus()) {
@@ -358,6 +441,25 @@
                     accommodations = await loadAccommodationsFromServer();
                     console.log('✅ 투자자 데이터 로드 완료:', investorData.length + '명');
                     console.log('✅ 숙소 데이터 로드 완료:', accommodations.length + '개');
+                    
+                    // 숙소 데이터 상세 로깅 및 더미 데이터 생성
+                    if (accommodations && accommodations.length > 0) {
+                        console.log('🏠 로드된 숙소 목록:');
+                        accommodations.forEach((acc, index) => {
+                            console.log(`  ${index + 1}. ${acc.accommodationName} (ID: ${acc.id})`);
+                        });
+                    } else {
+                        console.warn('⚠️ 숙소 데이터가 비어있음 - 더미 데이터 생성');
+                        
+                        // Firebase 데이터가 비어있으면 더미 데이터 생성
+                        accommodations = createDummyAccommodations();
+                        localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+                        console.log('✅ 더미 숙소 데이터 생성 완료:', accommodations.length + '개');
+                        
+                        accommodations.forEach((acc, index) => {
+                            console.log(`  ${index + 1}. ${acc.accommodationName} (ID: ${acc.id})`);
+                        });
+                    }
                 } catch (error) {
                     console.error('❌ 데이터 로드 실패:', error);
                     
@@ -372,6 +474,19 @@
                         
                         console.log('✅ localStorage에서 데이터 로드:', investorData.length + '명 투자자');
                         
+                        // 데이터가 없으면 더미 데이터 생성 (테스트용)
+                        if (accommodations.length === 0) {
+                            console.log('🛠️ 테스트용 더미 숙소 데이터 생성 중...');
+                            accommodations = createDummyAccommodations();
+                            localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+                            console.log('✅ 더미 숙소 데이터 생성 완료:', accommodations.length + '개');
+                            
+                            // 생성된 더미 데이터 리스트
+                            accommodations.forEach((acc, index) => {
+                                console.log(`  ${index + 1}. ${acc.accommodationName} (ID: ${acc.id})`);
+                            });
+                        }
+                        
                         if (investorData.length === 0 && accommodations.length === 0) {
                             alert('데이터가 없습니다. Firebase를 연동하거나 새로운 데이터를 입력해주세요.');
                         }
@@ -379,6 +494,22 @@
                         console.error('❌ localStorage 폴백도 실패:', fallbackError);
                         alert('데이터를 불러올 수 없습니다. Firebase 연동을 먼저 설정해주세요.');
                     }
+                }
+                
+                // DOM 요소 확인
+                const accommodationSelect = document.getElementById('accommodationSelect');
+                const selectedAccommodationsContainer = document.getElementById('selectedAccommodations');
+                
+                if (!accommodationSelect) {
+                    console.error('❌ accommodationSelect 요소를 찾을 수 없음');
+                } else {
+                    console.log('✅ accommodationSelect 요소 찾기 성공');
+                }
+                
+                if (!selectedAccommodationsContainer) {
+                    console.error('❌ selectedAccommodations 요소를 찾을 수 없음');
+                } else {
+                    console.log('✅ selectedAccommodations 요소 찾기 성공');
                 }
                 
                 populateAccommodationSelect();
@@ -406,9 +537,11 @@
             }
 
             investorData.forEach(investor => {
-                const investorAccommodations = investor.accommodations.map(id => 
-                    accommodations.find(acc => acc.id === id)
-                ).filter(acc => acc);
+                // accommodations가 undefined이거나 배열이 아닐 경우 빈 배열로 처리
+                const investorAccommodationIds = investor.accommodations || [];
+                const investorAccommodations = Array.isArray(investorAccommodationIds) 
+                    ? investorAccommodationIds.map(id => accommodations.find(acc => acc.id === id)).filter(acc => acc)
+                    : [];
 
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50 cursor-pointer';
@@ -472,12 +605,27 @@
             const select = document.getElementById('accommodationSelect');
             select.innerHTML = '<option value="">숙소를 선택하세요</option>';
             
-            accommodations.forEach(acc => {
+            console.log('🏠 숙소 드롭다운 채우기 시작, 숙소 수:', accommodations.length);
+            
+            if (accommodations.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '등록된 숙소가 없습니다';
+                option.disabled = true;
+                select.appendChild(option);
+                console.log('⚠️ 등록된 숙소가 없음');
+                return;
+            }
+            
+            accommodations.forEach((acc, index) => {
+                console.log(`🏠 숙소 ${index + 1}: ${acc.accommodationName} (ID: ${acc.id})`);
                 const option = document.createElement('option');
                 option.value = acc.id;
                 option.textContent = `${acc.accommodationName} - ${acc.buildingName || ''}`;
                 select.appendChild(option);
             });
+            
+            console.log('✅ 숙소 드롭다운 채우기 완료');
         }
 
         // 회사 비율 자동 계산
@@ -490,18 +638,33 @@
         // 숙소 추가
         window.addAccommodation = function() {
             const select = document.getElementById('accommodationSelect');
-            const accommodationId = parseInt(select.value);
+            const selectedValue = select.value;
             
-            if (!accommodationId) {
+            console.log('📝 숙소 추가 시도:', { selectedValue });
+            
+            if (!selectedValue || selectedValue === '') {
                 alert('숙소를 선택해주세요.');
                 return;
             }
+
+            // ID를 문자열로 처리 (더미 데이터는 문자열 ID를 사용)
+            const accommodationId = selectedValue;
 
             if (selectedAccommodations.includes(accommodationId)) {
                 alert('이미 추가된 숙소입니다.');
                 return;
             }
 
+            // 숙소 정보 확인
+            const accommodation = accommodations.find(acc => String(acc.id) === String(accommodationId));
+            if (!accommodation) {
+                alert('선택한 숙소를 찾을 수 없습니다.');
+                console.error('❌ 숙소 ID 찾을 수 없음:', accommodationId);
+                console.log('사용 가능한 숙소 IDs:', accommodations.map(acc => acc.id));
+                return;
+            }
+
+            console.log('✅ 숙소 추가 성공:', accommodation.accommodationName);
             selectedAccommodations.push(accommodationId);
             renderSelectedAccommodations();
             select.value = '';
@@ -510,18 +673,34 @@
         // 선택된 숙소 렌더링
         function renderSelectedAccommodations() {
             const container = document.getElementById('selectedAccommodations');
+            if (!container) {
+                console.error('❌ selectedAccommodations 컸테이너를 찾을 수 없음');
+                return;
+            }
+            
+            console.log('🏠 선택된 숙소 렌더링 시작:', selectedAccommodations);
             container.innerHTML = '';
 
-            selectedAccommodations.forEach(accId => {
-                const acc = accommodations.find(a => a.id === accId);
-                if (!acc) return;
+            if (selectedAccommodations.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm p-3">선택된 숙소가 없습니다</p>';
+                return;
+            }
 
+            selectedAccommodations.forEach((accId, index) => {
+                const acc = accommodations.find(a => String(a.id) === String(accId));
+                if (!acc) {
+                    console.warn(`⚠️ 숙소 ID ${accId}를 찾을 수 없음`);
+                    return;
+                }
+
+                console.log(`🏠 숙소 ${index + 1}: ${acc.accommodationName}`);
+                
                 const div = document.createElement('div');
-                div.className = 'flex items-center justify-between bg-blue-50 p-3 rounded';
+                div.className = 'flex items-center justify-between bg-blue-50 p-3 rounded mb-2';
                 div.innerHTML = `
                     <div>
                         <div class="font-medium text-sm">${acc.accommodationName}</div>
-                        <div class="text-xs text-gray-500">${acc.buildingName || ''}</div>
+                        <div class="text-xs text-gray-500">${acc.buildingName || '빌딩명 없음'}</div>
                     </div>
                     <button onclick="window.removeAccommodation && window.removeAccommodation(${accId})" class="text-red-600 hover:text-red-800">
                         <i class="fas fa-times"></i>
@@ -529,6 +708,8 @@
                 `;
                 container.appendChild(div);
             });
+            
+            console.log('✅ 선택된 숙소 렌더링 완료, 총', selectedAccommodations.length, '개');
         }
 
         // 숙소 제거
@@ -582,7 +763,16 @@ PC와 모바일 간 데이터 동기화를 위해 Firebase를 먼저 설정해�
                 document.getElementById('investorRatio').value = 70;
                 document.getElementById('companyRatio').value = 30;
             } else if (mode === 'view') {
-                const investor = investorData.find(inv => inv.id === id);
+                console.log('🔍 투자자 찾기 시작...');
+                console.log('찾는 ID:', id, typeof id);
+                console.log('전체 투자자 데이터:', investorData);
+                
+                // ID 타입 변환해서 찾기
+                const investor = investorData.find(inv => {
+                    console.log('비교:', inv.id, typeof inv.id, '===', id, typeof id);
+                    return inv.id == id || inv.id === id || inv.id === String(id) || String(inv.id) === String(id);
+                });
+                
                 if (investor) {
                     console.log('✅ 투자자 정보 로드:', investor.name);
                     title.textContent = `투자자 정보 - ${investor.name}`;
@@ -593,6 +783,10 @@ PC와 모바일 간 데이터 동기화를 위해 Firebase를 먼저 설정해�
                 } else {
                     console.error('❌ 투자자를 찾을 수 없음, ID:', id);
                     console.log('현재 investorData:', investorData);
+                    console.log('각 투자자 ID들:');
+                    investorData.forEach((inv, index) => {
+                        console.log(`${index}: ID = "${inv.id}" (${typeof inv.id}), Name = "${inv.name}"`);
+                    });
                     alert('투자자 정보를 찾을 수 없습니다.');
                     return;
                 }
@@ -618,7 +812,7 @@ PC와 모바일 간 데이터 동기화를 위해 Firebase를 먼저 설정해�
             document.getElementById('investorRatio').value = investor.investorRatio;
             document.getElementById('companyRatio').value = investor.companyRatio;
             
-            selectedAccommodations = [...investor.accommodations];
+            selectedAccommodations = [...(investor.accommodations || [])];
             renderSelectedAccommodations();
         }
 
@@ -721,6 +915,10 @@ PC와 모바일 간 데이터 동기화를 위해 Firebase를 먼저 설정해�
                     // 로컬 데이터에서 제거
                     investorData = investorData.filter(inv => inv.id !== currentId);
                     
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('investorData', JSON.stringify(investorData));
+                    console.log('💾 localStorage에도 삭제 동기화 완료:', investorData.length + '명 투자자');
+                    
                     alert('투자자가 삭제되었습니다.');
                     renderInvestorTable();
                     closeModal();
@@ -805,6 +1003,10 @@ PC와 모바일 간 데이터 동기화를 위해 Firebase를 먼저 설정해�
                     investorData.push(savedInvestor);
                     console.log('📋 데이터 업데이트 완료:', investorData.length + '명');
                     
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('investorData', JSON.stringify(investorData));
+                    console.log('💾 localStorage에도 저장 완료:', investorData.length + '명 투자자');
+                    
                     alert('✅ 새 투자자가 성공적으로 추가되었습니다!');
                     renderInvestorTable();
                     closeModal();
@@ -829,6 +1031,10 @@ PC와 모바일 간 데이터 동기화를 위해 Firebase를 먼저 설정해�
                         investorData[index] = updatedInvestor;
                         console.log(`투자자 정보 업데이트: ${oldName} → ${updatedInvestor.name}`);
                     }
+                    
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('investorData', JSON.stringify(investorData));
+                    console.log('💾 localStorage에도 수정 저장 완료:', investorData.length + '명 투자자');
                     
                     alert(`✅ ${updatedInvestor.name}님의 정보가 성공적으로 수정되었습니다!`);
                     

@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teamk 태국 에어비앤비 숙박관리 시스템</title>
+    <!-- SUPER SERVICE WORKER BLOCKER (100% 완전 차단) -->
+    <script src="js/super-block-sw.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/translations.js"></script>
+
+    <script src="js/firebase-storage.js"></script>
     <style>
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -68,45 +72,69 @@
                         <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
                     </button>
 
-                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    <button onclick="window.location.href='data-migration.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-database mr-1"></i> 데이터 관리
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Key Metrics Summary -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <!-- 총 숙소 수 카드 -->
+            <div class="bg-gradient-to-r from-purple-400 to-purple-500 rounded-lg p-6 text-white relative overflow-hidden">
+                <div class="relative z-10">
+                    <h3 class="text-sm font-medium opacity-90 mb-2">총 숙소 수</h3>
+                    <p class="text-3xl font-bold mb-1" data-kpi="total-properties">0개</p>
+                </div>
+                <div class="absolute top-4 right-4 text-4xl opacity-30">
+                    <i class="fas fa-home"></i>
+                </div>
+            </div>
+            
+            <!-- 총 투자금 카드 -->
+            <div class="bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-lg p-6 text-white relative overflow-hidden">
+                <div class="relative z-10">
+                    <h3 class="text-sm font-medium opacity-90 mb-2">총 투자금</h3>
+                    <p class="text-3xl font-bold mb-1" data-kpi="total-investment">0 THB</p>
+                </div>
+                <div class="absolute top-4 right-4 text-4xl opacity-30">
+                    <i class="fas fa-piggy-bank"></i>
+                </div>
+            </div>
+            
             <!-- 총 수익 카드 -->
             <div class="bg-gradient-to-r from-pink-400 to-pink-500 rounded-lg p-6 text-white relative overflow-hidden">
                 <div class="relative z-10">
                     <h3 class="text-sm font-medium opacity-90 mb-2">총 수익</h3>
-                    <p class="text-3xl font-bold mb-1">0 THB</p>
+                    <p class="text-3xl font-bold mb-1" data-kpi="total-revenue">0 THB</p>
                 </div>
                 <div class="absolute top-4 right-4 text-4xl opacity-30">
                     <i class="fas fa-coins"></i>
                 </div>
             </div>
             
-            <!-- 총 손익 카드 -->
+            <!-- 총 순수익 카드 -->
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white relative overflow-hidden">
                 <div class="relative z-10">
-                    <h3 class="text-sm font-medium opacity-90 mb-2">총 손익</h3>
-                    <p class="text-3xl font-bold mb-1">0 THB</p>
+                    <h3 class="text-sm font-medium opacity-90 mb-2">총 순수익</h3>
+                    <p class="text-3xl font-bold mb-1" data-kpi="net-profit">0 THB</p>
                 </div>
                 <div class="absolute top-4 right-4 text-4xl opacity-30">
-                    <i class="fas fa-chart-line-down"></i>
+                    <i class="fas fa-chart-line-up"></i>
                 </div>
             </div>
             
-            <!-- 평균 ROI 카드 -->
-            <div class="bg-gradient-to-r from-green-400 to-green-500 rounded-lg p-6 text-white relative overflow-hidden">
+
+            
+            <!-- 점유율 카드 -->
+            <div class="bg-gradient-to-r from-orange-400 to-orange-500 rounded-lg p-6 text-white relative overflow-hidden">
                 <div class="relative z-10">
-                    <h3 class="text-sm font-medium opacity-90 mb-2">평균 ROI</h3>
-                    <p class="text-3xl font-bold mb-1">0%</p>
+                    <h3 class="text-sm font-medium opacity-90 mb-2">점유율</h3>
+                    <p class="text-3xl font-bold mb-1" data-kpi="occupancy-rate">0%</p>
                 </div>
                 <div class="absolute top-4 right-4 text-4xl opacity-30">
-                    <i class="fas fa-percentage"></i>
+                    <i class="fas fa-calendar-check"></i>
                 </div>
             </div>
         </div>
@@ -130,7 +158,7 @@
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 수익금</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 지출금</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 순수익</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ROI</th>
+    
                         </tr>
                     </thead>
                     <tbody id="dataTable" class="bg-white divide-y divide-gray-200">
@@ -142,18 +170,441 @@
     </div>
 
     <script>
-        // 페이지 로드 시 로그인 확인
+        // 페이지 로드 시 초기화 - 단순하고 확실한 방법
         document.addEventListener('DOMContentLoaded', function() {
-            if (checkLoginStatus()) { // 모든 사용자 접근 허용
-                initializePagePermissions(); // 권한별 페이지 설정
+            console.log('🚀 대시보드 페이지 초기화 시작');
+            
+            // 로그인 상태 확인 (관리자 전용)
+            if (!checkLoginStatus()) {
+                return;
             }
+            
+            // 1초 후 실행하여 모든 DOM이 준비되도록 함
+            setTimeout(async () => {
+                try {
+                    console.log('📂 데이터 로딩 시작...');
+                    
+                    // localStorage에서 직접 데이터 로드
+                    const localInvestors = localStorage.getItem('investorData');
+                    const localAccommodations = localStorage.getItem('accommodationData');
+                    const localAccounting = localStorage.getItem('accountingData');
+                    
+                    investors = localInvestors ? JSON.parse(localInvestors) : [];
+                    accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+                    accountingData = localAccounting ? JSON.parse(localAccounting) : [];
+                    
+                    console.log('📊 로드된 데이터:', {
+                        investors: investors.length,
+                        accommodations: accommodations.length,
+                        accounting: accountingData.length
+                    });
+                    
+                    // 실제 데이터만 사용 - 가짜 데이터 생성하지 않음
+                    if (accommodations.length === 0) {
+                        console.log('⚠️ 숙소 데이터가 없습니다. 숙소관리에서 데이터를 먼저 입력해주세요.');
+                    }
+                    if (accountingData.length === 0) {
+                        console.log('⚠️ 회계 데이터가 없습니다. 수익관리에서 데이터를 먼저 입력해주세요.');
+                    }
+                    
+                    // 실제 계산 및 업데이트
+                    console.log('🧮 데이터 계산 시작...');
+                    const realData = calculateRealData();
+                    
+                    console.log('📊 KPI 업데이트 시작...');
+                    updateKPICards(realData);
+                    
+                    console.log('📋 테이블 업데이트 시작...');
+                    updateDataTable(realData);
+                    
+                    console.log('🎉 대시보드 초기화 완료!');
+                    
+                } catch (error) {
+                    console.error('❌ 대시보드 초기화 실패:', error);
+                    alert('대시보드 로딩 실패: ' + error.message);
+                }
+            }, 1000);
         });
+        
+        // 로그인 체크는 auth.js에서 처리
+        
+        // 글로벌 데이터 변수
+        let investors = [];
+        let accommodations = [];
+        let accountingData = [];
 
-        // 태국 숙소 데이터 - 샘플 데이터 제거됨
-        const tableData = [];
+        // 대시보드 초기화 함수
+        async function initializeDashboard() {
+            console.log('📊 대시보드 데이터 로드 시작');
+            
+            try {
+                // 간단하게 localStorage에서 직접 로드
+                await loadSystemDataSimple();
+                
+                // 실제 데이터 기반 계산
+                const realData = calculateRealData();
+                
+                // KPI 카드 업데이트
+                updateKPICards(realData);
+                
+                // 데이터 테이블 업데이트
+                updateDataTable(realData);
+                
+                console.log('✅ 대시보드 데이터 로드 완료');
+                
+            } catch (error) {
+                console.error('❌ 대시보드 데이터 로드 실패:', error);
+                console.log('⚠️ 더미 데이터 생성하지 않음 - 실제 데이터만 사용');
+                
+                // 빈 데이터로 화면 표시
+                const emptyData = {
+                    properties: [],
+                    kpis: {
+                        totalProperties: 0,
+                        totalInvestment: 0,
+                        totalRevenue: 0,
+                        totalExpense: 0,
+                        netProfit: 0,
+                        occupancyRate: 0
+                    }
+                };
+                updateKPICards(emptyData);
+                updateDataTable(emptyData);
+            }
+        }
 
-        // Populate table
-        const tableBody = document.getElementById('dataTable');
+        // 간단한 데이터 로딩 (localStorage 우선)
+        async function loadSystemDataSimple() {
+            console.log('📂 localStorage에서 데이터 로드 중...');
+            
+            // localStorage에서 직접 로드
+            const localInvestors = localStorage.getItem('investorData');
+            const localAccommodations = localStorage.getItem('accommodationData');
+            const localAccounting = localStorage.getItem('accountingData');
+            
+            investors = localInvestors ? JSON.parse(localInvestors) : [];
+            accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+            accountingData = localAccounting ? JSON.parse(localAccounting) : [];
+            
+            console.log('📊 로드된 데이터:', {
+                investors: investors.length + '명',
+                accommodations: accommodations.length + '개',
+                accounting: accountingData.length + '건'
+            });
+            
+            // 실제 데이터만 사용 - 더미 데이터 생성하지 않음
+            if (investors.length === 0 && accommodations.length === 0) {
+                console.log('⚠️ 실제 데이터가 없습니다.');
+            }
+        }
+
+        // 실제 시스템 데이터 로드 (Firebase 포함)
+        async function loadSystemData() {
+            try {
+                // Firebase에서 데이터 로드 시도
+                if (typeof firebaseStorage !== 'undefined' && firebaseStorage.isConnected()) {
+                    console.log('🔥 Firebase에서 데이터 로드 중...');
+                    const [investorData, accommodationData, accountingDataResult] = await Promise.all([
+                        firebaseStorage.loadInvestors(),
+                        firebaseStorage.loadAccommodations(),
+                        firebaseStorage.loadAccounting()
+                    ]);
+                    
+                    investors = investorData || [];
+                    accommodations = accommodationData || [];
+                    accountingData = accountingDataResult || [];
+                    
+                    console.log('✅ Firebase 데이터 로드:', investors.length + '명 투자자, ' + accommodations.length + '개 숙소, ' + accountingData.length + '건 회계');
+                } else {
+                    throw new Error('Firebase 연결 없음');
+                }
+            } catch (firebaseError) {
+                console.log('⚠️ Firebase 로드 실패, localStorage 폴백:', firebaseError.message);
+                
+                // localStorage 폴백
+                const localInvestors = localStorage.getItem('investorData');
+                const localAccommodations = localStorage.getItem('accommodationData');
+                const localAccounting = localStorage.getItem('accountingData');
+                
+                investors = localInvestors ? JSON.parse(localInvestors) : [];
+                accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+                accountingData = localAccounting ? JSON.parse(localAccounting) : [];
+                
+                // 실제 데이터만 사용 - 더미 데이터 생성하지 않음
+                if (investors.length === 0 && accommodations.length === 0) {
+                    console.log('⚠️ 실제 데이터가 없습니다. 숙소관리와 수익관리에서 데이터를 입력해주세요.');
+                }
+                
+                console.log('✅ localStorage 데이터 로드:', investors.length + '명 투자자, ' + accommodations.length + '개 숙소, ' + accountingData.length + '건 회계');
+            }
+        }
+
+
+
+        // 실제 데이터를 기반으로 정확하게 계산
+        function calculateRealData() {
+            console.log('🧮 실제 데이터 기반 계산 시작');
+            console.log('📊 입력 데이터:', {
+                accommodations: accommodations.length,
+                accountingData: accountingData.length,
+                investors: investors.length
+            });
+            
+            const properties = [];
+            let totalInvestment = 0;
+            let totalRevenue = 0;
+            let totalExpense = 0;
+            
+            // 각 숙소별 데이터 계산
+            accommodations.forEach((acc, index) => {
+                console.log(`🏠 숙소 ${index + 1} 계산:`, acc.accommodationName || acc.name);
+                
+                // 해당 숙소의 회계 데이터 필터링 - 다양한 ID 형태 처리
+                const accAccountingData = accountingData.filter(item => {
+                    const itemAccId = parseInt(item.accommodationId) || parseInt(item.accommodation_id) || 0;
+                    const accId = parseInt(acc.id) || 0;
+                    return itemAccId === accId;
+                });
+                
+                console.log(`💰 숙소 ${acc.accommodationName || acc.name}의 회계 데이터:`, accAccountingData.length + '건');
+                
+                // 투자금 - 다양한 필드명 처리
+                const investment = parseFloat(
+                    acc.totalInvestment || 
+                    acc.investment || 
+                    acc.total_investment || 
+                    acc.investmentAmount || 
+                    0
+                );
+                
+                // 수익 계산 - income 타입 항목들
+                const revenue = accAccountingData
+                    .filter(item => (item.type || '').toLowerCase() === 'income')
+                    .reduce((sum, item) => {
+                        const amount = parseFloat(item.amount || 0);
+                        console.log(`  📈 수익: ${amount} (${item.description || '설명없음'})`);
+                        return sum + amount;
+                    }, 0);
+                    
+                // 지출 계산 - expense 타입 항목들  
+                const expense = accAccountingData
+                    .filter(item => (item.type || '').toLowerCase() === 'expense')
+                    .reduce((sum, item) => {
+                        const amount = parseFloat(item.amount || 0);
+                        console.log(`  📉 지출: ${amount} (${item.description || '설명없음'})`);
+                        return sum + amount;
+                    }, 0);
+                
+                const netProfit = revenue - expense;
+                
+                // 투자자명 찾기 - 다양한 필드명 처리
+                const investorName = acc.investorName || acc.investor_name || acc.owner || '미지정';
+                
+                console.log(`📊 숙소 ${acc.accommodationName || acc.name} 계산 결과:`, {
+                    investment: investment,
+                    revenue: revenue,
+                    expense: expense,
+                    netProfit: netProfit
+                });
+                
+                properties.push({
+                    name: acc.accommodationName || acc.name || `숙소 ${acc.id}`,
+                    investment: investment,
+                    totalRevenue: revenue,
+                    totalExpense: expense,
+                    netProfit: netProfit,
+                    investorName: investorName
+                });
+                
+                // 전체 합계에 추가
+                totalInvestment += investment;
+                totalRevenue += revenue;
+                totalExpense += expense;
+            });
+            
+            const totalNetProfit = totalRevenue - totalExpense;
+            
+            // 점유율 계산 (수익이 있는 숙소 / 전체 숙소)
+            const activeProperties = properties.filter(prop => prop.totalRevenue > 0).length;
+            const occupancyRate = accommodations.length > 0 ? (activeProperties / accommodations.length) * 100 : 0;
+            
+            const result = {
+                properties: properties,
+                kpis: {
+                    totalProperties: accommodations.length,
+                    totalInvestment: totalInvestment,
+                    totalRevenue: totalRevenue,
+                    totalExpense: totalExpense,
+                    netProfit: totalNetProfit,
+                    occupancyRate: occupancyRate
+                }
+            };
+            
+            console.log('🎯 최종 KPI 계산 결과:', result.kpis);
+            return result;
+        }
+
+        // 데이터 없음 메시지 표시
+        function showNoDataMessage() {
+            const container = document.querySelector('.container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-6xl mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">데이터를 불러올 수 없습니다</h2>
+                        <p class="text-gray-600 mb-4">Firebase 연동을 먼저 설정하거나, 투자자 및 숙소 데이터를 입력해주세요.</p>
+                        <div class="space-x-2">
+                            <a href="firebase-setup.html" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                                Firebase 연동 설정
+                            </a>
+                            <a href="investor.html" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                                투자자 관리
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // KPI 카드 업데이트 함수
+        function updateKPICards(data) {
+            console.log('📊 KPI 카드 업데이트 시작');
+            console.log('📋 업데이트할 데이터:', data.kpis);
+            
+            const kpiElements = {
+                totalProperties: document.querySelector('[data-kpi="total-properties"]'),
+                totalInvestment: document.querySelector('[data-kpi="total-investment"]'),
+                totalRevenue: document.querySelector('[data-kpi="total-revenue"]'),
+                netProfit: document.querySelector('[data-kpi="net-profit"]'),
+    
+                occupancyRate: document.querySelector('[data-kpi="occupancy-rate"]')
+            };
+            
+            // 각 요소 존재 여부 확인
+            Object.keys(kpiElements).forEach(key => {
+                if (!kpiElements[key]) {
+                    console.warn(`⚠️ KPI 요소 찾을 수 없음: ${key}`);
+                }
+            });
+            
+            // 각 KPI 카드 업데이트 - 안전한 업데이트
+            try {
+                if (kpiElements.totalProperties) {
+                    kpiElements.totalProperties.textContent = data.kpis.totalProperties + '개';
+                    console.log('✅ 총 숙소 수 업데이트:', data.kpis.totalProperties + '개');
+                }
+                
+                if (kpiElements.totalInvestment) {
+                    kpiElements.totalInvestment.textContent = data.kpis.totalInvestment.toLocaleString() + ' THB';
+                    console.log('✅ 총 투자금 업데이트:', data.kpis.totalInvestment.toLocaleString() + ' THB');
+                }
+                
+                if (kpiElements.totalRevenue) {
+                    kpiElements.totalRevenue.textContent = data.kpis.totalRevenue.toLocaleString() + ' THB';
+                    console.log('✅ 총 수익 업데이트:', data.kpis.totalRevenue.toLocaleString() + ' THB');
+                }
+                
+                if (kpiElements.netProfit) {
+                    const netProfitText = data.kpis.netProfit.toLocaleString() + ' THB';
+                    kpiElements.netProfit.textContent = netProfitText;
+                    // 수익/손실에 따른 색상 변경
+                    if (data.kpis.netProfit >= 0) {
+                        kpiElements.netProfit.parentElement.parentElement.className = 
+                            kpiElements.netProfit.parentElement.parentElement.className.replace(/from-\w+-\d+ to-\w+-\d+/, 'from-green-400 to-green-500');
+                    } else {
+                        kpiElements.netProfit.parentElement.parentElement.className = 
+                            kpiElements.netProfit.parentElement.parentElement.className.replace(/from-\w+-\d+ to-\w+-\d+/, 'from-red-400 to-red-500');
+                    }
+                    console.log('✅ 순수익 업데이트:', netProfitText);
+                }
+                
+
+                
+                if (kpiElements.occupancyRate) {
+                    const occupancyText = data.kpis.occupancyRate.toFixed(1) + '%';
+                    kpiElements.occupancyRate.textContent = occupancyText;
+                    console.log('✅ 점유율 업데이트:', occupancyText);
+                }
+                
+                console.log('🎉 모든 KPI 카드 업데이트 완료!');
+                
+            } catch (error) {
+                console.error('❌ KPI 업데이트 중 오류:', error);
+            }
+        }
+        
+        // 데이터 테이블 업데이트 함수
+        function updateDataTable(data) {
+            console.log('📋 데이터 테이블 업데이트 시작');
+            console.log('📊 테이블 데이터:', data.properties);
+            
+            const tableBody = document.getElementById('dataTable');
+            if (!tableBody) {
+                console.error('❌ dataTable 요소를 찾을 수 없음');
+                return;
+            }
+            
+            // 기존 데이터 제거
+            tableBody.innerHTML = '';
+            
+            if (data.properties.length === 0) {
+                // 데이터가 없을 때 메시지 표시
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>표시할 숙소 데이터가 없습니다.</p>
+                            <p class="text-sm">투자자 관리 또는 숙소 관리에서 데이터를 추가해주세요.</p>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+                console.log('📋 빈 테이블 메시지 표시');
+                return;
+            }
+            
+            // 새 데이터 추가
+            data.properties.forEach((property, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+                
+
+                // 순수익에 따른 색상 결정
+                const netProfitColorClass = property.netProfit >= 0 ? 'text-green-600' : 'text-red-600';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${property.name}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-mono">
+                        ${property.investment.toLocaleString()} THB
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600 font-mono">
+                        ${property.totalRevenue.toLocaleString()} THB
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-red-600 font-mono">
+                        ${property.totalExpense.toLocaleString()} THB
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right ${netProfitColorClass} font-mono font-semibold">
+                        ${property.netProfit.toLocaleString()} THB
+                    </td>
+
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        ${property.investorName}
+                    </td>
+                `;
+                
+                tableBody.appendChild(tr);
+                console.log(`✅ 행 ${index + 1} 추가: ${property.name} (투자금: ${property.investment.toLocaleString()}, 순수익: ${property.netProfit.toLocaleString()})`);
+            });
+            
+            console.log('🎉 데이터 테이블 업데이트 완료! 총 ' + data.properties.length + '개 행');
+        }
+
+        // Populate table - 더 이상 사용되지 않음 (새로운 updateDataTable 함수로 대체)
+        // const tableBody = document.getElementById('dataTable');
+        /*
         tableData.forEach(row => {
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-gray-50';
@@ -170,10 +621,7 @@
                     // 투자금, 누적 수익금, 누적 지출금, 누적 순수익
                     td.className += ' text-right text-gray-900 font-mono';
                     td.textContent = cell + ' THB';
-                } else if (index === 5) {
-                    // ROI
-                    td.className += ' text-center font-semibold text-green-600';
-                    td.textContent = cell;
+
                 }
                 
                 tr.appendChild(td);
@@ -181,6 +629,7 @@
             
             tableBody.appendChild(tr);
         });
+        */
     </script>
 </body>
 </html>

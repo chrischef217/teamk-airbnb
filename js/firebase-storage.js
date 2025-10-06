@@ -107,6 +107,31 @@ class FirebaseStorage {
     handleLocalStorageFallback(collection, method, data, docId) {
         const key = `firebase_${collection}`;
         let localData = JSON.parse(localStorage.getItem(key) || '{}');
+        
+        // 기존 배열 형태 데이터도 지원 (하위 호환성)
+        const legacyKeys = {
+            'investors': 'investorData',
+            'accommodations': 'accommodationData',
+            'reservations': 'reservationData',
+            'accounting': 'accountingData'
+        };
+        
+        if (Object.keys(localData).length === 0 && legacyKeys[collection]) {
+            const legacyData = localStorage.getItem(legacyKeys[collection]);
+            if (legacyData) {
+                const parsedLegacy = JSON.parse(legacyData);
+                if (Array.isArray(parsedLegacy)) {
+                    // 배열을 객체로 변환
+                    localData = {};
+                    parsedLegacy.forEach(item => {
+                        if (item.id) {
+                            localData[item.id] = item;
+                        }
+                    });
+                    console.log(`📦 Legacy 데이터 변환: ${collection} (${parsedLegacy.length}개)`);
+                }
+            }
+        }
 
         switch (method) {
             case 'GET':
@@ -180,6 +205,17 @@ class FirebaseStorage {
             // Firebase에 저장
             const result = await this.makeFirebaseRequest('investors', 'PUT', investor, investor.id);
             
+            // 투자자가 보유한 숙소들의 investorName 업데이트
+            if (investor.accommodations && investor.accommodations.length > 0) {
+                console.log('🏠 연결된 숙소들의 투자자명 업데이트 중...', investor.accommodations);
+                await this.updateAccommodationInvestorNames(investor.accommodations, investor.name);
+            }
+            
+            // 자동으로 localStorage도 동기화
+            const allInvestors = await this.loadInvestors();
+            localStorage.setItem('investorData', JSON.stringify(allInvestors));
+            console.log('🔄 localStorage 자동 동기화 완료');
+            
             console.log('✅ 투자자 저장 성공:', investor.name);
             return { id: investor.id, ...investor };
             
@@ -237,6 +273,11 @@ class FirebaseStorage {
             
             const result = await this.makeFirebaseRequest('accommodations', 'PUT', accommodation, accommodation.id);
             
+            // 자동으로 localStorage도 동기화
+            const allAccommodations = await this.loadAccommodations();
+            localStorage.setItem('accommodationData', JSON.stringify(allAccommodations));
+            console.log('🔄 localStorage 자동 동기화 완료');
+            
             console.log('✅ 숙소 저장 성공:', accommodation.name);
             return { id: accommodation.id, ...accommodation };
             
@@ -257,6 +298,40 @@ class FirebaseStorage {
             console.log('✅ 숙소 삭제 성공');
         } catch (error) {
             console.error('❌ 숙소 삭제 실패:', error);
+            throw error;
+        }
+    }
+
+    // 숙소들의 investorName 업데이트 (단방향 데이터 흐름 구현)
+    async updateAccommodationInvestorNames(accommodationIds, investorName) {
+        try {
+            console.log('🔄 숙소들의 투자자명 업데이트 시작:', { accommodationIds, investorName });
+            
+            // 모든 숙소 데이터 로드
+            const accommodations = await this.loadAccommodations();
+            
+            // 지정된 ID들에 해당하는 숙소들의 investorName 업데이트
+            const updatePromises = accommodationIds.map(async (accId) => {
+                const accommodation = accommodations.find(acc => acc.id == accId);
+                if (accommodation) {
+                    console.log(`🏠 숙소 "${accommodation.accommodationName}" 투자자명 업데이트: ${investorName}`);
+                    const updatedAccommodation = { ...accommodation, investorName };
+                    return await this.saveAccommodation(updatedAccommodation);
+                } else {
+                    console.warn('⚠️ 숙소 ID 찾을 수 없음:', accId);
+                }
+            });
+            
+            await Promise.all(updatePromises.filter(p => p)); // null/undefined 제외
+            
+            // localStorage도 업데이트
+            const updatedAccommodations = await this.loadAccommodations();
+            localStorage.setItem('accommodationData', JSON.stringify(updatedAccommodations));
+            
+            console.log('✅ 숙소들의 투자자명 업데이트 완료');
+            
+        } catch (error) {
+            console.error('❌ 숙소들의 투자자명 업데이트 실패:', error);
             throw error;
         }
     }

@@ -101,16 +101,7 @@
                 </div>
             </div>
             
-            <!-- 평균 ROI 카드 -->
-            <div class="bg-gradient-to-r from-green-400 to-green-500 rounded-lg p-6 text-white relative overflow-hidden">
-                <div class="relative z-10">
-                    <h3 class="text-sm font-medium opacity-90 mb-2">평균 ROI</h3>
-                    <p class="text-3xl font-bold mb-1">0%</p>
-                </div>
-                <div class="absolute top-4 right-4 text-4xl opacity-30">
-                    <i class="fas fa-percentage"></i>
-                </div>
-            </div>
+
         </div>
 
 
@@ -132,7 +123,7 @@
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 수익금</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 지출금</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 순수익</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ROI</th>
+    
                         </tr>
                     </thead>
                     <tbody id="dataTable" class="bg-white divide-y divide-gray-200">
@@ -172,10 +163,7 @@
                     // 투자금, 누적 수익금, 누적 지출금, 누적 순수익
                     td.className += ' text-right text-gray-900 font-mono';
                     td.textContent = cell + ' THB';
-                } else if (index === 5) {
-                    // ROI
-                    td.className += ' text-center font-semibold text-green-600';
-                    td.textContent = cell;
+
                 }
                 
                 tr.appendChild(td);

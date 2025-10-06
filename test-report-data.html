@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리포트 테스트 데이터 생성</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">리포트 테스트 데이터 생성</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">현재 데이터 상태</h2>
+            <div class="grid md:grid-cols-3 gap-4">
+                <div>
+                    <div class="text-sm text-gray-600">투자자</div>
+                    <div id="investorCount" class="text-2xl font-bold text-blue-600">0명</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600">숙소</div>
+                    <div id="accommodationCount" class="text-2xl font-bold text-green-600">0개</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600">회계 거래</div>
+                    <div id="accountingCount" class="text-2xl font-bold text-purple-600">0건</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">테스트 데이터 생성</h2>
+            <div class="space-y-4">
+                <button onclick="generateTestData()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
+                    테스트 데이터 생성
+                </button>
+                <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg">
+                    모든 데이터 삭제
+                </button>
+                <button onclick="testReport()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg">
+                    리포트 테스트
+                </button>
+            </div>
+        </div>
+
+        <div id="log" class="bg-gray-800 text-green-400 rounded-lg p-4 font-mono text-sm h-64 overflow-y-auto">
+            콘솔 로그가 여기에 표시됩니다...
+        </div>
+    </div>
+
+    <script>
+        function updateDataCounts() {
+            const investors = JSON.parse(localStorage.getItem('investorData') || '[]');
+            const accommodations = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+            const accounting = JSON.parse(localStorage.getItem('accountingData') || '[]');
+            
+            document.getElementById('investorCount').textContent = investors.length + '명';
+            document.getElementById('accommodationCount').textContent = accommodations.length + '개';
+            document.getElementById('accountingCount').textContent = accounting.length + '건';
+        }
+
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function generateTestData() {
+            log('🚀 테스트 데이터 생성 시작...');
+            
+            // 테스트 숙소 데이터
+            const accommodations = [
+                {
+                    id: 'test-acc-1',
+                    name: '방콕 시티 아파트',
+                    location: '방콕 시내',
+                    type: '아파트',
+                    rooms: 2,
+                    price: 80000
+                },
+                {
+                    id: 'test-acc-2', 
+                    name: '파타야 비치 콘도',
+                    location: '파타야 해변가',
+                    type: '콘도',
+                    rooms: 3,
+                    price: 120000
+                }
+            ];
+            
+            // 테스트 투자자 데이터
+            const investors = [
+                {
+                    id: 'test-investor-1',
+                    name: '김투자',
+                    initialInvestment: 50000000,
+                    ownershipPercentage: 60,
+                    contact: 'kim@example.com',
+                    accommodations: ['test-acc-1', 'test-acc-2']
+                },
+                {
+                    id: 'test-investor-2',
+                    name: '이사업',
+                    initialInvestment: 30000000, 
+                    ownershipPercentage: 40,
+                    contact: 'lee@example.com',
+                    accommodations: ['test-acc-1']
+                }
+            ];
+            
+            // 테스트 회계 데이터 (최근 3개월)
+            const accounting = [];
+            const months = ['2024-10', '2024-11', '2024-12'];
+            
+            months.forEach(month => {
+                // 수익 거래
+                accounting.push(
+                    {
+                        id: `income-${month}-1`,
+                        date: `${month}-05`,
+                        accommodationId: 'test-acc-1',
+                        type: 'income',
+                        category: '숙박료',
+                        amount: 1200000,
+                        description: '에어비앤비 예약 수익'
+                    },
+                    {
+                        id: `income-${month}-2`,
+                        date: `${month}-15`,
+                        accommodationId: 'test-acc-2',
+                        type: 'income',
+                        category: '숙박료',
+                        amount: 1800000,
+                        description: '부킹닷컴 예약 수익'
+                    },
+                    {
+                        id: `income-${month}-3`,
+                        date: `${month}-25`,
+                        accommodationId: 'test-acc-1',
+                        type: 'income',
+                        category: '추가 서비스',
+                        amount: 300000,
+                        description: '청소 서비스 수수료'
+                    }
+                );
+                
+                // 비용 거래
+                accounting.push(
+                    {
+                        id: `expense-${month}-1`,
+                        date: `${month}-10`,
+                        accommodationId: 'test-acc-1',
+                        type: 'expense',
+                        category: '청소비',
+                        amount: 150000,
+                        description: '정기 청소 비용'
+                    },
+                    {
+                        id: `expense-${month}-2`,
+                        date: `${month}-20`,
+                        accommodationId: 'test-acc-2',
+                        type: 'expense',
+                        category: '유지보수',
+                        amount: 200000,
+                        description: '에어컨 수리비'
+                    },
+                    {
+                        id: `expense-${month}-3`,
+                        date: `${month}-30`,
+                        accommodationId: 'test-acc-1',
+                        type: 'expense',
+                        category: '관리비',
+                        amount: 100000,
+                        description: '월 관리비'
+                    }
+                );
+            });
+            
+            // localStorage에 저장
+            localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+            localStorage.setItem('investorData', JSON.stringify(investors));
+            localStorage.setItem('accountingData', JSON.stringify(accounting));
+            
+            log(`✅ 숙소 ${accommodations.length}개 생성`);
+            log(`✅ 투자자 ${investors.length}명 생성`);
+            log(`✅ 회계 거래 ${accounting.length}건 생성`);
+            log('🎉 테스트 데이터 생성 완료!');
+            
+            updateDataCounts();
+        }
+
+        function clearAllData() {
+            if (confirm('모든 데이터를 삭제하시겠습니까?')) {
+                localStorage.removeItem('accommodationData');
+                localStorage.removeItem('investorData');
+                localStorage.removeItem('accountingData');
+                
+                log('🗑️ 모든 데이터가 삭제되었습니다.');
+                updateDataCounts();
+            }
+        }
+
+        function testReport() {
+            const investors = JSON.parse(localStorage.getItem('investorData') || '[]');
+            
+            if (investors.length === 0) {
+                alert('먼저 테스트 데이터를 생성해주세요.');
+                return;
+            }
+            
+            // 첫 번째 투자자로 리포트 테스트
+            const testInvestor = investors[0];
+            const testMonth = '2024-12';
+            
+            const reportUrl = `investor-report.html?investor=${encodeURIComponent(testInvestor.id)}&month=${encodeURIComponent(testMonth)}`;
+            
+            log(`🔗 리포트 URL: ${reportUrl}`);
+            log('📊 새 창에서 리포트를 열고 있습니다...');
+            
+            window.open(reportUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+        }
+
+        // 페이지 로드 시 데이터 상태 업데이트
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDataCounts();
+            log('📋 테스트 데이터 생성 페이지가 준비되었습니다.');
+            
+            // 자동으로 테스트 데이터 생성 (데모용)
+            setTimeout(() => {
+                if (JSON.parse(localStorage.getItem('investorData') || '[]').length === 0) {
+                    log('🤖 자동으로 테스트 데이터를 생성합니다...');
+                    generateTestData();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

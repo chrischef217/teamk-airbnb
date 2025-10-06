@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리포트 직접 테스트</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">투자자 리포트 직접 테스트</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">테스트할 투자자</label>
+                <select id="testInvestor" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <option value="test-investor-1">김투자</option>
+                    <option value="demo-investor">데모 투자자</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">테스트할 월</label>
+                <select id="testMonth" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <option value="2024-12">2024년 12월</option>
+                    <option value="2024-11">2024년 11월</option>
+                    <option value="2024-10">2024년 10월</option>
+                </select>
+            </div>
+            
+            <button onclick="openReport()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
+                리포트 열기
+            </button>
+            
+            <button onclick="setupTestData()" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg">
+                테스트 데이터 설정
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function setupTestData() {
+            // 테스트 데이터 생성
+            const accommodations = [
+                { id: 'test-acc-1', name: '방콕 시티 아파트', location: '방콕 시내' },
+                { id: 'test-acc-2', name: '파타야 비치 콘도', location: '파타야 해변가' }
+            ];
+            
+            const investors = [
+                {
+                    id: 'test-investor-1',
+                    name: '김투자',
+                    initialInvestment: 50000000,
+                    ownershipPercentage: 60,
+                    contact: 'kim@example.com',
+                    accommodations: ['test-acc-1', 'test-acc-2']
+                }
+            ];
+            
+            const accounting = [
+                {
+                    id: 'test-income-1',
+                    date: '2024-12-05',
+                    accommodationId: 'test-acc-1',
+                    type: 'income',
+                    category: '숙박료',
+                    amount: 1200000,
+                    description: '에어비앤비 예약 수익'
+                },
+                {
+                    id: 'test-expense-1',
+                    date: '2024-12-10',
+                    accommodationId: 'test-acc-1',
+                    type: 'expense',
+                    category: '청소비',
+                    amount: 150000,
+                    description: '정기 청소 비용'
+                }
+            ];
+            
+            localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+            localStorage.setItem('investorData', JSON.stringify(investors));
+            localStorage.setItem('accountingData', JSON.stringify(accounting));
+            
+            alert('테스트 데이터가 설정되었습니다!');
+        }
+
+        function openReport() {
+            const investor = document.getElementById('testInvestor').value;
+            const month = document.getElementById('testMonth').value;
+            
+            const url = `investor-report.html?investor=${encodeURIComponent(investor)}&month=${encodeURIComponent(month)}`;
+            window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+        }
+
+        // 페이지 로드시 자동으로 테스트 데이터 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            setupTestData();
+        });
+    </script>
+</body>
+</html>

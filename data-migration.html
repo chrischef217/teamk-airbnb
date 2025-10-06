@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>데이터 마이그레이션 - Firebase</title>
+    <!-- Service Worker 완전 차단 (최우선 로드) -->
+    <script src="js/super-block-sw.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/firebase-storage.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -18,12 +21,20 @@
         <!-- Header -->
         <div class="mb-8">
             <div class="bg-white rounded-lg shadow-sm p-6">
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">
-                    <i class="fas fa-database mr-3 text-blue-600"></i>
-                    데이터 마이그레이션 도구
-                </h1>
-                <p class="text-gray-600">localStorage에 저장된 기존 데이터를 Firebase로 이전합니다.</p>
-                <p class="text-sm text-blue-600 mt-2">📱 <strong>Firebase 연동 후 PC와 모바일 간 실시간 동기화!</strong></p>
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                            <i class="fas fa-database mr-3 text-blue-600"></i>
+                            데이터 관리 도구
+                        </h1>
+                        <p class="text-gray-600">Firebase 연동, 데이터 마이그레이션, 백업 관리를 통합 제공합니다.</p>
+                        <p class="text-sm text-blue-600 mt-2">📱 <strong>Firebase 연동 후 PC와 모바일 간 실시간 동기화!</strong></p>
+                    </div>
+                    <a href="firebase-setup.html" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center">
+                        <i class="fas fa-cog mr-2"></i>
+                        데이터베이스 설정
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -104,33 +115,7 @@
                 데이터 마이그레이션
             </h2>
 
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <button onclick="migrateInvestors()" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                    <i class="fas fa-users mr-2"></i>
-                    투자자 마이그레이션
-                </button>
-
-                <button onclick="migrateAccommodations()" 
-                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                    <i class="fas fa-home mr-2"></i>
-                    숙소 마이그레이션
-                </button>
-
-                <button onclick="migrateReservations()" 
-                        class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                    <i class="fas fa-calendar-check mr-2"></i>
-                    예약 마이그레이션
-                </button>
-
-                <button onclick="migrateAccounting()" 
-                        class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                    <i class="fas fa-coins mr-2"></i>
-                    회계 마이그레이션
-                </button>
-            </div>
-
-            <div class="mt-6 pt-4 border-t">
+            <div class="text-center">
                 <button onclick="migrateAll()" 
                         class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-medium transition-all transform hover:scale-105">
                     <i class="fas fa-rocket mr-2"></i>
@@ -153,6 +138,185 @@
             </div>
             <div id="migrationLog" class="bg-gray-50 rounded-lg p-4 h-64 overflow-y-auto font-mono text-sm">
                 <div class="text-gray-500">마이그레이션 로그가 여기에 표시됩니다...</div>
+            </div>
+        </div>
+
+        <!-- 백업 & 복원 섹션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mt-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-shield-alt text-green-600 mr-2"></i>
+                데이터 백업 & 복원
+            </h2>
+
+            <!-- 백업 현황 -->
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                <!-- 마지막 백업 정보 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-history text-blue-600 mr-2"></i>
+                        마지막 백업 현황
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">다운로드 일시:</span>
+                            <span id="lastDownloadTime" class="font-medium">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">백업 파일:</span>
+                            <span class="font-medium text-blue-600">Teamk_백업_데이터.xlsx</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 데이터 통계 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-database text-green-600 mr-2"></i>
+                        현재 데이터 현황
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">숙소:</span>
+                            <span id="accommodationCountBackup" class="font-medium">0개</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">회계:</span>
+                            <span id="accountingCountBackup" class="font-medium">0개</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">투자자:</span>
+                            <span id="investorCountBackup" class="font-medium">0개</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 백업 다운로드 -->
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-green-600 mr-3 mt-1"></i>
+                    <div>
+                        <h4 class="font-semibold text-green-800">백업 파일 다운로드</h4>
+                        <ul class="text-sm text-green-700 mt-2 space-y-1">
+                            <li>• 모든 테이블 데이터가 하나의 엑셀 파일로 다운로드됩니다</li>
+                            <li>• 각 테이블은 별도의 워크시트로 구성됩니다</li>
+                            <li>• 파일명: Teamk_백업_데이터_YYYYMMDD_HHMMSS.xlsx</li>
+                            <li>• 다운로드 후 안전한 위치에 보관하시기 바랍니다</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button onclick="downloadBackup()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-download mr-2"></i>
+                    전체 데이터 백업 다운로드
+                </button>
+            </div>
+
+            <!-- 진행 상황 표시 -->
+            <div id="backupProgress" class="mt-4 hidden">
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">백업 진행 상황</span>
+                    <span id="progressText" class="text-sm text-gray-500">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progressBar" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 데이터 복원 섹션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mt-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-upload text-orange-600 mr-2"></i>
+                데이터 백업 복원 (업로드)
+            </h2>
+
+            <!-- 경고 메시지 -->
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-3 mt-1"></i>
+                    <div>
+                        <h4 class="font-semibold text-red-800">⚠️ 데이터 복원 시 주의사항</h4>
+                        <ul class="text-sm text-red-700 mt-2 space-y-1">
+                            <li>• <strong>기존 데이터가 모두 삭제되고 백업 파일의 데이터로 교체됩니다</strong></li>
+                            <li>• 복원 작업은 되돌릴 수 없으니 신중히 결정해주세요</li>
+                            <li>• 백업 파일은 이 시스템에서 다운로드한 Excel 파일만 지원됩니다</li>
+                            <li>• 복원 전 현재 데이터를 백업하시길 권장합니다</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 파일 업로드 섹션 -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-yellow-600 mr-3 mt-1"></i>
+                    <div>
+                        <h4 class="font-semibold text-yellow-800">지원 파일 형식</h4>
+                        <ul class="text-sm text-yellow-700 mt-2 space-y-1">
+                            <li>• Excel 파일 (.xlsx) - 이 시스템에서 다운로드한 백업 파일</li>
+                            <li>• 파일 크기 제한: 최대 10MB</li>
+                            <li>• 필요한 워크시트: 숙소관리, 수익관리, 투자자관리</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 파일 선택 및 업로드 -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 mb-4">
+                <div class="text-center">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                    <div class="mb-4">
+                        <input type="file" id="backupFileInput" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(event)">
+                        <label for="backupFileInput" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            백업 파일 선택
+                        </label>
+                    </div>
+                    <p class="text-sm text-gray-500">
+                        또는 파일을 이 영역으로 드래그하세요
+                    </p>
+                </div>
+            </div>
+
+            <!-- 선택된 파일 정보 -->
+            <div id="selectedFileInfo" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-file-excel text-green-600 mr-3"></i>
+                        <div>
+                            <div id="fileName" class="font-medium text-gray-800"></div>
+                            <div id="fileSize" class="text-sm text-gray-600"></div>
+                        </div>
+                    </div>
+                    <button onclick="clearSelectedFile()" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 복원 버튼 -->
+            <div class="text-center">
+                <button id="restoreButton" onclick="restoreData()" disabled 
+                        class="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-8 py-4 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-upload mr-2"></i>
+                    데이터 복원 실행 (기존 데이터 삭제 후 복원)
+                </button>
+            </div>
+
+            <!-- 복원 진행 상황 -->
+            <div id="restoreProgress" class="mt-4 hidden">
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">복원 진행 상황</span>
+                    <span id="restoreProgressText" class="text-sm text-gray-500">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="restoreProgressBar" class="bg-red-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div id="restoreStatus" class="mt-2 text-sm text-gray-600"></div>
             </div>
         </div>
 
@@ -244,7 +408,7 @@
             }
         }
 
-        // 투자자 마이그레이션
+        // 투자자 마이그레이션 (양방향)
         async function migrateInvestors() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
@@ -252,28 +416,34 @@
             }
 
             const localData = JSON.parse(localStorage.getItem('investorData') || '[]');
+            const firebaseData = await firebaseStorage.loadInvestors();
             
-            if (localData.length === 0) {
-                log('마이그레이션할 투자자 데이터가 없습니다.', 'warning');
-                return;
-            }
+            log(`📊 현재 상태: 로컬 ${localData.length}명, Firebase ${firebaseData.length}명`, 'info');
 
-            log(`투자자 ${localData.length}명 Firebase로 마이그레이션 시작...`, 'info');
-
-            for (const investor of localData) {
-                try {
-                    await firebaseStorage.saveInvestor(investor);
-                    log(`✅ 투자자 "${investor.name}" 마이그레이션 성공`, 'success');
-                } catch (error) {
-                    log(`❌ 투자자 "${investor.name}" 마이그레이션 오류: ${error.message}`, 'error');
+            // 1단계: localStorage → Firebase
+            if (localData.length > 0) {
+                log(`📤 로컬 → Firebase: ${localData.length}명 업로드 중...`, 'info');
+                for (const investor of localData) {
+                    try {
+                        await firebaseStorage.saveInvestor(investor);
+                        log(`✅ "${investor.name}" Firebase 저장 완료`, 'success');
+                    } catch (error) {
+                        log(`❌ "${investor.name}" Firebase 저장 실패: ${error.message}`, 'error');
+                    }
                 }
             }
 
-            log('투자자 마이그레이션 완료!', 'success');
+            // 2단계: Firebase → localStorage (동기화)
+            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
+            const updatedFirebaseData = await firebaseStorage.loadInvestors();
+            localStorage.setItem('investorData', JSON.stringify(updatedFirebaseData));
+            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}명`, 'success');
+
+            log('🎉 투자자 양방향 마이그레이션 완료!', 'success');
             await checkFirebaseData();
         }
 
-        // 숙소 마이그레이션
+        // 숙소 마이그레이션 (양방향)
         async function migrateAccommodations() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
@@ -281,28 +451,34 @@
             }
 
             const localData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+            const firebaseData = await firebaseStorage.loadAccommodations();
             
-            if (localData.length === 0) {
-                log('마이그레이션할 숙소 데이터가 없습니다.', 'warning');
-                return;
-            }
+            log(`🏠 현재 상태: 로컬 ${localData.length}개, Firebase ${firebaseData.length}개`, 'info');
 
-            log(`숙소 ${localData.length}개 Firebase로 마이그레이션 시작...`, 'info');
-
-            for (const accommodation of localData) {
-                try {
-                    await firebaseStorage.saveAccommodation(accommodation);
-                    log(`✅ 숙소 "${accommodation.name}" 마이그레이션 성공`, 'success');
-                } catch (error) {
-                    log(`❌ 숙소 "${accommodation.name}" 마이그레이션 오류: ${error.message}`, 'error');
+            // 1단계: localStorage → Firebase
+            if (localData.length > 0) {
+                log(`📤 로컬 → Firebase: ${localData.length}개 업로드 중...`, 'info');
+                for (const accommodation of localData) {
+                    try {
+                        await firebaseStorage.saveAccommodation(accommodation);
+                        log(`✅ "${accommodation.name}" Firebase 저장 완료`, 'success');
+                    } catch (error) {
+                        log(`❌ "${accommodation.name}" Firebase 저장 실패: ${error.message}`, 'error');
+                    }
                 }
             }
 
-            log('숙소 마이그레이션 완료!', 'success');
+            // 2단계: Firebase → localStorage (동기화)
+            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
+            const updatedFirebaseData = await firebaseStorage.loadAccommodations();
+            localStorage.setItem('accommodationData', JSON.stringify(updatedFirebaseData));
+            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}개`, 'success');
+
+            log('🎉 숙소 양방향 마이그레이션 완료!', 'success');
             await checkFirebaseData();
         }
 
-        // 예약 마이그레이션
+        // 예약 마이그레이션 (양방향)
         async function migrateReservations() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
@@ -310,28 +486,34 @@
             }
 
             const localData = JSON.parse(localStorage.getItem('reservationData') || '[]');
+            const firebaseData = await firebaseStorage.loadReservations();
             
-            if (localData.length === 0) {
-                log('마이그레이션할 예약 데이터가 없습니다.', 'warning');
-                return;
-            }
+            log(`📅 현재 상태: 로컬 ${localData.length}건, Firebase ${firebaseData.length}건`, 'info');
 
-            log(`예약 ${localData.length}건 Firebase로 마이그레이션 시작...`, 'info');
-
-            for (const reservation of localData) {
-                try {
-                    await firebaseStorage.saveReservation(reservation);
-                    log(`✅ 예약 마이그레이션 성공 (ID: ${reservation.id})`, 'success');
-                } catch (error) {
-                    log(`❌ 예약 마이그레이션 오류: ${error.message}`, 'error');
+            // 1단계: localStorage → Firebase
+            if (localData.length > 0) {
+                log(`📤 로컬 → Firebase: ${localData.length}건 업로드 중...`, 'info');
+                for (const reservation of localData) {
+                    try {
+                        await firebaseStorage.saveReservation(reservation);
+                        log(`✅ 예약 Firebase 저장 완료 (ID: ${reservation.id})`, 'success');
+                    } catch (error) {
+                        log(`❌ 예약 Firebase 저장 실패: ${error.message}`, 'error');
+                    }
                 }
             }
 
-            log('예약 마이그레이션 완료!', 'success');
+            // 2단계: Firebase → localStorage (동기화)
+            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
+            const updatedFirebaseData = await firebaseStorage.loadReservations();
+            localStorage.setItem('reservationData', JSON.stringify(updatedFirebaseData));
+            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}건`, 'success');
+
+            log('🎉 예약 양방향 마이그레이션 완료!', 'success');
             await checkFirebaseData();
         }
 
-        // 회계 마이그레이션
+        // 회계 마이그레이션 (양방향)
         async function migrateAccounting() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
@@ -339,24 +521,30 @@
             }
 
             const localData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+            const firebaseData = await firebaseStorage.loadAccounting();
             
-            if (localData.length === 0) {
-                log('마이그레이션할 회계 데이터가 없습니다.', 'warning');
-                return;
-            }
+            log(`💰 현재 상태: 로컬 ${localData.length}건, Firebase ${firebaseData.length}건`, 'info');
 
-            log(`회계 ${localData.length}건 Firebase로 마이그레이션 시작...`, 'info');
-
-            for (const accounting of localData) {
-                try {
-                    await firebaseStorage.saveAccounting(accounting);
-                    log(`✅ 회계 마이그레이션 성공 (ID: ${accounting.id})`, 'success');
-                } catch (error) {
-                    log(`❌ 회계 마이그레이션 오류: ${error.message}`, 'error');
+            // 1단계: localStorage → Firebase
+            if (localData.length > 0) {
+                log(`📤 로컬 → Firebase: ${localData.length}건 업로드 중...`, 'info');
+                for (const accounting of localData) {
+                    try {
+                        await firebaseStorage.saveAccounting(accounting);
+                        log(`✅ 회계 Firebase 저장 완료 (ID: ${accounting.id})`, 'success');
+                    } catch (error) {
+                        log(`❌ 회계 Firebase 저장 실패: ${error.message}`, 'error');
+                    }
                 }
             }
 
-            log('회계 마이그레이션 완료!', 'success');
+            // 2단계: Firebase → localStorage (동기화)
+            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
+            const updatedFirebaseData = await firebaseStorage.loadAccounting();
+            localStorage.setItem('accountingData', JSON.stringify(updatedFirebaseData));
+            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}건`, 'success');
+
+            log('🎉 회계 양방향 마이그레이션 완료!', 'success');
             await checkFirebaseData();
         }
 
@@ -401,6 +589,345 @@
         function clearLog() {
             document.getElementById('migrationLog').innerHTML = '<div class="text-gray-500">마이그레이션 로그가 여기에 표시됩니다...</div>';
         }
+
+        // 백업 기능들
+        function updateDataCounts() {
+            try {
+                const accommodations = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const accounting = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                const investors = JSON.parse(localStorage.getItem('investorData') || '[]');
+
+                document.getElementById('accommodationCountBackup').textContent = accommodations.length + '개';
+                document.getElementById('accountingCountBackup').textContent = accounting.length + '개';
+                document.getElementById('investorCountBackup').textContent = investors.length + '개';
+            } catch (error) {
+                console.error('데이터 카운트 업데이트 실패:', error);
+            }
+        }
+
+        function downloadBackup() {
+            const progress = document.getElementById('backupProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progress.classList.remove('hidden');
+            
+            try {
+                // 진행률 업데이트 함수
+                function updateProgress(percentage) {
+                    progressBar.style.width = `${percentage}%`;
+                    progressText.textContent = `${Math.round(percentage)}%`;
+                }
+
+                updateProgress(10);
+                
+                // localStorage에서 데이터 로드
+                const accommodations = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const accounting = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                const investors = JSON.parse(localStorage.getItem('investorData') || '[]');
+                
+                updateProgress(30);
+
+                // 워크북 생성
+                const wb = XLSX.utils.book_new();
+
+                // 숙소 데이터 시트
+                if (accommodations.length > 0) {
+                    const ws_accommodations = XLSX.utils.json_to_sheet(accommodations);
+                    XLSX.utils.book_append_sheet(wb, ws_accommodations, "숙소관리");
+                }
+                
+                updateProgress(50);
+
+                // 회계 데이터 시트
+                if (accounting.length > 0) {
+                    const ws_accounting = XLSX.utils.json_to_sheet(accounting);
+                    XLSX.utils.book_append_sheet(wb, ws_accounting, "수익관리");
+                }
+                
+                updateProgress(70);
+
+                // 투자자 데이터 시트
+                if (investors.length > 0) {
+                    const ws_investors = XLSX.utils.json_to_sheet(investors);
+                    XLSX.utils.book_append_sheet(wb, ws_investors, "투자자관리");
+                }
+
+                updateProgress(90);
+
+                // 파일명 생성
+                const now = new Date();
+                const timestamp = now.toISOString().replace(/[:.]/g, '').slice(0, -5);
+                const filename = `Teamk_백업_데이터_${timestamp}.xlsx`;
+
+                // 파일 다운로드
+                XLSX.writeFile(wb, filename);
+                
+                updateProgress(100);
+
+                // 마지막 다운로드 시간 업데이트
+                document.getElementById('lastDownloadTime').textContent = now.toLocaleString();
+                
+                // 성공 메시지
+                setTimeout(() => {
+                    progress.classList.add('hidden');
+                    log('✅ 백업 파일 다운로드 완료: ' + filename, 'success');
+                    updateProgress(0);
+                }, 1000);
+
+            } catch (error) {
+                console.error('백업 다운로드 실패:', error);
+                log('❌ 백업 다운로드 실패: ' + error.message, 'error');
+                progress.classList.add('hidden');
+                updateProgress(0);
+            }
+        }
+
+        // 파일 선택 처리
+        let selectedFile = null;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 파일 형식 체크
+            if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+                alert('Excel 파일(.xlsx, .xls)만 지원됩니다.');
+                return;
+            }
+
+            // 파일 크기 체크 (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('파일 크기는 10MB 이하만 지원됩니다.');
+                return;
+            }
+
+            selectedFile = file;
+            showSelectedFileInfo(file);
+        }
+
+        function showSelectedFileInfo(file) {
+            const fileInfo = document.getElementById('selectedFileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const restoreButton = document.getElementById('restoreButton');
+
+            fileName.textContent = file.name;
+            fileSize.textContent = `크기: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            
+            fileInfo.classList.remove('hidden');
+            restoreButton.disabled = false;
+            restoreButton.classList.remove('disabled:bg-gray-400', 'disabled:cursor-not-allowed');
+        }
+
+        function clearSelectedFile() {
+            selectedFile = null;
+            document.getElementById('backupFileInput').value = '';
+            document.getElementById('selectedFileInfo').classList.add('hidden');
+            
+            const restoreButton = document.getElementById('restoreButton');
+            restoreButton.disabled = true;
+            restoreButton.classList.add('disabled:bg-gray-400', 'disabled:cursor-not-allowed');
+        }
+
+        // 드래그 앤 드롭 지원
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.querySelector('.border-dashed');
+            
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('border-blue-400', 'bg-blue-50');
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('backupFileInput').files = files;
+                    handleFileSelect({ target: { files: files } });
+                }
+            });
+        });
+
+        // 데이터 복원 함수
+        async function restoreData() {
+            if (!selectedFile) {
+                alert('복원할 파일을 먼저 선택해주세요.');
+                return;
+            }
+
+            // 최종 확인
+            const confirmMessage = `⚠️ 경고!\n\n현재 저장된 모든 데이터가 삭제되고, 선택한 백업 파일의 데이터로 교체됩니다.\n\n파일명: ${selectedFile.name}\n\n정말로 복원하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // 한 번 더 확인
+            if (!confirm('정말 확실하신가요? 기존 데이터는 완전히 사라집니다!')) {
+                return;
+            }
+
+            const progress = document.getElementById('restoreProgress');
+            const progressBar = document.getElementById('restoreProgressBar');
+            const progressText = document.getElementById('restoreProgressText');
+            const statusText = document.getElementById('restoreStatus');
+            const restoreButton = document.getElementById('restoreButton');
+
+            // UI 업데이트
+            progress.classList.remove('hidden');
+            restoreButton.disabled = true;
+
+            try {
+                // 진행률 업데이트 함수
+                function updateRestoreProgress(percentage, status) {
+                    progressBar.style.width = `${percentage}%`;
+                    progressText.textContent = `${Math.round(percentage)}%`;
+                    statusText.textContent = status;
+                }
+
+                updateRestoreProgress(10, '파일 읽기 중...');
+                
+                // 파일 읽기
+                const data = await readExcelFile(selectedFile);
+                updateRestoreProgress(30, '데이터 파싱 중...');
+
+                // 기존 데이터 백업 (혹시 모를 복구를 위해)
+                const backupData = {
+                    accommodations: JSON.parse(localStorage.getItem('accommodationData') || '[]'),
+                    accounting: JSON.parse(localStorage.getItem('accountingData') || '[]'),
+                    investors: JSON.parse(localStorage.getItem('investorData') || '[]'),
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('emergency_backup_before_restore', JSON.stringify(backupData));
+                
+                updateRestoreProgress(50, '기존 데이터 삭제 중...');
+
+                // 기존 데이터 삭제
+                localStorage.removeItem('accommodationData');
+                localStorage.removeItem('accountingData');
+                localStorage.removeItem('investorData');
+
+                updateRestoreProgress(70, '새 데이터 복원 중...');
+
+                // 새 데이터 저장
+                if (data.accommodations && data.accommodations.length > 0) {
+                    localStorage.setItem('accommodationData', JSON.stringify(data.accommodations));
+                }
+                if (data.accounting && data.accounting.length > 0) {
+                    localStorage.setItem('accountingData', JSON.stringify(data.accounting));
+                }
+                if (data.investors && data.investors.length > 0) {
+                    localStorage.setItem('investorData', JSON.stringify(data.investors));
+                }
+
+                updateRestoreProgress(90, '데이터 검증 중...');
+
+                // 복원된 데이터 검증
+                const restoredAccommodations = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const restoredAccounting = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                const restoredInvestors = JSON.parse(localStorage.getItem('investorData') || '[]');
+
+                updateRestoreProgress(100, '복원 완료!');
+
+                // 성공 메시지
+                const successMessage = `✅ 데이터 복원이 완료되었습니다!\n\n복원된 데이터:\n• 숙소: ${restoredAccommodations.length}개\n• 회계: ${restoredAccounting.length}건\n• 투자자: ${restoredInvestors.length}명\n\n페이지를 새로고침하여 확인해보세요.`;
+                alert(successMessage);
+
+                log('✅ 데이터 복원 완료: ' + selectedFile.name, 'success');
+                log(`📊 복원된 데이터: 숙소 ${restoredAccommodations.length}개, 회계 ${restoredAccounting.length}건, 투자자 ${restoredInvestors.length}명`, 'success');
+
+                // 데이터 카운트 업데이트
+                updateDataCounts();
+
+                // UI 초기화
+                clearSelectedFile();
+
+                // 2초 후 페이지 새로고침
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+
+            } catch (error) {
+                console.error('데이터 복원 실패:', error);
+                log('❌ 데이터 복원 실패: ' + error.message, 'error');
+                alert('데이터 복원 중 오류가 발생했습니다: ' + error.message);
+                
+                // 긴급 복구 시도 (기존 데이터 복원)
+                try {
+                    const emergencyBackup = localStorage.getItem('emergency_backup_before_restore');
+                    if (emergencyBackup) {
+                        const backupData = JSON.parse(emergencyBackup);
+                        if (backupData.accommodations) localStorage.setItem('accommodationData', JSON.stringify(backupData.accommodations));
+                        if (backupData.accounting) localStorage.setItem('accountingData', JSON.stringify(backupData.accounting));
+                        if (backupData.investors) localStorage.setItem('investorData', JSON.stringify(backupData.investors));
+                        log('🔄 기존 데이터로 긴급 복구 완료', 'warning');
+                    }
+                } catch (recoveryError) {
+                    console.error('긴급 복구 실패:', recoveryError);
+                }
+            } finally {
+                progress.classList.add('hidden');
+                restoreButton.disabled = false;
+                updateRestoreProgress(0, '');
+            }
+        }
+
+        // Excel 파일 읽기 함수
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        const result = {};
+
+                        // 숙소관리 시트
+                        if (workbook.SheetNames.includes('숙소관리')) {
+                            const accommodationSheet = workbook.Sheets['숙소관리'];
+                            result.accommodations = XLSX.utils.sheet_to_json(accommodationSheet);
+                        }
+
+                        // 수익관리 시트
+                        if (workbook.SheetNames.includes('수익관리')) {
+                            const accountingSheet = workbook.Sheets['수익관리'];
+                            result.accounting = XLSX.utils.sheet_to_json(accountingSheet);
+                        }
+
+                        // 투자자관리 시트
+                        if (workbook.SheetNames.includes('투자자관리')) {
+                            const investorSheet = workbook.Sheets['투자자관리'];
+                            result.investors = XLSX.utils.sheet_to_json(investorSheet);
+                        }
+
+                        resolve(result);
+                    } catch (error) {
+                        reject(new Error('Excel 파일을 읽는 중 오류가 발생했습니다: ' + error.message));
+                    }
+                };
+                reader.onerror = function() {
+                    reject(new Error('파일을 읽을 수 없습니다.'));
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // 페이지 로드 시 데이터 카운트 업데이트
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDataCounts();
+            
+            // 주기적으로 데이터 카운트 업데이트
+            setInterval(updateDataCounts, 5000);
+        });
     </script>
 </body>
 </html>

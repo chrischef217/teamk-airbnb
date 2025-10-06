@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>지표관리 - Teamk 공유숙박 관리 시스템</title>
+    <!-- Service Worker 완전 차단 (최우선 로드) -->
+    <script src="js/super-block-sw.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -69,8 +71,8 @@
                         <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
                     </button>
 
-                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    <button onclick="window.location.href='data-migration.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-database mr-1"></i> 데이터 관리
                     </button>
                 </div>
             </div>
@@ -149,16 +151,7 @@
                 </div>
             </div>
 
-            <!-- ROI 분석 차트 -->
-            <div class="bg-white rounded-lg shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-percentage text-purple-600 mr-2"></i>
-                    ROI 분석
-                </h3>
-                <div class="chart-container">
-                    <canvas id="roiChart"></canvas>
-                </div>
-            </div>
+
         </div>
 
         <!-- 상세 통계 테이블 -->
@@ -190,7 +183,7 @@
             revenue: null,
             expense: null,
             profit: null,
-            roi: null
+
         };
 
         // 투자자 데이터를 localStorage에서 로드
@@ -230,7 +223,7 @@
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
             // 투자자도 조회 가능한 페이지
-            if (checkLoginStatus(true, false)) {
+            if (checkLoginStatus()) {
                 initializePagePermissions(); // 권한별 페이지 설정
                 updateCharts();
             }
@@ -262,7 +255,7 @@
             updateRevenueChart(chartData, chartType);
             updateExpenseChart(chartData, chartType);
             updateProfitChart(chartData, chartType);
-            updateROIChart(chartData, chartType);
+
 
             // 테이블 업데이트
             updateStatisticsTable(chartData, analysisType);
@@ -469,36 +462,7 @@
             });
         }
 
-        // ROI 차트 업데이트
-        function updateROIChart(data, chartType) {
-            const ctx = document.getElementById('roiChart').getContext('2d');
-            
-            if (charts.roi) {
-                charts.roi.destroy();
-            }
 
-            const labels = Object.keys(data);
-            const values = labels.map(label => {
-                const investment = data[label].investment;
-                const profit = data[label].profit;
-                return investment > 0 ? ((profit / investment) * 100) : 0;
-            });
-
-            charts.roi = new Chart(ctx, {
-                type: chartType,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'ROI (%)',
-                        data: values,
-                        backgroundColor: generateColors(labels.length, 'purple'),
-                        borderColor: generateColors(labels.length, 'purple', 0.8),
-                        borderWidth: 2
-                    }]
-                },
-                options: getChartOptions('ROI 분석', '%')
-            });
-        }
 
         // 통계 테이블 업데이트
         function updateStatisticsTable(data, analysisType) {
@@ -523,14 +487,14 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">수익</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">지출</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">순수익</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">ROI</th>
+
             `;
 
             // 데이터 행 생성
             tbody.innerHTML = '';
             Object.keys(data).forEach(key => {
                 const item = data[key];
-                const roi = item.investment > 0 ? ((item.profit / item.investment) * 100) : 0;
+
                 
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50';
@@ -541,9 +505,7 @@
                     <td class="px-4 py-3 text-sm text-right font-mono ${item.profit >= 0 ? 'text-green-600' : 'text-red-600'}">
                         ${item.profit.toLocaleString()} THB
                     </td>
-                    <td class="px-4 py-3 text-sm text-right font-mono ${roi >= 0 ? 'text-green-600' : 'text-red-600'}">
-                        ${roi.toFixed(1)}%
-                    </td>
+
                 `;
                 tbody.appendChild(row);
             });

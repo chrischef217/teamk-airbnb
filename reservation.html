@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>예약관리 - Teamk 공유숙박 관리 시스템</title>
+    <!-- SUPER SERVICE WORKER BLOCKER (100% 완전 차단) -->
+    <script src="js/super-block-sw.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
@@ -13,6 +15,24 @@
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
         }
+        
+        /* 모달 스크롤 개선 */
+        #reservationModal {
+            backdrop-filter: blur(4px);
+        }
+        
+        #reservationModal .modal-content {
+            max-height: calc(100vh - 2rem);
+        }
+        
+        /* 모바일에서 더 나은 스크롤 */
+        @media (max-height: 700px) {
+            #reservationModal .flex.items-start {
+                align-items: flex-start !important;
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -21,73 +41,630 @@
         <div class="mb-6">
             <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-bold text-gray-800 mb-2" data-translate="systemTitle">
+                    <h1 class="text-2xl font-bold text-gray-800 mb-2">
                         Teamk 공유숙박 관리 시스템
                     </h1>
-                    <div class="language-selector">
-                        <select id="languageSelect" onchange="changeLanguage(this.value)" class="text-sm border border-gray-300 rounded px-2 py-1">
-                            <option value="ko">한국어</option>
-                            <option value="en">English</option>
-                            <option value="th">ไทย</option>
-                        </select>
-                    </div>
                 </div>
-
             </div>
             
             <!-- Tab Navigation -->
             <div class="bg-white rounded-lg shadow-sm mb-6">
                 <div class="flex flex-wrap border-b">
-                    <button onclick="window.location.href='dashboard.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1"></i> 대시보드
                     </button>
                     <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-home mr-1"></i> <span data-translate="accommodations">숙소 관리</span>
+                        <i class="fas fa-home mr-1"></i> 숙소 관리
                     </button>
                     <button class="px-4 py-3 text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600">
-                        <i class="fas fa-calendar-check mr-1"></i> <span data-translate="reservations">예약 관리</span>
+                        <i class="fas fa-calendar-check mr-1"></i> 예약 관리
                     </button>
                     <button onclick="window.location.href='analytics.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-chart-bar mr-1"></i> <span data-translate="analytics">지표 관리</span>
+                        <i class="fas fa-chart-bar mr-1"></i> 지표 관리
                     </button>
                     <button onclick="window.location.href='accounting.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-coins mr-1"></i> <span data-translate="accounting">수익 관리</span>
+                        <i class="fas fa-coins mr-1"></i> 수익 관리
                     </button>
                     <button onclick="window.location.href='investor.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-users mr-1"></i> <span data-translate="investors">투자자 관리</span>
+                        <i class="fas fa-users mr-1"></i> 투자자 관리
                     </button>
                     <button onclick="window.location.href='settlement.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
+                        <i class="fas fa-calculator mr-1"></i> 투자자 정산
                     </button>
-
-                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    <button onclick="window.location.href='data-migration.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-database mr-1"></i> 데이터 관리
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- 빈 상태 표시 -->
-        <div class="bg-white rounded-lg shadow-sm p-8 text-center">
-            <i class="fas fa-calendar-alt text-gray-300 text-6xl mb-4"></i>
-            <h2 class="text-xl font-semibold text-gray-600 mb-2">예약 데이터가 없습니다</h2>
-            <p class="text-gray-500">새로운 예약을 추가해보세요.</p>
+        <!-- 예약 관리 헤더 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">예약 관리</h2>
+                    <p class="text-sm text-gray-600">에어비앤비 예약 현황 및 관리</p>
+                </div>
+                <button onclick="openReservationModal('add')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    새 예약 추가
+                </button>
+            </div>
+            
+            <!-- 정렬 및 필터 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">정렬 기준</label>
+                    <select id="reservationSortBy" onchange="sortReservations()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="date_desc">날짜 (최신순)</option>
+                        <option value="date_asc">날짜 (오래된순)</option>
+                        <option value="accommodation">숙소명</option>
+                        <option value="guest">게스트명</option>
+                        <option value="amount_desc">금액 (높은순)</option>
+                        <option value="amount_asc">금액 (낮은순)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">월별 필터</label>
+                    <select id="reservationMonthFilter" onchange="filterReservations()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">전체 월</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">숙소 필터</label>
+                    <select id="reservationAccommodationFilter" onchange="filterReservations()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">전체 숙소</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 예약 목록 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">예약 목록</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">예약 정보</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">숙소</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">날짜</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">금액</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">상태</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reservationTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- 예약 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 예약 요약 통계 -->
+            <div class="border-t bg-gray-50 p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">예약 요약</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="confirmedReservations">0</div>
+                        <div class="text-sm text-gray-600">확정</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-yellow-600" id="pendingReservations">0</div>
+                        <div class="text-sm text-gray-600">대기</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-600" id="cancelledReservations">0</div>
+                        <div class="text-sm text-gray-600">취소</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="completedReservations">0</div>
+                        <div class="text-sm text-gray-600">완료</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600" id="totalRevenue">₩0</div>
+                        <div class="text-sm text-gray-600">총 수익</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 예약 모달 -->
+    <div id="reservationModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 overflow-y-auto">
+        <div class="flex items-start justify-center min-h-screen p-4 pt-8 pb-8">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[calc(100vh-4rem)] flex flex-col modal-content">
+                <div class="flex justify-between items-center p-6 border-b flex-shrink-0">
+                    <h3 id="modalTitle" class="text-xl font-semibold text-gray-800">예약 정보</h3>
+                    <button onclick="closeReservationModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto">
+                    <form id="reservationForm" class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">숙소 선택 *</label>
+                            <select id="accommodationId" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option value="">숙소를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">게스트명 *</label>
+                            <input type="text" id="guestName" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">체크인 *</label>
+                            <input type="date" id="checkIn" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">체크아웃 *</label>
+                            <input type="date" id="checkOut" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">예약 금액 (THB) *</label>
+                            <input type="number" id="amount" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">예약 상태</label>
+                            <select id="status" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option value="confirmed">확정</option>
+                                <option value="pending">대기</option>
+                                <option value="cancelled">취소</option>
+                                <option value="completed">완료</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>
+                            저장
+                        </button>
+                        <button type="button" onclick="closeReservationModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                            취소
+                        </button>
+                        <button type="button" id="deleteButton" onclick="deleteReservation()" class="sm:w-auto bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors hidden">
+                            <i class="fas fa-trash mr-2"></i>
+                            삭제
+                        </button>
+                    </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // 페이지 로드 시 로그인 확인 및 권한 설정
-        document.addEventListener('DOMContentLoaded', function() {
-            if (checkLoginStatus()) { 
-                initializePagePermissions(); // 권한별 페이지 설정
+        // 전역 변수
+        let reservations = [];
+        let accommodations = [];
+        let currentMode = 'add';
+        let currentId = null;
+
+        // Firebase 연동 함수들
+        async function loadReservationData() {
+            console.log('📅 예약 데이터 로드 시작...');
+            return await firebaseStorage.loadReservations();
+        }
+
+        async function saveReservationToServer(reservation) {
+            console.log('💾 예약 저장 시작:', reservation.guestName);
+            return await firebaseStorage.saveReservation(reservation);
+        }
+
+        async function updateReservationOnServer(id, reservation) {
+            console.log('🔄 예약 수정 시작:', id);
+            return await firebaseStorage.updateReservation(id, reservation);
+        }
+
+        async function deleteReservationFromServer(id) {
+            console.log('🗑️ 예약 삭제 시작:', id);
+            return await firebaseStorage.deleteReservation(id);
+        }
+
+        async function loadAccommodationData() {
+            console.log('🏠 숙소 데이터 로드 시작...');
+            return await firebaseStorage.loadAccommodations();
+        }
+
+        // 페이지 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔄 예약 관리 페이지 초기화 시작');
+            
+            // Firebase 연결 상태 확인
+            if (!firebaseStorage.isConfigured()) {
+                console.warn('⚠️ Firebase 설정이 되지 않았습니다.');
+                
+                const goToFirebase = confirm(`
+🔥 Firebase 연동이 필요합니다!
+
+PC와 모바일 간 데이터 동기화를 위해 Firebase 설정이 필요합니다.
+Firebase 연동 페이지로 이동하시겠습니까?
+                `);
+                
+                if (goToFirebase) {
+                    window.location.href = 'firebase-setup.html';
+                    return;
+                }
+            }
+
+            if (checkLoginStatus()) {
+                initializePagePermissions();
+                
+                try {
+                    console.log('📡 Firebase에서 데이터 로드 시작...');
+                    reservations = await loadReservationData();
+                    accommodations = await loadAccommodationData();
+                    console.log('✅ 예약 데이터 로드 완료:', reservations.length + '건');
+                    console.log('✅ 숙소 데이터 로드 완료:', accommodations.length + '개');
+                } catch (error) {
+                    console.error('❌ 데이터 로드 실패:', error);
+                    
+                    // Firebase 연결 실패시 localStorage 폴백 시도
+                    try {
+                        console.log('🔄 localStorage 폴백 시도...');
+                        const localReservations = localStorage.getItem('reservationData');
+                        const localAccommodations = localStorage.getItem('accommodationData');
+                        
+                        reservations = localReservations ? JSON.parse(localReservations) : [];
+                        accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+                        
+                        console.log('✅ localStorage에서 데이터 로드:', reservations.length + '건 예약');
+                    } catch (fallbackError) {
+                        console.error('❌ localStorage 폴백도 실패:', fallbackError);
+                        alert('데이터를 불러올 수 없습니다. Firebase 연동을 먼저 설정해주세요.');
+                    }
+                }
+                
+                populateAccommodationSelect();
+                populateFilterOptions();
+                renderReservationTable();
+                
+                console.log('🎉 예약 관리 페이지 초기화 완료');
             }
         });
 
-        // 예약 데이터 - 완전히 빈 상태
-        const reservations = [];
-        const accommodations = [];
-        
-        console.log('예약 시스템 - 빈 상태로 시작');
+        // 숙소 선택 옵션 채우기
+        function populateAccommodationSelect() {
+            const select = document.getElementById('accommodationId');
+            select.innerHTML = '<option value="">숙소를 선택하세요</option>';
+            
+            accommodations.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc.id;
+                option.textContent = acc.accommodationName || `숙소 ${acc.id}`;
+                select.appendChild(option);
+            });
+        }
+
+        // 필터 옵션 채우기
+        function populateFilterOptions() {
+            // 월별 필터 옵션
+            const monthFilter = document.getElementById('reservationMonthFilter');
+            const months = [...new Set(reservations.map(res => {
+                const date = new Date(res.checkIn);
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            }))].sort().reverse();
+            
+            monthFilter.innerHTML = '<option value="">전체 월</option>';
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = `${month.split('-')[0]}년 ${month.split('-')[1]}월`;
+                monthFilter.appendChild(option);
+            });
+
+            // 숙소 필터 옵션
+            const accommodationFilter = document.getElementById('reservationAccommodationFilter');
+            accommodationFilter.innerHTML = '<option value="">전체 숙소</option>';
+            accommodations.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc.id;
+                option.textContent = acc.accommodationName || `숙소 ${acc.id}`;
+                accommodationFilter.appendChild(option);
+            });
+        }
+
+        // 정렬 함수
+        function sortReservations() {
+            renderReservationTable();
+        }
+
+        // 필터 함수
+        function filterReservations() {
+            renderReservationTable();
+        }
+
+        // 필터링된 예약 데이터 가져오기
+        function getFilteredReservations() {
+            let filtered = [...reservations];
+            
+            // 월별 필터
+            const monthFilter = document.getElementById('reservationMonthFilter').value;
+            if (monthFilter) {
+                filtered = filtered.filter(res => {
+                    const date = new Date(res.checkIn);
+                    const resMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    return resMonth === monthFilter;
+                });
+            }
+            
+            // 숙소 필터
+            const accommodationFilter = document.getElementById('reservationAccommodationFilter').value;
+            if (accommodationFilter) {
+                filtered = filtered.filter(res => res.accommodationId === accommodationFilter);
+            }
+            
+            // 정렬
+            const sortBy = document.getElementById('reservationSortBy').value;
+            switch (sortBy) {
+                case 'date_desc':
+                    filtered.sort((a, b) => new Date(b.checkIn) - new Date(a.checkIn));
+                    break;
+                case 'date_asc':
+                    filtered.sort((a, b) => new Date(a.checkIn) - new Date(b.checkIn));
+                    break;
+                case 'accommodation':
+                    filtered.sort((a, b) => {
+                        const accA = accommodations.find(acc => acc.id === a.accommodationId);
+                        const accB = accommodations.find(acc => acc.id === b.accommodationId);
+                        const nameA = accA ? accA.accommodationName : '';
+                        const nameB = accB ? accB.accommodationName : '';
+                        return nameA.localeCompare(nameB);
+                    });
+                    break;
+                case 'guest':
+                    filtered.sort((a, b) => a.guestName.localeCompare(b.guestName));
+                    break;
+                case 'amount_desc':
+                    filtered.sort((a, b) => b.amount - a.amount);
+                    break;
+                case 'amount_asc':
+                    filtered.sort((a, b) => a.amount - b.amount);
+                    break;
+            }
+            
+            return filtered;
+        }
+
+        // 예약 테이블 렌더링
+        function renderReservationTable() {
+            const tableBody = document.getElementById('reservationTableBody');
+            tableBody.innerHTML = '';
+
+            const filteredReservations = getFilteredReservations();
+
+            if (filteredReservations.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-calendar-alt text-gray-300 text-3xl mb-3 block"></i>
+                            ${reservations.length === 0 ? '등록된 예약이 없습니다.' : '조건에 맞는 예약이 없습니다.'}
+                        </td>
+                    </tr>
+                `;
+                updateReservationSummary(filteredReservations);
+                return;
+            }
+
+            filteredReservations.forEach(reservation => {
+                const accommodation = accommodations.find(acc => acc.id === reservation.accommodationId);
+                const accommodationName = accommodation ? accommodation.accommodationName : '알 수 없음';
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 cursor-pointer';
+                row.onclick = () => openReservationModal('view', reservation.id);
+
+                const statusColors = {
+                    confirmed: 'bg-green-100 text-green-800',
+                    pending: 'bg-yellow-100 text-yellow-800',
+                    cancelled: 'bg-red-100 text-red-800',
+                    completed: 'bg-blue-100 text-blue-800'
+                };
+
+                const statusTexts = {
+                    confirmed: '확정',
+                    pending: '대기',
+                    cancelled: '취소',
+                    completed: '완료'
+                };
+
+                row.innerHTML = `
+                    <td class="px-4 py-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <i class="fas fa-user text-blue-600"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">${reservation.guestName}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-sm font-medium text-gray-900">${accommodationName}</span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <div class="text-sm text-gray-900">${formatDate(reservation.checkIn)}</div>
+                        <div class="text-sm text-gray-500">~ ${formatDate(reservation.checkOut)}</div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <div class="text-sm font-medium text-gray-900">${formatCurrency(reservation.amount)}</div>
+                        ${reservation.commission ? `<div class="text-xs text-gray-500">수수료: ${formatCurrency(reservation.commission)}</div>` : ''}
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[reservation.status] || 'bg-gray-100 text-gray-800'}">
+                            ${statusTexts[reservation.status] || reservation.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <button onclick="event.stopPropagation(); openReservationModal('view', '${reservation.id}')" 
+                                class="text-blue-600 hover:text-blue-800 p-1">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+            
+            // 요약 통계 업데이트
+            updateReservationSummary(filteredReservations);
+        }
+
+        // 예약 요약 통계 업데이트
+        function updateReservationSummary(reservationData) {
+            const confirmedReservations = reservationData.filter(res => res.status === 'confirmed').length;
+            const pendingReservations = reservationData.filter(res => res.status === 'pending').length;
+            const cancelledReservations = reservationData.filter(res => res.status === 'cancelled').length;
+            const completedReservations = reservationData.filter(res => res.status === 'completed').length;
+            const totalRevenue = reservationData.reduce((sum, res) => sum + (res.amount || 0), 0);
+            
+            document.getElementById('confirmedReservations').textContent = confirmedReservations;
+            document.getElementById('pendingReservations').textContent = pendingReservations;
+            document.getElementById('cancelledReservations').textContent = cancelledReservations;
+            document.getElementById('completedReservations').textContent = completedReservations;
+            document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+        }
+
+        // 예약 모달 열기
+        function openReservationModal(mode, id = null) {
+            console.log('🔄 예약 모달 열기:', mode, id);
+            
+            currentMode = mode;
+            currentId = id;
+
+            const modal = document.getElementById('reservationModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('reservationForm');
+            const deleteButton = document.getElementById('deleteButton');
+
+            if (mode === 'add') {
+                title.textContent = '새 예약 추가';
+                form.reset();
+                document.getElementById('status').value = 'confirmed';
+                deleteButton.classList.add('hidden');
+            } else if (mode === 'view') {
+                const reservation = reservations.find(r => r.id === id);
+                if (reservation) {
+                    title.textContent = `예약 정보 - ${reservation.guestName}`;
+                    populateReservationForm(reservation);
+                    deleteButton.classList.remove('hidden');
+                } else {
+                    console.error('예약을 찾을 수 없음:', id);
+                    alert('예약 정보를 찾을 수 없습니다.');
+                    return;
+                }
+            }
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 예약 폼에 데이터 채우기
+        function populateReservationForm(reservation) {
+            document.getElementById('accommodationId').value = reservation.accommodationId || '';
+            document.getElementById('guestName').value = reservation.guestName || '';
+            document.getElementById('checkIn').value = reservation.checkIn || '';
+            document.getElementById('checkOut').value = reservation.checkOut || '';
+            document.getElementById('amount').value = reservation.amount || '';
+            document.getElementById('status').value = reservation.status || 'confirmed';
+        }
+
+        // 예약 모달 닫기
+        function closeReservationModal() {
+            document.getElementById('reservationModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // 예약 폼 제출
+        document.getElementById('reservationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                accommodationId: document.getElementById('accommodationId').value,
+                guestName: document.getElementById('guestName').value,
+                checkIn: document.getElementById('checkIn').value,
+                checkOut: document.getElementById('checkOut').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                status: document.getElementById('status').value
+            };
+
+            console.log('폼 데이터:', formData);
+
+            try {
+                if (currentMode === 'add') {
+                    console.log('🚀 새 예약 추가 중...');
+                    const savedReservation = await saveReservationToServer(formData);
+                    console.log('✅ 예약 저장 성공:', savedReservation);
+                    
+                    reservations.push(savedReservation);
+                    alert('✅ 새 예약이 성공적으로 추가되었습니다!');
+                    
+                } else if (currentMode === 'view') {
+                    console.log('🔄 예약 수정 중, ID:', currentId);
+                    const updatedReservation = await updateReservationOnServer(currentId, formData);
+                    console.log('✅ 예약 수정 성공:', updatedReservation);
+                    
+                    const index = reservations.findIndex(r => r.id === currentId);
+                    if (index !== -1) {
+                        reservations[index] = updatedReservation;
+                    }
+                    
+                    alert('✅ 예약 정보가 성공적으로 수정되었습니다!');
+                }
+                
+                renderReservationTable();
+                closeReservationModal();
+                
+            } catch (error) {
+                console.error('❌ 예약 저장/수정 실패:', error);
+                alert('예약 처리 중 오류가 발생했습니다: ' + error.message);
+            }
+        });
+
+        // 예약 삭제
+        async function deleteReservation() {
+            if (!currentId) return;
+
+            if (confirm('정말로 이 예약을 삭제하시겠습니까?')) {
+                try {
+                    console.log('🗑️ 예약 삭제 중:', currentId);
+                    await deleteReservationFromServer(currentId);
+                    
+                    reservations = reservations.filter(r => r.id !== currentId);
+                    
+                    alert('✅ 예약이 삭제되었습니다.');
+                    renderReservationTable();
+                    closeReservationModal();
+                    
+                } catch (error) {
+                    console.error('❌ 예약 삭제 실패:', error);
+                    alert('예약 삭제 중 오류가 발생했습니다: ' + error.message);
+                }
+            }
+        }
+
+        // 유틸리티 함수들
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR');
+        }
+
+        function formatCurrency(amount) {
+            if (!amount) return '0 THB';
+            return new Intl.NumberFormat('th-TH', { 
+                style: 'currency', 
+                currency: 'THB',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
     </script>
 </body>
 </html>

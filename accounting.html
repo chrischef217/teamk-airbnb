@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>회계관리 - Teamk 공유숙박 관리 시스템</title>
+    <!-- SUPER SERVICE WORKER BLOCKER (100% 완전 차단) -->
+    <script src="js/super-block-sw.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
@@ -13,6 +15,20 @@
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
         }
+        
+        /* 모달 스크롤 개선 */
+        #accountingModal {
+            backdrop-filter: blur(4px);
+        }
+        
+        /* 모바일에서 더 나은 스크롤 */
+        @media (max-height: 700px) {
+            #accountingModal .flex.items-start {
+                align-items: flex-start !important;
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -21,73 +37,856 @@
         <div class="mb-6">
             <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-bold text-gray-800 mb-2" data-translate="systemTitle">
+                    <h1 class="text-2xl font-bold text-gray-800 mb-2">
                         Teamk 공유숙박 관리 시스템
                     </h1>
-                    <div class="language-selector">
-                        <select id="languageSelect" onchange="changeLanguage(this.value)" class="text-sm border border-gray-300 rounded px-2 py-1">
-                            <option value="ko">한국어</option>
-                            <option value="en">English</option>
-                            <option value="th">ไทย</option>
-                        </select>
-                    </div>
                 </div>
-
             </div>
             
             <!-- Tab Navigation -->
             <div class="bg-white rounded-lg shadow-sm mb-6">
                 <div class="flex flex-wrap border-b">
-                    <button onclick="window.location.href='dashboard.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1"></i> 대시보드
                     </button>
                     <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-home mr-1"></i> <span data-translate="accommodations">숙소 관리</span>
+                        <i class="fas fa-home mr-1"></i> 숙소 관리
                     </button>
                     <button onclick="window.location.href='reservation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-calendar-check mr-1"></i> <span data-translate="reservations">예약 관리</span>
+                        <i class="fas fa-calendar-check mr-1"></i> 예약 관리
                     </button>
                     <button onclick="window.location.href='analytics.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-chart-bar mr-1"></i> <span data-translate="analytics">지표 관리</span>
+                        <i class="fas fa-chart-bar mr-1"></i> 지표 관리
                     </button>
                     <button class="px-4 py-3 text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600">
-                        <i class="fas fa-coins mr-1"></i> <span data-translate="accounting">수익 관리</span>
+                        <i class="fas fa-coins mr-1"></i> 수익 관리
                     </button>
                     <button onclick="window.location.href='investor.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-users mr-1"></i> <span data-translate="investors">투자자 관리</span>
+                        <i class="fas fa-users mr-1"></i> 투자자 관리
                     </button>
                     <button onclick="window.location.href='settlement.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
+                        <i class="fas fa-calculator mr-1"></i> 투자자 정산
                     </button>
-
-                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    <button onclick="window.location.href='data-migration.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-database mr-1"></i> 데이터 관리
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- 빈 상태 표시 -->
-        <div class="bg-white rounded-lg shadow-sm p-8 text-center">
-            <i class="fas fa-calculator text-gray-300 text-6xl mb-4"></i>
-            <h2 class="text-xl font-semibold text-gray-600 mb-2">회계 데이터가 없습니다</h2>
-            <p class="text-gray-500">새로운 수입/지출 내역을 추가해보세요.</p>
+        <!-- 회계 관리 헤더 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">수익 관리</h2>
+                    <p class="text-sm text-gray-600">숙소별 수입/지출 내역 및 손익 관리</p>
+                </div>
+                <button onclick="openAccountingModal('add')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    새 수익/지출 추가
+                </button>
+            </div>
+            
+            <!-- 정렬 및 필터 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">정렬 기준</label>
+                    <select id="accountingSortBy" onchange="sortAccounting()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="date_desc">날짜 (최신순)</option>
+                        <option value="date_asc">날짜 (오래된순)</option>
+                        <option value="accommodation">숙소명</option>
+                        <option value="amount_desc">금액 (높은순)</option>
+                        <option value="amount_asc">금액 (낮은순)</option>
+                        <option value="type">구분 (수입/지출)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">월별 필터</label>
+                    <select id="accountingMonthFilter" onchange="filterAccounting()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">전체 월</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">숙소 필터</label>
+                    <select id="accountingAccommodationFilter" onchange="filterAccounting()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">전체 숙소</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">투자자 필터</label>
+                    <select id="accountingInvestorFilter" onchange="filterAccounting()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">전체 투자자</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">구분 필터</label>
+                    <select id="accountingTypeFilter" onchange="filterAccounting()" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">전체</option>
+                        <option value="income">수입</option>
+                        <option value="expense">지출</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 회계 목록 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">수익/지출 내역</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">숙소</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">구분</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">항목</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">금액 (THB)</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">잔액 (THB)</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountingTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- 회계 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 수익 요약 통계 -->
+            <div class="border-t bg-gray-50 p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">수익 요약</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="totalIncome">₩0</div>
+                        <div class="text-sm text-gray-600">총 수입</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-600" id="totalExpense">₩0</div>
+                        <div class="text-sm text-gray-600">총 지출</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600" id="currentBalance">₩0</div>
+                        <div class="text-sm text-gray-600">현재 잔액</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600" id="totalTransactions">0</div>
+                        <div class="text-sm text-gray-600">총 거래수</div>
+                    </div>
+                </div>
+                
+                <!-- 투자자별 수익 요약 -->
+                <div>
+                    <h4 class="text-md font-semibold text-gray-800 mb-3">투자자별 수익 현황</h4>
+                    <div id="investorSummary" class="space-y-2">
+                        <!-- 투자자별 데이터가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 회계 모달 -->
+    <div id="accountingModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 overflow-y-auto">
+        <div class="flex items-start justify-center min-h-screen p-4 pt-8 pb-8">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[calc(100vh-4rem)] flex flex-col">
+                <div class="flex justify-between items-center p-6 border-b flex-shrink-0">
+                    <h3 id="modalTitle" class="text-xl font-semibold text-gray-800">회계 정보</h3>
+                    <button onclick="closeAccountingModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto">
+                    <form id="accountingForm" class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">날짜 *</label>
+                            <input type="date" id="transactionDate" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">숙소 선택 *</label>
+                            <select id="accommodationId" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option value="">숙소를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">구분 *</label>
+                            <select id="type" required class="w-full border border-gray-300 rounded-md px-3 py-2" onchange="updateCategoryOptions()">
+                                <option value="">구분 선택</option>
+                                <option value="income">수입</option>
+                                <option value="expense">지출</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">항목 *</label>
+                            <select id="category" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option value="">항목 선택</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">금액 (THB) *</label>
+                            <input type="number" id="amount" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                            <textarea id="description" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>
+                            저장
+                        </button>
+                        <button type="button" onclick="closeAccountingModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                            취소
+                        </button>
+                        <button type="button" id="deleteButton" onclick="deleteAccounting()" class="sm:w-auto bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors hidden">
+                            <i class="fas fa-trash mr-2"></i>
+                            삭제
+                        </button>
+                    </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // 페이지 로드 시 로그인 확인 및 권한 설정
-        document.addEventListener('DOMContentLoaded', function() {
-            if (checkLoginStatus()) { 
-                initializePagePermissions(); // 권한별 페이지 설정
+        // 전역 변수
+        let accountingData = [];
+        let accommodations = [];
+        let investors = [];
+        let currentMode = 'add';
+        let currentId = null;
+
+        // 카테고리 정의
+        const categories = {
+            income: [
+                { value: 'booking', text: '예약 수입' },
+                { value: 'deposit', text: '보증금' },
+                { value: 'additional', text: '추가 서비스' },
+                { value: 'other_income', text: '기타 수입' }
+            ],
+            expense: [
+                { value: 'cleaning', text: '청소비' },
+                { value: 'maintenance', text: '수리/보수' },
+                { value: 'supplies', text: '용품 구입' },
+                { value: 'utilities', text: '공과금' },
+                { value: 'platform_fee', text: '플랫폼 수수료' },
+                { value: 'tax', text: '세금' },
+                { value: 'other_expense', text: '기타 지출' }
+            ]
+        };
+
+        // Firebase 연동 함수들
+        async function loadAccountingData() {
+            console.log('💰 회계 데이터 로드 시작...');
+            return await firebaseStorage.loadAccounting();
+        }
+        
+
+
+        async function saveAccountingToServer(accounting) {
+            console.log('💾 회계 저장 시작:', accounting.category);
+            return await firebaseStorage.saveAccounting(accounting);
+        }
+
+        async function updateAccountingOnServer(id, accounting) {
+            console.log('🔄 회계 수정 시작:', id);
+            return await firebaseStorage.updateAccounting(id, accounting);
+        }
+
+        async function deleteAccountingFromServer(id) {
+            console.log('🗑️ 회계 삭제 시작:', id);
+            return await firebaseStorage.deleteAccounting(id);
+        }
+
+        async function loadAccommodationData() {
+            console.log('🏠 숙소 데이터 로드 시작...');
+            return await firebaseStorage.loadAccommodations();
+        }
+
+        async function loadInvestorData() {
+            console.log('👥 투자자 데이터 로드 시작...');
+            return await firebaseStorage.loadInvestors();
+        }
+
+        // 페이지 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔄 회계 관리 페이지 초기화 시작');
+            
+            // Firebase 연결 상태 확인
+            if (!firebaseStorage.isConfigured()) {
+                console.warn('⚠️ Firebase 설정이 되지 않았습니다.');
+                
+                const goToFirebase = confirm(`
+🔥 Firebase 연동이 필요합니다!
+
+PC와 모바일 간 데이터 동기화를 위해 Firebase 설정이 필요합니다.
+Firebase 연동 페이지로 이동하시겠습니까?
+                `);
+                
+                if (goToFirebase) {
+                    window.location.href = 'firebase-setup.html';
+                    return;
+                }
+            }
+
+            if (checkLoginStatus()) {
+                initializePagePermissions();
+                
+                try {
+                    console.log('📡 Firebase에서 데이터 로드 시작...');
+                    accountingData = await loadAccountingData();
+                    accommodations = await loadAccommodationData();
+                    investors = await loadInvestorData();
+                    console.log('✅ 회계 데이터 로드 완료:', accountingData.length + '건');
+                    console.log('✅ 숙소 데이터 로드 완료:', accommodations.length + '개');
+                    console.log('✅ 투자자 데이터 로드 완료:', investors.length + '명');
+                } catch (error) {
+                    console.error('❌ 데이터 로드 실패:', error);
+                    
+                    // Firebase 연결 실패시 localStorage 폴백 시도
+                    try {
+                        console.log('🔄 localStorage 폴백 시도...');
+                        const localAccounting = localStorage.getItem('accountingData');
+                        const localAccommodations = localStorage.getItem('accommodationData');
+                        const localInvestors = localStorage.getItem('investorData');
+                        
+                        accountingData = localAccounting ? JSON.parse(localAccounting) : [];
+                        accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+                        investors = localInvestors ? JSON.parse(localInvestors) : [];
+                        
+                        // 실제 데이터만 사용 - 가짜 데이터 생성하지 않음
+                        if (accountingData.length === 0 || accommodations.length === 0) {
+                            console.log('⚠️ 데이터가 부족합니다. 숙소관리에서 먼저 숙소를 등록해주세요.');
+                        }
+                        
+                        console.log('✅ localStorage에서 데이터 로드:', accountingData.length + '건 회계, ' + investors.length + '명 투자자');
+                    } catch (fallbackError) {
+                        console.error('❌ localStorage 폴백도 실패:', fallbackError);
+                        alert('데이터를 불러올 수 없습니다. Firebase 연동을 먼저 설정해주세요.');
+                    }
+                }
+                
+                populateAccommodationSelect();
+                populateAccountingFilterOptions();
+                renderAccountingTable();
+                
+                console.log('🎉 회계 관리 페이지 초기화 완료');
             }
         });
 
-        // 회계 데이터 - 완전히 빈 상태
-        const accountingData = [];
-        const accommodations = [];
+        // 숙소 선택 옵션 채우기
+        function populateAccommodationSelect() {
+            const select = document.getElementById('accommodationId');
+            select.innerHTML = '<option value="">숙소를 선택하세요</option>';
+            
+            accommodations.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc.id;
+                option.textContent = acc.accommodationName || `숙소 ${acc.id}`;
+                select.appendChild(option);
+            });
+        }
+
+        // 회계 필터 옵션 채우기
+        function populateAccountingFilterOptions() {
+            // 월별 필터 옵션
+            const monthFilter = document.getElementById('accountingMonthFilter');
+            const months = [...new Set(accountingData.map(item => {
+                const date = new Date(item.transactionDate);
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            }))].sort().reverse();
+            
+            monthFilter.innerHTML = '<option value="">전체 월</option>';
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = `${month.split('-')[0]}년 ${month.split('-')[1]}월`;
+                monthFilter.appendChild(option);
+            });
+
+            // 숙소 필터 옵션
+            const accommodationFilter = document.getElementById('accountingAccommodationFilter');
+            accommodationFilter.innerHTML = '<option value="">전체 숙소</option>';
+            accommodations.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc.id;
+                option.textContent = acc.accommodationName || `숙소 ${acc.id}`;
+                accommodationFilter.appendChild(option);
+            });
+
+            // 투자자 필터 옵션
+            const investorFilter = document.getElementById('accountingInvestorFilter');
+            investorFilter.innerHTML = '<option value="">전체 투자자</option>';
+            investors.forEach(investor => {
+                const option = document.createElement('option');
+                option.value = investor.id;
+                option.textContent = investor.name || `투자자 ${investor.id}`;
+                investorFilter.appendChild(option);
+            });
+        }
+
+        // 정렬 함수
+        function sortAccounting() {
+            renderAccountingTable();
+        }
+
+        // 필터 함수
+        function filterAccounting() {
+            renderAccountingTable();
+        }
+
+        // 필터링된 회계 데이터 가져오기
+        function getFilteredAccountingData() {
+            let filtered = [...accountingData];
+            
+            // 월별 필터
+            const monthFilter = document.getElementById('accountingMonthFilter').value;
+            if (monthFilter) {
+                filtered = filtered.filter(item => {
+                    const date = new Date(item.transactionDate);
+                    const itemMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    return itemMonth === monthFilter;
+                });
+            }
+            
+            // 숙소 필터
+            const accommodationFilter = document.getElementById('accountingAccommodationFilter').value;
+            if (accommodationFilter) {
+                filtered = filtered.filter(item => item.accommodationId === accommodationFilter);
+            }
+            
+            // 투자자 필터 (숙소와 투자자의 연결을 통해)
+            const investorFilter = document.getElementById('accountingInvestorFilter').value;
+            if (investorFilter) {
+                // 해당 투자자의 숙소들을 찾아서 필터링
+                const investorAccommodations = accommodations.filter(acc => acc.investorName === investorFilter || getInvestorIdFromAccommodation(acc) === investorFilter);
+                const investorAccommodationIds = investorAccommodations.map(acc => acc.id);
+                filtered = filtered.filter(item => investorAccommodationIds.includes(item.accommodationId));
+            }
+            
+            // 구분 필터
+            const typeFilter = document.getElementById('accountingTypeFilter').value;
+            if (typeFilter) {
+                filtered = filtered.filter(item => item.type === typeFilter);
+            }
+            
+            // 정렬
+            const sortBy = document.getElementById('accountingSortBy').value;
+            switch (sortBy) {
+                case 'date_desc':
+                    filtered.sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+                    break;
+                case 'date_asc':
+                    filtered.sort((a, b) => new Date(a.transactionDate) - new Date(b.transactionDate));
+                    break;
+                case 'accommodation':
+                    filtered.sort((a, b) => {
+                        const accA = accommodations.find(acc => acc.id === a.accommodationId);
+                        const accB = accommodations.find(acc => acc.id === b.accommodationId);
+                        const nameA = accA ? accA.accommodationName : '';
+                        const nameB = accB ? accB.accommodationName : '';
+                        return nameA.localeCompare(nameB);
+                    });
+                    break;
+                case 'amount_desc':
+                    filtered.sort((a, b) => b.amount - a.amount);
+                    break;
+                case 'amount_asc':
+                    filtered.sort((a, b) => a.amount - b.amount);
+                    break;
+                case 'type':
+                    filtered.sort((a, b) => a.type.localeCompare(b.type));
+                    break;
+            }
+            
+            return filtered;
+        }
+
+        // 숙소에서 투자자 ID 가져오기 (숙소의 investorName과 투자자 name을 매칭)
+        function getInvestorIdFromAccommodation(accommodation) {
+            const investor = investors.find(inv => inv.name === accommodation.investorName);
+            return investor ? investor.id : null;
+        }
+
+        // 투자자별 수익 계산
+        function calculateInvestorSummary(filteredData) {
+            const investorSummary = {};
+            
+            // 각 투자자별로 데이터 집계
+            investors.forEach(investor => {
+                // 해당 투자자의 숙소들
+                const investorAccommodations = accommodations.filter(acc => 
+                    acc.investorName === investor.name || getInvestorIdFromAccommodation(acc) === investor.id
+                );
+                const investorAccommodationIds = investorAccommodations.map(acc => acc.id);
+                
+                // 해당 투자자의 거래들
+                const investorTransactions = filteredData.filter(item => 
+                    investorAccommodationIds.includes(item.accommodationId)
+                );
+                
+                if (investorTransactions.length > 0) {
+                    const totalIncome = investorTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                    const totalExpense = investorTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                    const accommodationCount = investorAccommodations.length;
+                    
+                    investorSummary[investor.id] = {
+                        name: investor.name,
+                        totalIncome,
+                        totalExpense,
+                        netProfit: totalIncome - totalExpense,
+                        accommodationCount,
+                        transactionCount: investorTransactions.length
+                    };
+                }
+            });
+            
+            return investorSummary;
+        }
+
+        // 카테고리 옵션 업데이트
+        function updateCategoryOptions() {
+            const typeSelect = document.getElementById('type');
+            const categorySelect = document.getElementById('category');
+            const selectedType = typeSelect.value;
+
+            categorySelect.innerHTML = '<option value="">항목 선택</option>';
+
+            if (selectedType && categories[selectedType]) {
+                categories[selectedType].forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.value;
+                    option.textContent = cat.text;
+                    categorySelect.appendChild(option);
+                });
+            }
+        }
+
+        // 회계 테이블 렌더링 (잔액 계산 포함)
+        function renderAccountingTable() {
+            const tableBody = document.getElementById('accountingTableBody');
+            tableBody.innerHTML = '';
+
+            const filteredData = getFilteredAccountingData();
+
+            if (filteredData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-coins text-gray-300 text-3xl mb-3 block"></i>
+                            ${accountingData.length === 0 ? '등록된 회계 내역이 없습니다.' : '조건에 맞는 내역이 없습니다.'}
+                        </td>
+                    </tr>
+                `;
+                updateAccountingSummary(filteredData);
+                return;
+            }
+
+            // 잔액 계산을 위해 전체 데이터를 시간순으로 정렬
+            const allDataSortedByDate = [...accountingData].sort((a, b) => new Date(a.transactionDate) - new Date(b.transactionDate));
+            
+            // 각 항목에 대해 누적 잔액 계산
+            let runningBalance = 0;
+            const dataWithBalance = allDataSortedByDate.map(accounting => {
+                if (accounting.type === 'income') {
+                    runningBalance += accounting.amount;
+                } else if (accounting.type === 'expense') {
+                    runningBalance -= accounting.amount;
+                }
+                return { ...accounting, balance: runningBalance };
+            });
+
+            // 필터링된 데이터에 잔액 정보 추가
+            const filteredDataWithBalance = filteredData.map(item => {
+                const itemWithBalance = dataWithBalance.find(data => data.id === item.id);
+                return itemWithBalance || item;
+            });
+
+            filteredDataWithBalance.forEach(accounting => {
+                const accommodation = accommodations.find(acc => acc.id === accounting.accommodationId);
+                const accommodationName = accommodation ? accommodation.accommodationName : '알 수 없음';
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 cursor-pointer';
+                row.onclick = () => openAccountingModal('view', accounting.id);
+
+                const typeColors = {
+                    income: 'text-green-600',
+                    expense: 'text-red-600'
+                };
+
+                const typeTexts = {
+                    income: '수입',
+                    expense: '지출'
+                };
+
+                const categoryText = categories[accounting.type]?.find(cat => cat.value === accounting.category)?.text || accounting.category;
+
+                row.innerHTML = `
+                    <td class="px-4 py-4">
+                        <div class="text-sm font-medium text-gray-900">${formatDate(accounting.transactionDate)}</div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-sm font-medium text-gray-900">${accommodationName}</span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-sm font-medium ${typeColors[accounting.type] || 'text-gray-900'}">
+                            ${typeTexts[accounting.type] || accounting.type}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <div class="text-sm font-medium text-gray-900">${categoryText}</div>
+                        ${accounting.description ? `<div class="text-xs text-gray-500">${accounting.description}</div>` : ''}
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-sm font-medium ${typeColors[accounting.type] || 'text-gray-900'}">
+                            ${accounting.type === 'expense' ? '-' : '+'}${formatAmountOnly(accounting.amount)}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-sm font-medium ${accounting.balance >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${formatAmountOnly(Math.abs(accounting.balance))}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <button onclick="event.stopPropagation(); openAccountingModal('view', '${accounting.id}')" 
+                                class="text-blue-600 hover:text-blue-800 p-1">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+            
+            // 요약 통계 업데이트
+            updateAccountingSummary(filteredDataWithBalance);
+        }
+
+        // 회계 요약 통계 업데이트
+        function updateAccountingSummary(data) {
+            const totalIncome = data.filter(item => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
+            const totalExpense = data.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+            
+            // 전체 데이터의 최종 잔액 계산 (필터와 상관없이)
+            const allDataSorted = [...accountingData].sort((a, b) => new Date(a.transactionDate) - new Date(b.transactionDate));
+            const currentBalance = allDataSorted.reduce((balance, item) => {
+                return item.type === 'income' ? balance + item.amount : balance - item.amount;
+            }, 0);
+            
+            const totalTransactions = data.length;
+            
+            document.getElementById('totalIncome').textContent = formatAmountWithTHB(totalIncome);
+            document.getElementById('totalExpense').textContent = formatAmountWithTHB(totalExpense);
+            document.getElementById('currentBalance').textContent = formatAmountWithTHB(Math.abs(currentBalance));
+            document.getElementById('currentBalance').className = `text-2xl font-bold ${currentBalance >= 0 ? 'text-purple-600' : 'text-red-600'}`;
+            document.getElementById('totalTransactions').textContent = totalTransactions;
+            
+            // 투자자별 요약 업데이트
+            updateInvestorSummary(data);
+        }
+
+        // 투자자별 요약 업데이트
+        function updateInvestorSummary(data) {
+            const investorSummary = calculateInvestorSummary(data);
+            const summaryContainer = document.getElementById('investorSummary');
+            
+            if (Object.keys(investorSummary).length === 0) {
+                summaryContainer.innerHTML = '<div class="text-gray-500 text-center py-4">표시할 투자자 데이터가 없습니다.</div>';
+                return;
+            }
+            
+            summaryContainer.innerHTML = Object.values(investorSummary).map(investor => `
+                <div class="flex justify-between items-center p-3 bg-white rounded-lg border">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900">${investor.name}</div>
+                        <div class="text-sm text-gray-500">숙소 ${investor.accommodationCount}개 • 거래 ${investor.transactionCount}건</div>
+                    </div>
+                    <div class="flex gap-4 text-sm">
+                        <div class="text-center">
+                            <div class="font-medium text-green-600">${formatAmountWithTHB(investor.totalIncome)}</div>
+                            <div class="text-gray-500">수입</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-medium text-red-600">${formatAmountWithTHB(investor.totalExpense)}</div>
+                            <div class="text-gray-500">지출</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-medium ${investor.netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}">${formatAmountWithTHB(investor.netProfit)}</div>
+                            <div class="text-gray-500">순손익</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 회계 모달 열기
+        function openAccountingModal(mode, id = null) {
+            console.log('🔄 회계 모달 열기:', mode, id);
+            
+            currentMode = mode;
+            currentId = id;
+
+            const modal = document.getElementById('accountingModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('accountingForm');
+            const deleteButton = document.getElementById('deleteButton');
+
+            if (mode === 'add') {
+                title.textContent = '새 수익/지출 추가';
+                form.reset();
+                document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+                deleteButton.classList.add('hidden');
+            } else if (mode === 'view') {
+                const accounting = accountingData.find(a => a.id === id);
+                if (accounting) {
+                    title.textContent = `회계 정보 - ${categories[accounting.type]?.find(cat => cat.value === accounting.category)?.text || accounting.category}`;
+                    populateAccountingForm(accounting);
+                    deleteButton.classList.remove('hidden');
+                } else {
+                    console.error('회계 정보를 찾을 수 없음:', id);
+                    alert('회계 정보를 찾을 수 없습니다.');
+                    return;
+                }
+            }
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 회계 폼에 데이터 채우기
+        function populateAccountingForm(accounting) {
+            document.getElementById('transactionDate').value = accounting.transactionDate || '';
+            document.getElementById('accommodationId').value = accounting.accommodationId || '';
+            document.getElementById('type').value = accounting.type || '';
+            updateCategoryOptions();
+            setTimeout(() => {
+                document.getElementById('category').value = accounting.category || '';
+            }, 100);
+            document.getElementById('amount').value = accounting.amount || '';
+            document.getElementById('description').value = accounting.description || '';
+        }
+
+        // 회계 모달 닫기
+        function closeAccountingModal() {
+            document.getElementById('accountingModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // 회계 폼 제출
+        document.getElementById('accountingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                transactionDate: document.getElementById('transactionDate').value,
+                accommodationId: document.getElementById('accommodationId').value,
+                type: document.getElementById('type').value,
+                category: document.getElementById('category').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                description: document.getElementById('description').value
+            };
+
+            console.log('폼 데이터:', formData);
+
+            try {
+                if (currentMode === 'add') {
+                    console.log('🚀 새 회계 항목 추가 중...');
+                    const savedAccounting = await saveAccountingToServer(formData);
+                    console.log('✅ 회계 저장 성공:', savedAccounting);
+                    
+                    accountingData.push(savedAccounting);
+                    
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('accountingData', JSON.stringify(accountingData));
+                    console.log('💾 localStorage에도 저장 완료:', accountingData.length + '건 회계 데이터');
+                    
+                    alert('✅ 새 회계 항목이 성공적으로 추가되었습니다!');
+                    
+                } else if (currentMode === 'view') {
+                    console.log('🔄 회계 수정 중, ID:', currentId);
+                    const updatedAccounting = await updateAccountingOnServer(currentId, formData);
+                    console.log('✅ 회계 수정 성공:', updatedAccounting);
+                    
+                    const index = accountingData.findIndex(a => a.id === currentId);
+                    if (index !== -1) {
+                        accountingData[index] = updatedAccounting;
+                    }
+                    
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('accountingData', JSON.stringify(accountingData));
+                    console.log('💾 localStorage에도 수정 저장 완료:', accountingData.length + '건 회계 데이터');
+                    
+                    alert('✅ 회계 정보가 성공적으로 수정되었습니다!');
+                }
+                
+                renderAccountingTable();
+                closeAccountingModal();
+                
+            } catch (error) {
+                console.error('❌ 회계 저장/수정 실패:', error);
+                alert('회계 처리 중 오류가 발생했습니다: ' + error.message);
+            }
+        });
+
+        // 회계 삭제
+        async function deleteAccounting() {
+            if (!currentId) return;
+
+            if (confirm('정말로 이 회계 항목을 삭제하시겠습니까?')) {
+                try {
+                    console.log('🗑️ 회계 삭제 중:', currentId);
+                    await deleteAccountingFromServer(currentId);
+                    
+                    accountingData = accountingData.filter(a => a.id !== currentId);
+                    
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('accountingData', JSON.stringify(accountingData));
+                    console.log('💾 localStorage에도 삭제 동기화 완룼:', accountingData.length + '건 회계 데이터');
+                    
+                    alert('✅ 회계 항목이 삭제되었습니다.');
+                    renderAccountingTable();
+                    closeAccountingModal();
+                    
+                } catch (error) {
+                    console.error('❌ 회계 삭제 실패:', error);
+                    alert('회계 삭제 중 오류가 발생했습니다: ' + error.message);
+                }
+            }
+        }
+
+        // 유틸리티 함수들
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR');
+        }
+
+        function formatCurrency(amount) {
+            if (!amount) return '0 THB';
+            return new Intl.NumberFormat('th-TH', { 
+                style: 'currency', 
+                currency: 'THB',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
         
-        console.log('회계 시스템 - 빈 상태로 시작');
+        // 수익/지출 내역용 (숫자만 표시)
+        function formatAmountOnly(amount) {
+            if (!amount) return '0';
+            return new Intl.NumberFormat('ko-KR').format(amount);
+        }
+        
+        // 요약 및 투자자별 현황용 (THB 표기)
+        function formatAmountWithTHB(amount) {
+            if (!amount) return '0 THB';
+            return new Intl.NumberFormat('ko-KR').format(amount) + ' THB';
+        }
     </script>
 </body>
 </html>

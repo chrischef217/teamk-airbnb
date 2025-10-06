@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teamk 공유숙박 관리 시스템 - 숙소관리</title>
+    <!-- SUPER SERVICE WORKER BLOCKER (100% 완전 차단) -->
+    <script src="js/super-block-sw.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
@@ -18,6 +20,20 @@
         }
         .tab-button:hover {
             background-color: #f3f4f6;
+        }
+        
+        /* 모달 스크롤 개선 */
+        .modal-overlay {
+            backdrop-filter: blur(4px);
+        }
+        
+        /* 모바일에서 더 나은 스크롤 */
+        @media (max-height: 700px) {
+            .modal-overlay .flex.items-start {
+                align-items: flex-start !important;
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
         }
         .modal-overlay {
             background: rgba(0, 0, 0, 0.5);
@@ -88,8 +104,8 @@
                         <i class="fas fa-calculator mr-1"></i><span class="hidden sm:inline" data-translate="settlement">투자자 정산</span><span class="sm:hidden" data-translate="settlement">정산</span>
                     </button>
 
-                    <button onclick="window.location.href='backup.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
-                        <i class="fas fa-download mr-1"></i><span class="hidden sm:inline" data-translate="backup">백업</span><span class="sm:hidden" data-translate="backup">백업</span>
+                    <button onclick="window.location.href='data-migration.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-database mr-1"></i><span class="hidden sm:inline">데이터 관리</span><span class="sm:hidden">데이터 관리</span>
                     </button>
                 </div>
             </div>
@@ -136,10 +152,10 @@
     </div>
 
     <!-- 숙소 상세/수정 모달 -->
-    <div id="accommodationModal" class="fixed inset-0 z-50 hidden modal-overlay">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl modal-content">
-                <div class="flex justify-between items-center p-4 sm:p-6 border-b">
+    <div id="accommodationModal" class="fixed inset-0 z-50 hidden modal-overlay overflow-y-auto">
+        <div class="flex items-start justify-center min-h-screen p-4 pt-8 pb-8">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[calc(100vh-4rem)] flex flex-col modal-content">
+                <div class="flex justify-between items-center p-4 sm:p-6 border-b flex-shrink-0">
                     <h3 id="modalTitle" class="text-lg sm:text-xl font-semibold text-gray-800">숙소 정보</h3>
                     <div class="flex items-center gap-2">
                         <button id="editButton" onclick="toggleEditMode()" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">
@@ -152,7 +168,8 @@
                     </div>
                 </div>
                 
-                <form id="accommodationForm" class="p-4 sm:p-6 space-y-4">
+                <div class="flex-1 overflow-y-auto">
+                    <form id="accommodationForm" class="p-4 sm:p-6 space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">숙소명 *</label>
@@ -199,13 +216,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                <i class="fas fa-user mr-1"></i>투자자명 *
+                                <i class="fas fa-user mr-1"></i>투자자명
                             </label>
-                            <select id="investorName" required
-                                    class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
-                                <option value="">투자자를 선택하세요</option>
-                                <!-- 투자자 옵션은 JavaScript로 동적 생성 -->
-                            </select>
+                            <input type="text" id="investorName" readonly
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base bg-gray-100 cursor-not-allowed"
+                                   placeholder="투자자 관리에서 설정">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">계약일자</label>
@@ -269,7 +284,8 @@
                             취소
                         </button>
                     </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -284,28 +300,8 @@
         // 투자자 데이터 (GitHub에서 로드)
         let investors = [];
 
-        // 투자자 콤보박스 채우기
-        function populateInvestorSelect() {
-            const selectElement = document.getElementById('investorName');
-            
-            console.log('투자자 콤보박스 업데이트 중... 투자자 수:', investors.length);
-            
-            // 기존 옵션 제거 (첫 번째 기본 옵션 제외)
-            while (selectElement.children.length > 1) {
-                selectElement.removeChild(selectElement.lastChild);
-            }
-            
-            // 투자자 옵션 추가
-            investors.forEach(investor => {
-                const option = document.createElement('option');
-                option.value = investor.name;
-                option.textContent = `${investor.name} (${investor.email})`;
-                option.dataset.investorId = investor.id;
-                option.dataset.userId = investor.userId;
-                selectElement.appendChild(option);
-                console.log('투자자 옵션 추가됨:', investor.name);
-            });
-        }
+        // 투자자명은 투자자 관리에서만 설정 가능 (읽기 전용)
+        // populateInvestorSelect 함수 제거됨 - 단방향 데이터 흐름 구현
 
         // 숙소 데이터 로드 함수
         async function loadAccommodations() {
@@ -324,60 +320,92 @@
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
-            // 모든 로그인 사용자 접근 허용 (데이터는 권한별 필터링)
+            console.log('🔄 숙소 관리 페이지 초기화 시작');
+            
+            // Firebase 연결 상태 확인
+            if (!firebaseStorage.isConfigured()) {
+                console.warn('⚠️ Firebase 설정이 되지 않았습니다.');
+                
+                const goToFirebase = confirm(`
+🔥 Firebase 연동이 필요합니다!
+
+PC와 모바일 간 데이터 동기화를 위해 Firebase 설정이 필요합니다.
+Firebase 연동 페이지로 이동하시겠습니까?
+                `);
+                
+                if (goToFirebase) {
+                    window.location.href = 'firebase-setup.html';
+                    return;
+                }
+            }
+
             if (checkLoginStatus()) {
                 initializePagePermissions(); // 권한별 페이지 설정
                 
-                // 서버에서 데이터 로드
                 try {
-                    investors = await loadInvestorDataFromServer();
+                    console.log('📡 Firebase에서 데이터 로드 시작...');
+                    investors = await firebaseStorage.loadInvestors();
                     accommodations = await loadAccommodationsFromServer();
-                    console.log('📊 투자자 데이터 로드 완료:', investors.length + '명');
-                    console.log('🏠 숙소 데이터 로드 완료:', accommodations.length + '개');
+                    console.log('✅ 투자자 데이터 로드 완료:', investors.length + '명');
+                    console.log('✅ 숙소 데이터 로드 완료:', accommodations.length + '개');
                 } catch (error) {
-                    console.error('데이터 로드 실패:', error);
-                    alert('서버에서 데이터를 불러오는데 실패했습니다.');
+                    console.error('❌ 데이터 로드 실패:', error);
+                    
+                    // Firebase 연결 실패시 localStorage 폴백 시도
+                    try {
+                        console.log('🔄 localStorage 폴백 시도...');
+                        const localInvestors = localStorage.getItem('investorData');
+                        const localAccommodations = localStorage.getItem('accommodationData');
+                        
+                        investors = localInvestors ? JSON.parse(localInvestors) : [];
+                        accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+                        
+                        console.log('✅ localStorage에서 데이터 로드:', accommodations.length + '개 숙소');
+                    } catch (fallbackError) {
+                        console.error('❌ localStorage 폴백도 실패:', fallbackError);
+                        alert('데이터를 불러올 수 없습니다. Firebase 연동을 먼저 설정해주세요.');
+                    }
                 }
                 
-                populateInvestorSelect(); // 투자자 콤보박스 초기화
+                // 투자자 콤보박스 초기화 제거됨 - 읽기 전용 필드로 변경
                 renderAccommodationList(); // 숙소 리스트 렌더링
                 
-                // 투자자 데이터 변경 감지 (localStorage 변경)
-                window.addEventListener('storage', function(e) {
-                    if (e.key === 'investorData') {
-                        investors = loadInvestorDataFromStorage();
-                        populateInvestorSelect(); // 콤보박스 업데이트
-                    }
-                });
-                
-                // 같은 탭 내에서의 투자자 데이터 변경 감지
-                window.addEventListener('investorDataUpdated', function(e) {
-                    investors = e.detail.investorData;
-                    populateInvestorSelect(); // 콤보박스 업데이트
-                });
+                console.log('🎉 숙소 관리 페이지 초기화 완료');
             }
         });
 
-        // 숙소 데이터 로드 함수 (하이브리드)
+        // 숙소 데이터 로드 함수 (Firebase)
         async function loadAccommodationsFromStorage() {
-            if (window.hybridStorage) {
-                return await hybridStorage.load('accommodationData');
-            } else {
+            try {
+                return await firebaseStorage.loadAccommodations();
+            } catch (error) {
+                console.warn('Firebase 로드 실패, localStorage 사용:', error);
                 const saved = localStorage.getItem('accommodationData');
                 return saved ? JSON.parse(saved) : [];
             }
         }
         
-        // GitHub 저장소 함수들
+        // Firebase 저장소 함수들
         async function loadAccommodationsFromServer() {
             return await firebaseStorage.loadAccommodations();
         }
 
-        async function saveAccommodationsToStorage() {
-            await firebaseStorage.saveAccommodation(accommodation);
+        async function saveAccommodationToServer(accommodationData) {
+            console.log('💾 숙소 저장 시작:', accommodationData.name);
+            return await firebaseStorage.saveAccommodation(accommodationData);
+        }
+
+        async function updateAccommodationOnServer(id, accommodationData) {
+            console.log('🔄 숙소 수정 시작:', id);
+            return await firebaseStorage.updateAccommodation(id, accommodationData);
+        }
+
+        async function deleteAccommodationFromServer(id) {
+            console.log('🗑️ 숙소 삭제 시작:', id);
+            return await firebaseStorage.deleteAccommodation(id);
         }
         
-        // 숙소 데이터 - GitHub에서 로드
+        // 숙소 데이터 - Firebase에서 로드
         let accommodations = [];
 
         let currentMode = 'view'; // 'view', 'edit', 'add'
@@ -467,7 +495,7 @@
                 editButton.style.display = 'none';
                 isEditMode = true;
             } else if (mode === 'view') {
-                const accommodation = accommodations.find(a => a.id === id);
+                const accommodation = accommodations.find(a => String(a.id) === String(id));
                 if (accommodation) {
                     title.textContent = '숙소 정보';
                     populateForm(accommodation);
@@ -582,33 +610,42 @@
             };
             
             if (currentMode === 'add') {
-                // 새 숙소 추가 (GitHub 저장)
+                // 새 숙소 추가 (Firebase 저장)
                 try {
-                    console.log('🚀 GitHub에 새 숙소 추가 중...');
-                    accommodationData.id = Date.now(); // 고유 ID 생성
+                    console.log('🚀 Firebase에 새 숙소 추가 중...');
+                    const savedAccommodation = await saveAccommodationToServer(accommodationData);
+                    console.log('✅ Firebase 저장 성공:', savedAccommodation);
                     
-                    accommodations.push(accommodationData);
-                    await saveAccommodationsToStorage();
-                    console.log('✅ GitHub 저장 성공');
+                    accommodations.push(savedAccommodation);
                     
-                    alert('숙소가 성공적으로 등록되었습니다.');
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+                    console.log('💾 localStorage에도 저장 완료:', accommodations.length + '개 숙소');
+                    
+                    alert('✅ 숙소가 성공적으로 등록되었습니다.');
                     
                 } catch (error) {
                     console.error('❌ 숙소 추가 실패:', error);
                     alert('숙소 추가 중 오류가 발생했습니다: ' + error.message);
                 }
             } else if (isEditMode) {
-                // 기존 숙소 수정 (GitHub 저장)
+                // 기존 숙소 수정 (Firebase 저장)
                 try {
-                    console.log('🔄 GitHub에서 숙소 수정 중, ID:', currentId);
+                    console.log('🔄 Firebase에서 숙소 수정 중, ID:', currentId);
                     
-                    const index = accommodations.findIndex(a => a.id === currentId);
+                    const updatedAccommodation = await updateAccommodationOnServer(currentId, accommodationData);
+                    console.log('✅ Firebase 수정 성공:', updatedAccommodation);
+                    
+                    const index = accommodations.findIndex(a => String(a.id) === String(currentId));
                     if (index !== -1) {
-                        accommodations[index] = { ...accommodations[index], ...accommodationData };
-                        await saveAccommodationsToStorage();
-                        console.log('✅ GitHub 저장 성공');
-                        alert('숙소 정보가 성공적으로 수정되었습니다.');
+                        accommodations[index] = updatedAccommodation;
                     }
+                    
+                    // localStorage에도 동시 저장
+                    localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+                    console.log('💾 localStorage에도 수정 저장 완료:', accommodations.length + '개 숙소');
+                    
+                    alert('✅ 숙소 정보가 성공적으로 수정되었습니다.');
                     
                 } catch (error) {
                     console.error('❌ 숙소 수정 실패:', error);

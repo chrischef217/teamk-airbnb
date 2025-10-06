@@ -13,6 +13,7 @@ const translations = {
         investors: "투자자 관리",
         settlement: "투자자 정산",
         backup: "백업",
+        dataManagement: "데이터 관리",
         
         // 대시보드
         dashboardTitle: "대시보드",
@@ -208,6 +209,7 @@ const translations = {
         investors: "จัดการนักลงทุน",
         settlement: "การชำระเงินนักลงทุน",
         backup: "สำรองข้อมูล",
+        dataManagement: "จัดการข้อมูล",
         
         // 대시보드
         dashboardTitle: "แดชบอร์ด",

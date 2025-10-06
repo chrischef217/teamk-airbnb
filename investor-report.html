@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>투자자 정산 리포트</title>
+    <!-- SUPER SERVICE WORKER BLOCKER (100% 완전 차단) -->
+    <script src="js/super-block-sw.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            
+            body { 
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+            }
+            
+            .bg-gradient-to-r {
+                background: linear-gradient(to right, #3b82f6, #1e40af) !important;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .shadow-lg {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            }
+            
+            .page-break {
+                page-break-after: always;
+            }
+            
+            @page {
+                margin: 1in;
+                size: A4;
+            }
+        }
+        
+        .report-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .signature-text {
+            font-family: 'Dancing Script', 'Brush Script MT', cursive;
+            font-size: 28px;
+            font-weight: 400;
+            color: #1f2937;
+            font-style: italic;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .kpi-card {
+            border-left: 4px solid;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .profit-positive {
+            border-left-color: #10b981;
+            background-color: #d1fae5;
+        }
+        
+        .profit-negative {
+            border-left-color: #ef4444;
+            background-color: #fee2e2;
+        }
+        
+        .profit-neutral {
+            border-left-color: #6b7280;
+            background-color: #f3f4f6;
+        }
+        
+        .summary-table {
+            border-collapse: collapse;
+        }
+        
+        .summary-table th,
+        .summary-table td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: right;
+        }
+        
+        .summary-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        
+        .company-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .professional-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .professional-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 40%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(15deg);
+        }
+        
+        .data-highlight {
+            position: relative;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .performance-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .performance-excellent {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .performance-good {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .performance-average {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .performance-poor {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 인쇄용 컨트롤 버튼 -->
+    <div class="no-print fixed top-4 right-4 z-50 space-x-2">
+        <button onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors">
+            <i class="fas fa-print mr-2"></i>
+            인쇄하기
+        </button>
+        <button onclick="window.history.back()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>
+            돌아가기
+        </button>
+    </div>
+
+    <div class="max-w-5xl mx-auto p-8">
+        <!-- 리포트 헤더 -->
+        <div class="professional-header text-white rounded-lg shadow-lg p-8 mb-8 relative">
+            <div class="flex items-center justify-between relative z-10">
+                <div class="flex items-center">
+                    <div class="company-logo mr-6">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">Teamk 투자자 정산 리포트</h1>
+                        <p class="text-blue-100">Thailand Airbnb Investment Management System</p>
+                        <div class="mt-3 inline-flex items-center">
+                            <i class="fas fa-shield-alt mr-2"></i>
+                            <span class="text-sm">공인 투자자 리포트</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-blue-100 mb-1">리포트 생성일</div>
+                    <div id="reportDate" class="text-xl font-semibold mb-3"></div>
+                    <div class="performance-badge bg-white bg-opacity-20 text-white">
+                        <i class="fas fa-star mr-1"></i>
+                        공식 리포트
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 투자자 정보 -->
+        <div class="data-highlight rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                <i class="fas fa-user text-blue-600 mr-2"></i>
+                투자자 정보
+                <span class="performance-badge performance-good ml-3">
+                    <i class="fas fa-verify mr-1"></i>
+                    인증 투자자
+                </span>
+            </h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <div class="mb-3">
+                        <span class="text-gray-600 font-medium">투자자명:</span>
+                        <span id="investorName" class="ml-2 font-semibold text-gray-800"></span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="text-gray-600 font-medium">정산 월:</span>
+                        <span id="settlementPeriod" class="ml-2 font-semibold text-gray-800"></span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="text-gray-600 font-medium">보유 숙소 수:</span>
+                        <span id="accommodationCount" class="ml-2 font-semibold text-blue-600"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="mb-3">
+                        <span class="text-gray-600 font-medium">투자 지분:</span>
+                        <span id="ownershipPercentage" class="ml-2 font-semibold text-gray-800"></span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="text-gray-600 font-medium">총 투자액:</span>
+                        <span id="totalInvestment" class="ml-2 font-semibold text-green-600"></span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="text-gray-600 font-medium">연락처:</span>
+                        <span id="contactInfo" class="ml-2 font-semibold text-gray-800"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 카드들 -->
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+            <div class="kpi-card profit-positive bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-600 mb-1">총 수익</h3>
+                        <div id="totalRevenue" class="text-2xl font-bold text-green-600">₩0</div>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-won-sign text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="kpi-card profit-negative bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-600 mb-1">총 비용</h3>
+                        <div id="totalExpenses" class="text-2xl font-bold text-red-600">₩0</div>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-receipt text-red-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="kpi-card profit-positive bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-600 mb-1">순 이익</h3>
+                        <div id="netProfit" class="text-2xl font-bold text-blue-600">₩0</div>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="kpi-card profit-neutral bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-600 mb-1">투자자 배당</h3>
+                        <div id="investorDividend" class="text-2xl font-bold text-purple-600">₩0</div>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-hand-holding-usd text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수익 차트 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                <i class="fas fa-chart-bar text-blue-600 mr-2"></i>
+                월별 수익 추이
+            </h2>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 숙소별 성과 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                <i class="fas fa-home text-blue-600 mr-2"></i>
+                숙소별 수익 성과
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="summary-table w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="text-left">숙소명</th>
+                            <th>총 수익</th>
+                            <th>총 비용</th>
+                            <th>순 이익</th>
+                            <th>수익률</th>
+                            <th>투자자 배당</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accommodationPerformanceTable">
+                        <!-- 동적으로 채워짐 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 수익 분석 -->
+        <div class="grid md:grid-cols-2 gap-8 mb-8">
+            <!-- 수익 구조 파이차트 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-chart-pie text-blue-600 mr-2"></i>
+                    수익 구조 분석
+                </h3>
+                <div class="chart-container">
+                    <canvas id="revenueStructureChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 비용 구조 파이차트 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-chart-pie text-red-600 mr-2"></i>
+                    비용 구조 분석
+                </h3>
+                <div class="chart-container">
+                    <canvas id="expenseStructureChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 상세 거래 내역 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                <i class="fas fa-list-alt text-blue-600 mr-2"></i>
+                상세 거래 내역
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="summary-table w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="text-left">날짜</th>
+                            <th class="text-left">숙소</th>
+                            <th class="text-left">구분</th>
+                            <th class="text-left">항목</th>
+                            <th>금액</th>
+                            <th class="text-left">비고</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionDetailsTable">
+                        <!-- 동적으로 채워짐 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 투자 성과 분석 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                <i class="fas fa-chart-line text-blue-600 mr-2"></i>
+                투자 성과 분석
+            </h2>
+            <div class="grid md:grid-cols-3 gap-6 mb-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600 mb-2" id="annualizedReturn">0.0%</div>
+                    <div class="text-sm text-gray-600">연환산 수익률</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600 mb-2" id="monthlyReturn">0.0%</div>
+                    <div class="text-sm text-gray-600">월 수익률</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600 mb-2" id="paybackPeriod">0개월</div>
+                    <div class="text-sm text-gray-600">투자회수 예상기간</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 리포트 요약 및 서명 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
+                정산 요약 및 투자 제언
+            </h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-3">이번 달 하이라이트</h3>
+                    <ul id="highlights" class="space-y-2 text-gray-600">
+                        <!-- 동적으로 채워짐 -->
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-3">투자 제언 및 전망</h3>
+                    <div id="nextMonthOutlook" class="text-gray-600">
+                        <!-- 동적으로 채워짐 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 서명 및 승인 -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="grid md:grid-cols-2 gap-8 text-center">
+                    <div>
+                        <div class="h-20 mb-2 flex items-center justify-center">
+                            <div class="signature-text">Yesol, Jang</div>
+                        </div>
+                        <div class="text-sm text-gray-600">관리자 서명</div>
+                        <div class="text-xs text-gray-500 mt-1">Teamk Holding 대표이사</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600 mb-2">승인 일자</div>
+                        <div class="border border-gray-400 p-2 h-12 flex items-center justify-center">
+                            <span id="approvalDate" class="text-gray-800 font-semibold"></span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">공식 승인</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="text-center text-gray-500 text-sm border-t pt-6">
+            <p>© 2024 Teamk Thailand Airbnb Investment Management System</p>
+            <p class="mt-2">본 리포트는 투자자 정산을 목적으로 작성되었으며, 정확한 정보 제공을 위해 최선을 다하고 있습니다.</p>
+            <p class="mt-1">문의사항: contact@teamk.com | Tel: +82-xx-xxxx-xxxx</p>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 데이터 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const investorId = urlParams.get('investor');
+        const month = urlParams.get('month');
+        
+        console.log('🌐 URL 파라미터:', {
+            investorId: investorId,
+            month: month,
+            fullUrl: window.location.href
+        });
+        
+        let investorData = null;
+        let settlementData = null;
+
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            // 테스트 데이터가 없으면 자동 생성
+            if (!localStorage.getItem('investorData')) {
+                console.log('🔧 테스트 데이터 자동 생성...');
+                setupTestData();
+            }
+            
+            initializeReport();
+        });
+
+        function setupTestData() {
+            const currentMonth = new Date().toISOString().substring(0, 7);
+            
+            const accommodations = [
+                { id: 'test-acc-1', name: '방콕 시티 아파트', location: '방콕 시내' },
+                { id: 'test-acc-2', name: '파타야 비치 콘도', location: '파타야 해변가' }
+            ];
+            
+            const investors = [
+                {
+                    id: 'test-investor-1',
+                    name: '김투자',
+                    initialInvestment: 50000000,
+                    ownershipPercentage: 60,
+                    contact: 'kim@example.com',
+                    accommodations: ['test-acc-1', 'test-acc-2']
+                }
+            ];
+            
+            const accounting = [
+                {
+                    id: 'test-income-1',
+                    date: currentMonth + '-05',
+                    accommodationId: 'test-acc-1',
+                    type: 'income',
+                    category: '숙박료',
+                    amount: 1200000,
+                    description: '에어비앤비 예약 수익'
+                },
+                {
+                    id: 'test-expense-1',
+                    date: currentMonth + '-10',
+                    accommodationId: 'test-acc-1',
+                    type: 'expense',
+                    category: '청소비',
+                    amount: 150000,
+                    description: '정기 청소 비용'
+                }
+            ];
+            
+            localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+            localStorage.setItem('investorData', JSON.stringify(investors));
+            localStorage.setItem('accountingData', JSON.stringify(accounting));
+        }
+
+        async function initializeReport() {
+            try {
+                // 현재 날짜 설정 (실시간)
+                const today = new Date();
+                const reportDateString = today.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                document.getElementById('reportDate').textContent = reportDateString;
+                document.getElementById('approvalDate').textContent = reportDateString;
+
+                // 투자자 및 정산 데이터 로드
+                await loadInvestorData();
+                await loadSettlementData();
+                
+                // 리포트 생성
+                generateReport();
+                
+            } catch (error) {
+                console.error('리포트 초기화 오류:', error);
+                alert('리포트 데이터 로드 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function loadInvestorData() {
+            console.log('🔍 투자자 데이터 로딩 시작...');
+            console.log('📝 URL 파라미터 - investorId:', investorId);
+            
+            const investors = JSON.parse(localStorage.getItem('investorData') || '[]');
+            console.log('📋 localStorage의 투자자 데이터:', investors);
+            
+            // 다양한 방법으로 투자자 찾기
+            investorData = investors.find(inv => {
+                console.log('🔍 비교:', inv.id, inv.name, inv.userId);
+                return inv.id === investorId || 
+                       inv.name === investorId || 
+                       inv.userId === investorId ||
+                       inv.id === decodeURIComponent(investorId) ||
+                       inv.name === decodeURIComponent(investorId);
+            });
+            
+            console.log('✅ 찾은 투자자:', investorData);
+            
+            if (!investorData) {
+                console.error('❌ 투자자를 찾을 수 없습니다.');
+                console.log('🔍 사용 가능한 투자자 ID들:', investors.map(inv => ({id: inv.id, name: inv.name, userId: inv.userId})));
+                
+                // 첫 번째 투자자를 기본값으로 사용하거나 샘플 투자자 생성
+                if (investors.length > 0) {
+                    investorData = investors[0];
+                    console.log('⚠️ 첫 번째 투자자를 기본값으로 사용:', investorData.name);
+                } else {
+                    console.log('⚠️ 투자자 데이터가 없어 샘플 투자자를 생성합니다.');
+                    investorData = {
+                        id: 'demo-investor',
+                        name: '데모 투자자',
+                        initialInvestment: 50000000,
+                        ownershipPercentage: 100,
+                        contact: 'demo@teamk.com',
+                        accommodations: ['sample-acc-1', 'sample-acc-2']
+                    };
+                }
+            }
+            
+            // 투자자 정보 표시
+            document.getElementById('investorName').textContent = investorData.name || '투자자';
+            document.getElementById('settlementPeriod').textContent = month ? `${month.replace('-', '년 ')}월` : '전체';
+            document.getElementById('accommodationCount').textContent = (investorData.accommodations || []).length + '개';
+            document.getElementById('ownershipPercentage').textContent = (investorData.ownershipPercentage || investorData.share || 100) + '%';
+            document.getElementById('totalInvestment').textContent = formatMoney(investorData.initialInvestment || investorData.investment || 50000000);
+            document.getElementById('contactInfo').textContent = investorData.contact || investorData.phone || investorData.email || '-';
+        }
+
+        async function loadSettlementData() {
+            console.log('📊 정산 데이터 로딩 시작...');
+            console.log('📝 URL에서 전달된 month 파라미터:', month);
+            
+            // localStorage에서 회계 데이터 로드 (안전 검사 포함)
+            let accountingData = [];
+            let accommodationData = [];
+            
+            try {
+                accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+                if (!Array.isArray(accountingData)) {
+                    console.warn('⚠️ 회계 데이터가 배열이 아님, 빈 배열로 초기화');
+                    accountingData = [];
+                }
+            } catch (e) {
+                console.error('❌ 회계 데이터 파싱 오류:', e);
+                accountingData = [];
+            }
+            
+            try {
+                accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                if (!Array.isArray(accommodationData)) {
+                    console.warn('⚠️ 숙소 데이터가 배열이 아님, 빈 배열로 초기화');
+                    accommodationData = [];
+                }
+            } catch (e) {
+                console.error('❌ 숙소 데이터 파싱 오류:', e);
+                accommodationData = [];
+            }
+            
+            console.log('📋 회계 데이터 총', accountingData.length, '건');
+            console.log('🏠 숙소 데이터 총', accommodationData.length, '개');
+            
+            // 투자자의 숙소만 필터링
+            const investorAccommodations = investorData.accommodations || [];
+            console.log('🏠 투자자 보유 숙소 ID:', investorAccommodations);
+            
+            // 해당 월의 데이터만 필터링 (월이 선택된 경우)
+            const filteredTransactions = accountingData.filter(item => {
+                const isInvestorAccommodation = investorAccommodations.length === 0 || investorAccommodations.includes(item.accommodationId);
+                
+                // date 필드 안전 검사
+                let isCorrectMonth = true;
+                if (month && item.date && typeof item.date === 'string') {
+                    isCorrectMonth = item.date.startsWith(month);
+                } else if (month && !item.date) {
+                    console.warn('⚠️ 날짜가 없는 거래 데이터:', item);
+                    isCorrectMonth = false;
+                }
+                
+                return isInvestorAccommodation && isCorrectMonth;
+            });
+            
+            const filteredAccommodations = accommodationData.filter(acc => 
+                investorAccommodations.length === 0 || investorAccommodations.includes(acc.id)
+            );
+            
+            settlementData = {
+                transactions: filteredTransactions,
+                accommodations: filteredAccommodations
+            };
+            
+            console.log('✅ 필터링된 거래:', settlementData.transactions.length, '건');
+            console.log('✅ 필터링된 숙소:', settlementData.accommodations.length, '개');
+            
+            // 데이터가 없는 경우 샘플 데이터 생성 (데모용)
+            if (settlementData.transactions.length === 0) {
+                console.log('⚠️ 거래 데이터가 없어 샘플 데이터를 생성합니다.');
+                settlementData.transactions = generateSampleTransactions();
+            }
+            
+            if (settlementData.accommodations.length === 0) {
+                console.log('⚠️ 숙소 데이터가 없어 샘플 데이터를 생성합니다.');
+                settlementData.accommodations = generateSampleAccommodations();
+            }
+        }
+
+        function generateSampleTransactions() {
+            // month가 없거나 잘못된 형식일 경우 현재 월 사용
+            let targetMonth = month;
+            if (!targetMonth || typeof targetMonth !== 'string' || !targetMonth.match(/^\d{4}-\d{2}$/)) {
+                targetMonth = new Date().toISOString().substring(0, 7);
+                console.log('⚠️ 잘못된 월 파라미터, 현재 월 사용:', targetMonth);
+            }
+            
+            return [
+                {
+                    id: 'sample1',
+                    date: targetMonth + '-15',
+                    accommodationId: 'sample-acc-1',
+                    type: 'income',
+                    category: '숙박료',
+                    amount: 1200000,
+                    description: '에어비앤비 예약 수익'
+                },
+                {
+                    id: 'sample2',
+                    date: targetMonth + '-20',
+                    accommodationId: 'sample-acc-1',
+                    type: 'expense',
+                    category: '청소비',
+                    amount: 150000,
+                    description: '정기 청소 비용'
+                },
+                {
+                    id: 'sample3',
+                    date: targetMonth + '-25',
+                    accommodationId: 'sample-acc-2',
+                    type: 'income',
+                    category: '숙박료',
+                    amount: 950000,
+                    description: '부킹닷컴 예약 수익'
+                }
+            ];
+        }
+
+        function generateSampleAccommodations() {
+            return [
+                {
+                    id: 'sample-acc-1',
+                    name: '방콕 시티 아파트',
+                    location: '방콕 시내'
+                },
+                {
+                    id: 'sample-acc-2',
+                    name: '파타야 비치 콘도',
+                    location: '파타야 해변가'
+                }
+            ];
+        }
+
+        function generateReport() {
+            // KPI 계산 및 표시
+            calculateKPIs();
+            
+            // 차트 생성
+            createRevenueChart();
+            createRevenueStructureChart();
+            createExpenseStructureChart();
+            
+            // 테이블 생성
+            generateAccommodationPerformanceTable();
+            generateTransactionDetailsTable();
+            
+            // 하이라이트 생성
+            generateHighlights();
+            
+            // 투자 성과 분석
+            calculateInvestmentPerformance();
+        }
+
+        function calculateKPIs() {
+            const transactions = settlementData.transactions;
+            
+            let totalRevenue = 0;
+            let totalExpenses = 0;
+            
+            transactions.forEach(transaction => {
+                if (transaction.type === 'income') {
+                    totalRevenue += parseFloat(transaction.amount || 0);
+                } else if (transaction.type === 'expense') {
+                    totalExpenses += parseFloat(transaction.amount || 0);
+                }
+            });
+            
+            const netProfit = totalRevenue - totalExpenses;
+            const investorShare = (investorData.ownershipPercentage || 100) / 100;
+            const investorDividend = netProfit * investorShare;
+            
+            // KPI 표시
+            document.getElementById('totalRevenue').textContent = formatMoney(totalRevenue);
+            document.getElementById('totalExpenses').textContent = formatMoney(totalExpenses);
+            document.getElementById('netProfit').textContent = formatMoney(netProfit);
+            document.getElementById('investorDividend').textContent = formatMoney(investorDividend);
+            
+            // 색상 업데이트
+            updateKPIColors(netProfit);
+        }
+
+        function updateKPIColors(netProfit) {
+            const netProfitElement = document.getElementById('netProfit');
+            const dividendElement = document.getElementById('investorDividend');
+            
+            if (netProfit > 0) {
+                netProfitElement.className = 'text-2xl font-bold text-green-600';
+                dividendElement.className = 'text-2xl font-bold text-green-600';
+            } else if (netProfit < 0) {
+                netProfitElement.className = 'text-2xl font-bold text-red-600';
+                dividendElement.className = 'text-2xl font-bold text-red-600';
+            } else {
+                netProfitElement.className = 'text-2xl font-bold text-gray-600';
+                dividendElement.className = 'text-2xl font-bold text-gray-600';
+            }
+        }
+
+        function createRevenueChart() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            // 월별 데이터 집계
+            const monthlyData = {};
+            settlementData.transactions.forEach(transaction => {
+                const monthKey = transaction.date.substring(0, 7); // YYYY-MM
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = { revenue: 0, expenses: 0 };
+                }
+                
+                if (transaction.type === 'income') {
+                    monthlyData[monthKey].revenue += parseFloat(transaction.amount || 0);
+                } else if (transaction.type === 'expense') {
+                    monthlyData[monthKey].expenses += parseFloat(transaction.amount || 0);
+                }
+            });
+            
+            const labels = Object.keys(monthlyData).sort().map(month => {
+                return month.replace('-', '년 ') + '월';
+            });
+            const revenueData = Object.keys(monthlyData).sort().map(month => monthlyData[month].revenue);
+            const expenseData = Object.keys(monthlyData).sort().map(month => monthlyData[month].expenses);
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '수익',
+                        data: revenueData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: '비용',
+                        data: expenseData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatMoney(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRevenueStructureChart() {
+            const ctx = document.getElementById('revenueStructureChart').getContext('2d');
+            
+            // 수익 구조 데이터 집계
+            const revenueStructure = {};
+            settlementData.transactions
+                .filter(t => t.type === 'income')
+                .forEach(transaction => {
+                    const category = transaction.category || '기타';
+                    revenueStructure[category] = (revenueStructure[category] || 0) + parseFloat(transaction.amount || 0);
+                });
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(revenueStructure),
+                    datasets: [{
+                        data: Object.values(revenueStructure),
+                        backgroundColor: [
+                            '#10b981', '#3b82f6', '#8b5cf6', 
+                            '#f59e0b', '#ef4444', '#6b7280'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createExpenseStructureChart() {
+            const ctx = document.getElementById('expenseStructureChart').getContext('2d');
+            
+            // 비용 구조 데이터 집계
+            const expenseStructure = {};
+            settlementData.transactions
+                .filter(t => t.type === 'expense')
+                .forEach(transaction => {
+                    const category = transaction.category || '기타';
+                    expenseStructure[category] = (expenseStructure[category] || 0) + parseFloat(transaction.amount || 0);
+                });
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(expenseStructure),
+                    datasets: [{
+                        data: Object.values(expenseStructure),
+                        backgroundColor: [
+                            '#ef4444', '#f59e0b', '#8b5cf6', 
+                            '#6b7280', '#10b981', '#3b82f6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateAccommodationPerformanceTable() {
+            const tableBody = document.getElementById('accommodationPerformanceTable');
+            
+            settlementData.accommodations.forEach(accommodation => {
+                const accTransactions = settlementData.transactions.filter(t => t.accommodationId === accommodation.id);
+                
+                let revenue = 0;
+                let expenses = 0;
+                
+                accTransactions.forEach(transaction => {
+                    if (transaction.type === 'income') {
+                        revenue += parseFloat(transaction.amount || 0);
+                    } else if (transaction.type === 'expense') {
+                        expenses += parseFloat(transaction.amount || 0);
+                    }
+                });
+                
+                const netProfit = revenue - expenses;
+                const profitMargin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : '0.0';
+                const investorShare = (investorData.ownershipPercentage || 100) / 100;
+                const investorDividend = netProfit * investorShare;
+                
+                // 성과 배지 생성
+                let performanceBadge = '';
+                if (parseFloat(profitMargin) > 20) {
+                    performanceBadge = '<span class="performance-badge performance-excellent">우수</span>';
+                } else if (parseFloat(profitMargin) > 10) {
+                    performanceBadge = '<span class="performance-badge performance-good">양호</span>';
+                } else if (parseFloat(profitMargin) > 0) {
+                    performanceBadge = '<span class="performance-badge performance-average">보통</span>';
+                } else {
+                    performanceBadge = '<span class="performance-badge performance-poor">주의</span>';
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="text-left font-medium">${accommodation.name} ${performanceBadge}</td>
+                    <td class="text-green-600 font-semibold">${formatMoney(revenue)}</td>
+                    <td class="text-red-600 font-semibold">${formatMoney(expenses)}</td>
+                    <td class="font-semibold ${netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}">${formatMoney(netProfit)}</td>
+                    <td class="font-semibold">${profitMargin}%</td>
+                    <td class="text-purple-600 font-semibold">${formatMoney(investorDividend)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function generateTransactionDetailsTable() {
+            const tableBody = document.getElementById('transactionDetailsTable');
+            
+            // 날짜순 정렬
+            const sortedTransactions = [...settlementData.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedTransactions.forEach(transaction => {
+                const accommodation = settlementData.accommodations.find(acc => acc.id === transaction.accommodationId);
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td class="text-left">${formatDate(transaction.date)}</td>
+                    <td class="text-left">${accommodation ? accommodation.name : '-'}</td>
+                    <td class="text-left">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            transaction.type === 'income' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                        }">
+                            ${transaction.type === 'income' ? '수익' : '비용'}
+                        </span>
+                    </td>
+                    <td class="text-left">${transaction.category || '-'}</td>
+                    <td class="font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+                        ${transaction.type === 'income' ? '+' : '-'}${formatMoney(Math.abs(parseFloat(transaction.amount || 0)))}
+                    </td>
+                    <td class="text-left text-sm text-gray-600">${transaction.description || '-'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function generateHighlights() {
+            const highlightsList = document.getElementById('highlights');
+            const outlookDiv = document.getElementById('nextMonthOutlook');
+            
+            // 하이라이트 생성
+            const highlights = [
+                `총 ${settlementData.accommodations.length}개 숙소에서 수익 창출`,
+                `이번 달 총 거래 건수: ${settlementData.transactions.length}건`,
+                `평균 숙소당 수익률: ${calculateAverageMargin()}%`,
+                `최고 수익 숙소: ${getBestPerformingAccommodation()}`
+            ];
+            
+            highlights.forEach(highlight => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-check-circle text-green-500 mr-2"></i>${highlight}`;
+                highlightsList.appendChild(li);
+            });
+            
+            // 투자 제언 및 전망
+            const averageMargin = parseFloat(calculateAverageMargin());
+            let outlook = '';
+            
+            if (averageMargin > 15) {
+                outlook = `
+                    <div class="performance-badge performance-excellent mb-3">
+                        <i class="fas fa-trophy mr-1"></i>
+                        우수한 투자 성과
+                    </div>
+                    <p class="mb-2">• <strong>포트폴리오 확장 권장:</strong> 현재 우수한 수익률을 바탕으로 추가 투자 검토</p>
+                    <p class="mb-2">• <strong>수익 최적화:</strong> 고수익 숙소 모델을 다른 숙소에도 적용</p>
+                    <p>• <strong>장기 전략:</strong> 안정적 성과 기반으로 3-5년 장기 투자계획 수립</p>
+                `;
+            } else if (averageMargin > 5) {
+                outlook = `
+                    <div class="performance-badge performance-good mb-3">
+                        <i class="fas fa-thumbs-up mr-1"></i>
+                        양호한 투자 성과
+                    </div>
+                    <p class="mb-2">• <strong>성과 개선:</strong> 비용 최적화를 통한 수익률 향상 가능</p>
+                    <p class="mb-2">• <strong>시장 분석:</strong> 성수기/비수기 패턴 분석으로 수익 극대화</p>
+                    <p>• <strong>점진적 확장:</strong> 현재 수준 유지 후 단계적 투자 확대</p>
+                `;
+            } else {
+                outlook = `
+                    <div class="performance-badge performance-average mb-3">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        전략 검토 필요
+                    </div>
+                    <p class="mb-2">• <strong>운영 최적화:</strong> 비용 구조 재검토 및 수익성 개선 방안 모색</p>
+                    <p class="mb-2">• <strong>시장 재분석:</strong> 지역별/숙소별 성과 분석을 통한 전략 조정</p>
+                    <p>• <strong>전문가 상담:</strong> 투자 전문가와 포트폴리오 재구성 논의 권장</p>
+                `;
+            }
+            
+            outlookDiv.innerHTML = outlook;
+        }
+
+        function calculateAverageMargin() {
+            let totalMargin = 0;
+            let validAccommodations = 0;
+            
+            settlementData.accommodations.forEach(accommodation => {
+                const accTransactions = settlementData.transactions.filter(t => t.accommodationId === accommodation.id);
+                
+                let revenue = 0;
+                let expenses = 0;
+                
+                accTransactions.forEach(transaction => {
+                    if (transaction.type === 'income') {
+                        revenue += parseFloat(transaction.amount || 0);
+                    } else if (transaction.type === 'expense') {
+                        expenses += parseFloat(transaction.amount || 0);
+                    }
+                });
+                
+                if (revenue > 0) {
+                    const margin = ((revenue - expenses) / revenue) * 100;
+                    totalMargin += margin;
+                    validAccommodations++;
+                }
+            });
+            
+            return validAccommodations > 0 ? (totalMargin / validAccommodations).toFixed(1) : '0.0';
+        }
+
+        function getBestPerformingAccommodation() {
+            let bestAccommodation = null;
+            let bestProfit = -Infinity;
+            
+            settlementData.accommodations.forEach(accommodation => {
+                const accTransactions = settlementData.transactions.filter(t => t.accommodationId === accommodation.id);
+                
+                let revenue = 0;
+                let expenses = 0;
+                
+                accTransactions.forEach(transaction => {
+                    if (transaction.type === 'income') {
+                        revenue += parseFloat(transaction.amount || 0);
+                    } else if (transaction.type === 'expense') {
+                        expenses += parseFloat(transaction.amount || 0);
+                    }
+                });
+                
+                const profit = revenue - expenses;
+                if (profit > bestProfit) {
+                    bestProfit = profit;
+                    bestAccommodation = accommodation;
+                }
+            });
+            
+            return bestAccommodation ? bestAccommodation.name : '해당 없음';
+        }
+
+        function calculateInvestmentPerformance() {
+            const transactions = settlementData.transactions;
+            const initialInvestment = parseFloat(investorData.initialInvestment || 0);
+            
+            let totalRevenue = 0;
+            let totalExpenses = 0;
+            
+            transactions.forEach(transaction => {
+                if (transaction.type === 'income') {
+                    totalRevenue += parseFloat(transaction.amount || 0);
+                } else if (transaction.type === 'expense') {
+                    totalExpenses += parseFloat(transaction.amount || 0);
+                }
+            });
+            
+            const netProfit = totalRevenue - totalExpenses;
+            const investorShare = (investorData.ownershipPercentage || 100) / 100;
+            const investorProfit = netProfit * investorShare;
+            
+            // 월 수익률 계산
+            const monthlyReturn = initialInvestment > 0 ? (investorProfit / initialInvestment * 100) : 0;
+            
+            // 연환산 수익률 계산
+            const annualizedReturn = monthlyReturn * 12;
+            
+            // 투자회수 예상기간 계산 (월)
+            const paybackPeriod = monthlyReturn > 0 ? Math.ceil(100 / monthlyReturn) : 0;
+            
+            // 표시
+            document.getElementById('monthlyReturn').textContent = monthlyReturn.toFixed(1) + '%';
+            document.getElementById('annualizedReturn').textContent = annualizedReturn.toFixed(1) + '%';
+            document.getElementById('paybackPeriod').textContent = paybackPeriod + '개월';
+        }
+
+        // 유틸리티 함수들
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('ko-KR', {
+                style: 'currency',
+                currency: 'KRW',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('ko-KR');
+        }
+    </script>
+</body>
+</html>
