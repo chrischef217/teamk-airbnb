@@ -320,96 +320,21 @@
             return await firebaseStorage.loadAccommodations();
         }
         
-        // 테스트용 더미 숙소 데이터 생성
-        function createDummyAccommodations() {
-            return [
-                {
-                    id: '1',
-                    accommodationName: '테스트 숙소 1',
-                    buildingName: '테스트 빌딩 A',
-                    address: '방콕 시내',
-                    floor: 5,
-                    roomNumber: '501',
-                    keyCount: 2,
-                    parkingMethod: '무료주차',
-                    contractDate: '2024-01-01',
-                    deposit: 50000,
-                    monthlyRent: 15000,
-                    rentDate: 1,
-                    agencyName: '테스트 부동산',
-                    agencyContact: '02-1234-5678',
-                    notes: '테스트용 숙소입니다',
-                    websiteUrl: 'https://example.com/accommodation1'
-                },
-                {
-                    id: '2',
-                    accommodationName: '테스트 숙소 2',
-                    buildingName: '테스트 빌딩 B',
-                    address: '방콩 근교',
-                    floor: 3,
-                    roomNumber: '302',
-                    keyCount: 1,
-                    parkingMethod: '유료주차',
-                    contractDate: '2024-02-01',
-                    deposit: 40000,
-                    monthlyRent: 12000,
-                    rentDate: 5,
-                    agencyName: '테스트 부동산',
-                    agencyContact: '02-9876-5432',
-                    notes: '두 번째 테스트 숙소',
-                    websiteUrl: 'https://example.com/accommodation2'
-                },
-                {
-                    id: '3',
-                    accommodationName: '테스트 숙소 3',
-                    buildingName: '테스트 빌딩 C',
-                    address: '파타야 해변',
-                    floor: 7,
-                    roomNumber: '701',
-                    keyCount: 3,
-                    parkingMethod: '주차불가',
-                    contractDate: '2024-03-01',
-                    deposit: 60000,
-                    monthlyRent: 18000,
-                    rentDate: 10,
-                    agencyName: '해변 부동산',
-                    agencyContact: '076-123-4567',
-                    notes: '해변가 전망 좋은 숙소',
-                    websiteUrl: 'https://example.com/accommodation3'
-                }
-            ];
-        }
+
+
 
         // 숙소 목록 - Cloudflare D1에서 로드
         let accommodations = [];
 
         // 샘플 투자자 데이터 - 제거됨 (사용자가 직접 등록)
 
-        // 디버그/테스트 모드 확인
-        function isTestMode() {
-            return window.location.search.includes('test=true') || 
-                   window.location.hostname === 'localhost' ||
-                   !sessionStorage.getItem('userType');
-        }
 
-        // 테스트 모드용 가짜 로그인 설정
-        function setupTestMode() {
-            if (!sessionStorage.getItem('userType')) {
-                console.log('🔧 테스트 모드: 임시 관리자 세션 생성');
-                sessionStorage.setItem('userType', 'admin');
-                sessionStorage.setItem('userId', 'admin_test');
-                sessionStorage.setItem('userName', '테스트관리자');
-            }
-        }
 
         // 페이지 초기화 (서버에서 데이터 로드)
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🔄 투자자 관리 페이지 초기화 시작');
             
-            // 테스트 모드 확인 및 설정
-            if (isTestMode()) {
-                setupTestMode();
-            }
+            // 테스트 모드 제거됨 - 실제 로그인 시스템만 사용
             
             // Firebase 연결 상태 확인
             if (!firebaseStorage.isConfigured()) {
@@ -449,16 +374,11 @@ Firebase 연동 페이지로 이동하시겠습니까?
                             console.log(`  ${index + 1}. ${acc.accommodationName} (ID: ${acc.id})`);
                         });
                     } else {
-                        console.warn('⚠️ 숙소 데이터가 비어있음 - 더미 데이터 생성');
+                        console.warn('⚠️ 숙소 데이터가 비어있음 - 빈 배열로 설정');
                         
-                        // Firebase 데이터가 비어있으면 더미 데이터 생성
-                        accommodations = createDummyAccommodations();
-                        localStorage.setItem('accommodationData', JSON.stringify(accommodations));
-                        console.log('✅ 더미 숙소 데이터 생성 완료:', accommodations.length + '개');
-                        
-                        accommodations.forEach((acc, index) => {
-                            console.log(`  ${index + 1}. ${acc.accommodationName} (ID: ${acc.id})`);
-                        });
+                        // 더미 데이터 생성하지 않고 빈 배열 사용
+                        accommodations = [];
+                        console.log('✅ 숙소 데이터 없음 - 사용자가 직접 등록 필요');
                     }
                 } catch (error) {
                     console.error('❌ 데이터 로드 실패:', error);
@@ -474,18 +394,8 @@ Firebase 연동 페이지로 이동하시겠습니까?
                         
                         console.log('✅ localStorage에서 데이터 로드:', investorData.length + '명 투자자');
                         
-                        // 데이터가 없으면 더미 데이터 생성 (테스트용)
-                        if (accommodations.length === 0) {
-                            console.log('🛠️ 테스트용 더미 숙소 데이터 생성 중...');
-                            accommodations = createDummyAccommodations();
-                            localStorage.setItem('accommodationData', JSON.stringify(accommodations));
-                            console.log('✅ 더미 숙소 데이터 생성 완료:', accommodations.length + '개');
-                            
-                            // 생성된 더미 데이터 리스트
-                            accommodations.forEach((acc, index) => {
-                                console.log(`  ${index + 1}. ${acc.accommodationName} (ID: ${acc.id})`);
-                            });
-                        }
+                        // 더미 데이터 생성하지 않음 - 실제 데이터만 사용
+                        console.log('💡 숙소 데이터가 없으면 사용자가 직접 등록해야 합니다.');
                         
                         if (investorData.length === 0 && accommodations.length === 0) {
                             alert('데이터가 없습니다. Firebase를 연동하거나 새로운 데이터를 입력해주세요.');
