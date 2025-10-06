@@ -130,46 +130,18 @@ function setupNavigationPermissions() {
     const user = getCurrentUser();
     
     if (user.userType === 'investor') {
-        // 즉시 실행
-        hideBackupButtons();
-        
-        // 지연 실행 (DOM 로딩 완료 후)
-        setTimeout(() => {
-            hideBackupButtons();
-        }, 500);
+        // 백업 탭 숨기기 또는 비활성화
+        const backupButtons = document.querySelectorAll('[onclick*="backup.html"]');
+        backupButtons.forEach(button => {
+            button.style.display = 'none'; // 완전히 숨기기
+            // 또는 버튼을 비활성화하려면:
+            // button.classList.add('opacity-50', 'cursor-not-allowed');
+            // button.onclick = function(e) {
+            //     e.preventDefault();
+            //     alert('백업 기능은 관리자만 사용할 수 있습니다.');
+            // };
+        });
     }
-}
-
-function hideBackupButtons() {
-    // 다양한 방법으로 백업 버튼 찾기
-    const selectors = [
-        '[onclick*="backup.html"]',
-        '[href*="backup.html"]',
-        'button:contains("백업")',
-        'a:contains("백업")',
-        '[data-page="backup"]'
-    ];
-    
-    selectors.forEach(selector => {
-        try {
-            const buttons = document.querySelectorAll(selector);
-            buttons.forEach(button => {
-                button.style.display = 'none';
-                button.style.visibility = 'hidden';
-                button.remove(); // 완전히 제거
-            });
-        } catch (e) {
-            // 선택자 오류 무시
-        }
-    });
-    
-    // 텍스트로 백업 버튼 찾기
-    const allButtons = document.querySelectorAll('button, a');
-    allButtons.forEach(button => {
-        if (button.textContent && button.textContent.includes('백업')) {
-            button.style.display = 'none';
-        }
-    });
 }
 
 // 편집 권한 체크 함수
@@ -188,80 +160,43 @@ function checkEditPermission() {
 function disableEditingForInvestor() {
     const user = getCurrentUser();
     
-    if (user.userType !== 'investor') return;
-
-    // 즉시 실행할 것들
-    disableImmediateElements();
-    
-    // DOM 로딩 후 실행할 것들
-    setTimeout(() => {
-        disableDelayedElements();
-    }, 500);
-    
-    // MutationObserver로 동적 요소 감시
-    observeDynamicElements();
-}
-
-// 즉시 비활성화할 요소들
-function disableImmediateElements() {
-    // 기존 추가 버튼들
-    const addButtons = document.querySelectorAll('[onclick*="openModal"], [onclick*="add"], [onclick*="edit"]');
-    addButtons.forEach(button => {
-        const originalOnclick = button.getAttribute('onclick');
-        button.removeAttribute('onclick');
-        button.onclick = function(e) {
-            e.preventDefault();
-            alert('투자자는 데이터를 수정할 수 없습니다.');
-        };
-        button.classList.add('opacity-50', 'cursor-not-allowed');
-    });
-}
-
-// 지연 비활성화할 요소들
-function disableDelayedElements() {
-    // 모든 모달의 입력 필드 비활성화
-    const modals = document.querySelectorAll('[id*="Modal"], [id*="modal"]');
-    modals.forEach(modal => {
-        const inputs = modal.querySelectorAll('input, textarea, select');
-        inputs.forEach(input => {
-            if (!input.classList.contains('search-input')) { // 검색 필드 제외
-                input.readOnly = true;
-                input.classList.add('bg-gray-100');
-            }
-        });
-        
-        const submitButtons = modal.querySelectorAll('button[type="submit"]');
-        submitButtons.forEach(button => {
-            button.disabled = true;
-            button.classList.add('opacity-50', 'cursor-not-allowed');
-        });
-        
-        const editButtons = modal.querySelectorAll('#editButton, .edit-btn');
-        editButtons.forEach(button => {
-            button.style.display = 'none';
-        });
-    });
-}
-
-// 동적으로 생성되는 요소들 감시
-function observeDynamicElements() {
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === 1) { // Element node
-                    // 새로 생성된 클릭 가능한 요소들 체크
-                    if (node.onclick || node.querySelector('[onclick]')) {
-                        setTimeout(() => disableDelayedElements(), 100);
-                    }
-                }
+    if (user.userType === 'investor') {
+        // 지연 실행으로 DOM이 완전히 로드된 후 적용
+        setTimeout(() => {
+            // HTML onclick attribute가 있는 버튼들
+            const addButtons = document.querySelectorAll('[onclick*="openModal(\'add\')"]');
+            addButtons.forEach(button => {
+                button.onclick = function(e) {
+                    e.preventDefault();
+                    alert('투자자는 데이터를 수정할 수 없습니다.');
+                };
+                button.classList.add('opacity-50', 'cursor-not-allowed');
             });
-        });
-    });
-    
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+
+            // 모달 창의 편집 버튼
+            const editButton = document.getElementById('editButton');
+            if (editButton) {
+                editButton.style.display = 'none';
+            }
+
+            // 제출 버튼 비활성화
+            const submitButtons = document.querySelectorAll('button[type="submit"]');
+            submitButtons.forEach(button => {
+                button.disabled = true;
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // 폼 입력 필드를 읽기 전용으로 (모든 페이지에서 적용하지 않고 모달에서만)
+            const modal = document.getElementById('accommodationModal') || document.getElementById('investorModal');
+            if (modal) {
+                const inputs = modal.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    input.readOnly = true;
+                    input.classList.add('bg-gray-100');
+                });
+            }
+        }, 100);
+    }
 }
 
 // 페이지 로드 시 권한 설정 적용
@@ -278,23 +213,5 @@ function initializePagePermissions() {
     if (user.userType === 'investor') {
         console.log('투자자 모드: 데이터 필터링 및 편집 제한 적용됨');
         console.log('접근 가능한 숙소:', getAccessibleAccommodations());
-        
-        // 기존 렌더링 함수들을 오버라이드
-        overrideRenderFunctions();
-    }
-}
-
-// 렌더링 함수들을 오버라이드해서 투자자 권한 적용
-function overrideRenderFunctions() {
-    // renderAccommodationList 함수 오버라이드
-    if (typeof window.renderAccommodationList === 'function') {
-        const originalRender = window.renderAccommodationList;
-        window.renderAccommodationList = function(...args) {
-            const result = originalRender.apply(this, args);
-            setTimeout(() => {
-                disableDelayedElements();
-            }, 100);
-            return result;
-        };
     }
 }
