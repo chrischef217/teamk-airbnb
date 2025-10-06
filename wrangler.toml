@@ -1,0 +1,15 @@
+name = "teamk-airbnb"
+compatibility_date = "2023-12-01"
+
+[env.production]
+routes = [
+  { pattern = "teamk-airbnb.pages.dev", custom_domain = true }
+]
+
+[[env.production.r2_buckets]]
+binding = "ASSETS"
+bucket_name = "teamk-airbnb-assets"
+
+[site]
+bucket = "./public"
+entry-point = "index.html"

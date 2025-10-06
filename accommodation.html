@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teamk 공유숙박 관리 시스템 - 숙소관리</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/hybrid-storage.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+        }
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .tab-button {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+            }
+            .tab-button i {
+                display: none;
+            }
+            .modal-content {
+                margin: 1rem;
+                max-height: 85vh;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-4 sm:mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-lg sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-2" data-translate="systemTitle">
+                        Teamk 공유숙박 관리 시스템
+                    </h1>
+                    <div class="language-selector">
+                        <select id="languageSelect" onchange="changeLanguage(this.value)" class="text-sm border border-gray-300 rounded px-2 py-1">
+                            <option value="ko">한국어</option>
+                            <option value="en">English</option>
+                            <option value="th">ไทย</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Tab Navigation - 모바일 최적화 -->
+            <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
+                <div class="flex flex-wrap border-b overflow-x-auto">
+                    <button onclick="window.location.href='index.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-tachometer-alt mr-1"></i><span class="hidden sm:inline" data-translate="dashboard">대시보드</span><span class="sm:hidden" data-translate="dashboard">대시보드</span>
+                    </button>
+                    <button class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600 whitespace-nowrap">
+                        <i class="fas fa-home mr-1"></i><span class="hidden sm:inline" data-translate="accommodations">숙소 관리</span><span class="sm:hidden" data-translate="accommodations">숙소관리</span>
+                    </button>
+                    <button onclick="window.location.href='reservation.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-calendar-check mr-1"></i><span class="hidden sm:inline" data-translate="reservations">예약 관리</span><span class="sm:hidden" data-translate="reservations">예약관리</span>
+                    </button>
+                    <button onclick="window.location.href='analytics.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-chart-bar mr-1"></i><span class="hidden sm:inline" data-translate="analytics">지표 관리</span><span class="sm:hidden" data-translate="analytics">지표관리</span>
+                    </button>
+                    <button onclick="window.location.href='accounting.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-coins mr-1"></i><span class="hidden sm:inline" data-translate="accounting">수익 관리</span><span class="sm:hidden" data-translate="accounting">수익관리</span>
+                    </button>
+                    <button onclick="window.location.href='investor.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-users mr-1"></i><span class="hidden sm:inline" data-translate="investors">투자자 관리</span><span class="sm:hidden" data-translate="investors">투자자</span>
+                    </button>
+                    <button onclick="window.location.href='settlement.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-calculator mr-1"></i><span class="hidden sm:inline" data-translate="settlement">투자자 정산</span><span class="sm:hidden" data-translate="settlement">정산</span>
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-download mr-1"></i><span class="hidden sm:inline" data-translate="backup">백업</span><span class="sm:hidden" data-translate="backup">백업</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-home text-blue-600 mr-2"></i>
+                        <span data-translate="accommodationManagement">숙소 관리</span>
+                    </h2>
+                    <p class="text-sm sm:text-base text-gray-600" data-translate="accommodationManagementSubtitle">태국 에어비앤비 숙소 현황 및 운영 관리</p>
+                </div>
+                <button onclick="openModal('add')" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span data-translate="addAccommodation">새 숙소 등록</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 검색 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-4 sm:mb-6">
+            <div class="relative">
+                <input type="text" id="searchInput" data-translate-placeholder="searchAccommodation" placeholder="숙소명 검색..." 
+                       class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 text-sm sm:text-base"
+                       onkeyup="searchAccommodations()">
+                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+            </div>
+        </div>
+
+        <!-- 숙소 리스트 -->
+        <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
+            <div class="p-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">숙소 목록</h3>
+            </div>
+            <div id="accommodationList" class="divide-y divide-gray-200">
+                <!-- 숙소 리스트가 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- 숙소 상세/수정 모달 -->
+    <div id="accommodationModal" class="fixed inset-0 z-50 hidden modal-overlay">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl modal-content">
+                <div class="flex justify-between items-center p-4 sm:p-6 border-b">
+                    <h3 id="modalTitle" class="text-lg sm:text-xl font-semibold text-gray-800">숙소 정보</h3>
+                    <div class="flex items-center gap-2">
+                        <button id="editButton" onclick="toggleEditMode()" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">
+                            <i class="fas fa-edit mr-1"></i>
+                            <span id="editButtonText">수정</span>
+                        </button>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-lg sm:text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="accommodationForm" class="p-4 sm:p-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">숙소명 *</label>
+                            <input type="text" id="accommodationName" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">건물명</label>
+                            <input type="text" id="buildingName"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">주소</label>
+                        <textarea id="address" rows="2"
+                                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">층수</label>
+                            <input type="number" id="floor"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">방번호</label>
+                            <input type="text" id="roomNumber"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">키 갯수</label>
+                            <input type="number" id="keyCount"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">주차방법</label>
+                        <input type="text" id="parkingMethod" placeholder="예: 무료주차, 유료주차(시간당 50바트), 주차불가 등"
+                               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-user mr-1"></i>투자자명 *
+                            </label>
+                            <select id="investorName" required
+                                    class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                                <option value="">투자자를 선택하세요</option>
+                                <!-- 투자자 옵션은 JavaScript로 동적 생성 -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">계약일자</label>
+                            <input type="date" id="contractDate"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">보증금 (THB)</label>
+                            <input type="number" id="deposit"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">월세 (THB)</label>
+                            <input type="number" id="monthlyRent"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">월세 일자</label>
+                            <input type="number" id="rentDate" min="1" max="31" placeholder="일"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">에이전시 이름</label>
+                            <input type="text" id="agencyName"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">에이전시 연락처</label>
+                            <input type="tel" id="agencyContact"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">기타</label>
+                        <textarea id="notes" rows="3"
+                                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-external-link-alt mr-1"></i>웹페이지 URL
+                        </label>
+                        <input type="url" id="websiteUrl" placeholder="https://www.airbnb.com/rooms/..."
+                               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        <p class="text-xs text-gray-500 mt-1">에어비앤비, 부킹닷컴 등 숙소 예약 페이지 링크</p>
+                    </div>
+
+                    <div id="buttonGroup" class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                        <button type="submit" id="saveButton" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                            <i class="fas fa-save mr-2"></i>
+                            저장
+                        </button>
+                        <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors text-sm sm:text-base">
+                            취소
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 로그인 확인
+        // localStorage에서 투자자 데이터 로드
+        function loadInvestorDataFromStorage() {
+            const saved = localStorage.getItem('investorData');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            
+            // 기본 샘플 데이터 제거됨 - 빈 배열 반환
+            return [];
+        }
+
+        // 투자자 데이터 (localStorage에서 로드)
+        let investors = loadInvestorDataFromStorage();
+
+        // 투자자 콤보박스 채우기
+        function populateInvestorSelect() {
+            const selectElement = document.getElementById('investorName');
+            
+            console.log('투자자 콤보박스 업데이트 중... 투자자 수:', investors.length);
+            
+            // 기존 옵션 제거 (첫 번째 기본 옵션 제외)
+            while (selectElement.children.length > 1) {
+                selectElement.removeChild(selectElement.lastChild);
+            }
+            
+            // 투자자 옵션 추가
+            investors.forEach(investor => {
+                const option = document.createElement('option');
+                option.value = investor.name;
+                option.textContent = `${investor.name} (${investor.email})`;
+                option.dataset.investorId = investor.id;
+                option.dataset.userId = investor.userId;
+                selectElement.appendChild(option);
+                console.log('투자자 옵션 추가됨:', investor.name);
+            });
+        }
+
+        // 숙소 데이터 로드 함수
+        function loadAccommodations() {
+            const user = getCurrentUser();
+            let filteredAccommodations = accommodations;
+            
+            // 투자자인 경우 자신의 숙소만 필터링
+            if (user.userType === 'investor') {
+                filteredAccommodations = filterDataByAccess(accommodations, 'accommodationId');
+            }
+            
+            renderAccommodationList(filteredAccommodations);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 모든 로그인 사용자 접근 허용 (데이터는 권한별 필터링)
+            if (checkLoginStatus()) {
+                initializePagePermissions(); // 권한별 페이지 설정
+                populateInvestorSelect(); // 투자자 콤보박스 초기화
+                loadAccommodations();
+                
+                // 투자자 데이터 변경 감지 (localStorage 변경)
+                window.addEventListener('storage', function(e) {
+                    if (e.key === 'investorData') {
+                        investors = loadInvestorDataFromStorage();
+                        populateInvestorSelect(); // 콤보박스 업데이트
+                    }
+                });
+                
+                // 같은 탭 내에서의 투자자 데이터 변경 감지
+                window.addEventListener('investorDataUpdated', function(e) {
+                    investors = e.detail.investorData;
+                    populateInvestorSelect(); // 콤보박스 업데이트
+                });
+            }
+        });
+
+        // 숙소 데이터 로드 함수 (하이브리드)
+        async function loadAccommodationsFromStorage() {
+            if (window.hybridStorage) {
+                return await hybridStorage.load('accommodationData');
+            } else {
+                const saved = localStorage.getItem('accommodationData');
+                return saved ? JSON.parse(saved) : [];
+            }
+        }
+        
+        // 숙소 데이터 저장 함수 (하이브리드)
+        async function saveAccommodationsToStorage() {
+            if (window.hybridStorage) {
+                await hybridStorage.save('accommodationData', accommodations);
+            } else {
+                localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+            }
+        }
+        
+        // 숙소 데이터 - localStorage에서 로드
+        let accommodations = loadAccommodationsFromStorage();
+
+        let currentMode = 'view'; // 'view', 'edit', 'add'
+        let currentId = null;
+        let isEditMode = false;
+
+        // 페이지 로드 시 숙소 리스트 렌더링
+        document.addEventListener('DOMContentLoaded', function() {
+            renderAccommodationList();
+        });
+
+        // 숙소 리스트 렌더링
+        function renderAccommodationList(filteredData = accommodations) {
+            const listContainer = document.getElementById('accommodationList');
+            listContainer.innerHTML = '';
+
+            filteredData.forEach(accommodation => {
+                const listItem = document.createElement('div');
+                listItem.className = 'p-4 hover:bg-gray-50 cursor-pointer transition-colors';
+                listItem.onclick = () => openModal('view', accommodation.id);
+                
+                const websiteButton = accommodation.websiteUrl ? 
+                    `<button onclick="event.stopPropagation(); window.open('${accommodation.websiteUrl}', '_blank')" 
+                             class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors mr-2" 
+                             title="웹페이지 방문">
+                        <i class="fas fa-external-link-alt"></i>
+                     </button>` : '';
+                
+                listItem.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900 text-sm sm:text-base">${accommodation.accommodationName}</h4>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">${accommodation.buildingName || '-'}</p>
+                        </div>
+                        <div class="flex items-center">
+                            ${websiteButton}
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        </div>
+                    </div>
+                `;
+                
+                listContainer.appendChild(listItem);
+            });
+
+            if (filteredData.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-home text-gray-300 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-gray-600 mb-2">등록된 숙소가 없습니다</h3>
+                        <p class="text-gray-500 text-sm mb-4">새로운 숙소를 등록해보세요.</p>
+                        <button onclick="openModal('add')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>
+                            숙소 등록하기
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 검색 기능
+        function searchAccommodations() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredData = accommodations.filter(accommodation =>
+                accommodation.accommodationName.toLowerCase().includes(searchTerm)
+            );
+            renderAccommodationList(filteredData);
+        }
+
+        // 모달 열기
+        function openModal(mode, id = null) {
+            currentMode = mode;
+            currentId = id;
+            isEditMode = false;
+            
+            const modal = document.getElementById('accommodationModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('accommodationForm');
+            const editButton = document.getElementById('editButton');
+            const editButtonText = document.getElementById('editButtonText');
+            
+            if (mode === 'add') {
+                title.textContent = '새 숙소 등록';
+                form.reset();
+                editButton.style.display = 'none';
+                isEditMode = true;
+            } else if (mode === 'view') {
+                const accommodation = accommodations.find(a => a.id === id);
+                if (accommodation) {
+                    title.textContent = '숙소 정보';
+                    populateForm(accommodation);
+                    editButton.style.display = 'block';
+                    editButtonText.textContent = '수정';
+                    isEditMode = false;
+                }
+            }
+            
+            updateFormState();
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 폼에 데이터 채우기
+        function populateForm(accommodation) {
+            document.getElementById('accommodationName').value = accommodation.accommodationName || '';
+            document.getElementById('buildingName').value = accommodation.buildingName || '';
+            document.getElementById('address').value = accommodation.address || '';
+            document.getElementById('floor').value = accommodation.floor || '';
+            document.getElementById('roomNumber').value = accommodation.roomNumber || '';
+            document.getElementById('keyCount').value = accommodation.keyCount || '';
+            document.getElementById('parkingMethod').value = accommodation.parkingMethod || '';
+            document.getElementById('investorName').value = accommodation.investorName || '';
+            document.getElementById('contractDate').value = accommodation.contractDate || '';
+            document.getElementById('deposit').value = accommodation.deposit || '';
+            document.getElementById('monthlyRent').value = accommodation.monthlyRent || '';
+            document.getElementById('rentDate').value = accommodation.rentDate || '';
+            document.getElementById('agencyName').value = accommodation.agencyName || '';
+            document.getElementById('agencyContact').value = accommodation.agencyContact || '';
+            document.getElementById('notes').value = accommodation.notes || '';
+            document.getElementById('websiteUrl').value = accommodation.websiteUrl || '';
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            const modal = document.getElementById('accommodationModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentMode = 'view';
+            currentId = null;
+            isEditMode = false;
+        }
+        
+        // 수정 모드 토글
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const editButtonText = document.getElementById('editButtonText');
+            
+            if (isEditMode) {
+                editButtonText.textContent = '취소';
+            } else {
+                editButtonText.textContent = '수정';
+                // 원래 데이터로 복원
+                const accommodation = accommodations.find(a => a.id === currentId);
+                if (accommodation) {
+                    populateForm(accommodation);
+                }
+            }
+            
+            updateFormState();
+        }
+        
+        // 폼 상태 업데이트
+        function updateFormState() {
+            const form = document.getElementById('accommodationForm');
+            const formElements = form.querySelectorAll('input, textarea');
+            const saveButton = document.getElementById('saveButton');
+            
+            const isReadOnly = currentMode === 'view' && !isEditMode;
+            
+            formElements.forEach(element => {
+                element.readOnly = isReadOnly;
+                if (isReadOnly) {
+                    element.classList.add('bg-gray-50');
+                } else {
+                    element.classList.remove('bg-gray-50');
+                }
+            });
+            
+            // 저장 버튼 표시/숨김
+            if (currentMode === 'add' || isEditMode) {
+                saveButton.style.display = 'block';
+            } else {
+                saveButton.style.display = 'none';
+            }
+        }
+
+        // 폼 제출 처리
+        document.getElementById('accommodationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (currentMode === 'view' && !isEditMode) return;
+            
+            const accommodationData = {
+                accommodationName: document.getElementById('accommodationName').value,
+                buildingName: document.getElementById('buildingName').value,
+                address: document.getElementById('address').value,
+                floor: parseInt(document.getElementById('floor').value) || null,
+                roomNumber: document.getElementById('roomNumber').value,
+                keyCount: parseInt(document.getElementById('keyCount').value) || null,
+                parkingMethod: document.getElementById('parkingMethod').value,
+                investorName: document.getElementById('investorName').value,
+                contractDate: document.getElementById('contractDate').value,
+                deposit: parseInt(document.getElementById('deposit').value) || null,
+                monthlyRent: parseInt(document.getElementById('monthlyRent').value) || null,
+                rentDate: parseInt(document.getElementById('rentDate').value) || null,
+                agencyName: document.getElementById('agencyName').value,
+                agencyContact: document.getElementById('agencyContact').value,
+                notes: document.getElementById('notes').value,
+                websiteUrl: document.getElementById('websiteUrl').value
+            };
+            
+            if (currentMode === 'add') {
+                accommodationData.id = Date.now(); // 고유 ID 생성
+                accommodations.push(accommodationData);
+                saveAccommodationsToStorage(); // localStorage에 저장
+                alert('숙소가 성공적으로 등록되었습니다.');
+            } else if (isEditMode) {
+                const index = accommodations.findIndex(a => a.id === currentId);
+                if (index !== -1) {
+                    accommodations[index] = { ...accommodations[index], ...accommodationData };
+                    saveAccommodationsToStorage(); // localStorage에 저장
+                    alert('숙소 정보가 성공적으로 수정되었습니다.');
+                }
+                // 수정 마쳤 후 읽기 모드로 전환
+                isEditMode = false;
+                document.getElementById('editButtonText').textContent = '수정';
+                updateFormState();
+            }
+            
+            renderAccommodationList();
+            
+            if (currentMode === 'add') {
+                closeModal();
+            }
+        });
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('accommodationModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+
+    </script>
+</body>
+</html>

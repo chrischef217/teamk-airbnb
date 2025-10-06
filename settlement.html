@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>투자자 정산 - Teamk 공유숙박 관리 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+        }
+        .report-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .report-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .profit-positive {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .profit-negative {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-2" data-translate="systemTitle">
+                    Teamk 공유숙박 관리 시스템
+                </h1>
+
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex flex-wrap border-b">
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1"></i> 대시보드
+                    </button>
+                    <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-home mr-1"></i> 숙소 관리
+                    </button>
+                    <button onclick="window.location.href='reservation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calendar-check mr-1"></i> 예약 관리
+                    </button>
+                    <button onclick="window.location.href='analytics.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-chart-bar mr-1"></i> 지표 관리
+                    </button>
+                    <button onclick="window.location.href='accounting.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-coins mr-1"></i> 수익 관리
+                    </button>
+                    <button onclick="window.location.href='investor.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-users mr-1"></i> 투자자 관리
+                    </button>
+                    <button class="px-4 py-3 text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600">
+                        <i class="fas fa-calculator mr-1"></i> 투자자 정산
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-download mr-1"></i> 백업
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 섹션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6 no-print">
+            <div class="flex flex-col sm:flex-row sm:items-end gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">투자자 선택 *</label>
+                    <select id="investorFilter" onchange="updateReport()" 
+                            class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="">투자자를 선택하세요</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">정산 월 *</label>
+                    <select id="monthFilter" onchange="updateReport()" 
+                            class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="">월을 선택하세요</option>
+                        <option value="2024-12">2024년 12월</option>
+                        <option value="2025-01">2025년 1월</option>
+                        <option value="2025-02">2025년 2월</option>
+                        <option value="2025-03">2025년 3월</option>
+                        <option value="2025-04">2025년 4월</option>
+                        <option value="2025-05">2025년 5월</option>
+                        <option value="2025-06">2025년 6월</option>
+                        <option value="2025-07">2025년 7월</option>
+                        <option value="2025-08">2025년 8월</option>
+                        <option value="2025-09">2025년 9월</option>
+                        <option value="2025-10">2025년 10월</option>
+                        <option value="2025-11">2025년 11월</option>
+                        <option value="2025-12">2025년 12월</option>
+                    </select>
+                </div>
+                <div>
+                    <button onclick="printReport()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-print mr-2"></i>
+                        인쇄
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 리포트 섹션 -->
+        <div id="reportSection" class="hidden">
+            <!-- 리포트 헤더 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800" id="reportTitle">투자자 정산 리포트</h2>
+                        <p class="text-sm text-gray-600" id="reportSubtitle">정산 기간 및 투자자 정보</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500">생성일: <span id="reportDate"></span></p>
+                        <p class="text-xs text-gray-500">문서번호: <span id="reportNumber"></span></p>
+                    </div>
+                </div>
+                
+                <!-- 투자자 기본 정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">투자자 정보</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">성명:</span>
+                                <span id="investorName" class="font-medium">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">연락처:</span>
+                                <span id="investorPhone" class="font-medium">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">이메일:</span>
+                                <span id="investorEmail" class="font-medium">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">정산일:</span>
+                                <span id="settlementDay" class="font-medium">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-3">투자 조건</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">투자 비율:</span>
+                                <span id="investorRatio" class="font-medium text-blue-600">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">회사 비율:</span>
+                                <span id="companyRatio" class="font-medium text-green-600">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">보유 숙소:</span>
+                                <span id="accommodationCount" class="font-medium">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 보유 숙소 목록 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-building text-blue-600 mr-2"></i>
+                    보유 숙소 목록
+                </h3>
+                <div id="accommodationList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 숙소 목록이 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <!-- 월별 수익 현황 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                    월별 수익 현황 <span class="text-sm font-normal text-gray-500">(단위: THB)</span>
+                </h3>
+                
+                <!-- KPI 카드 -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gradient-to-r from-green-400 to-green-500 rounded-lg p-4 text-white">
+                        <div class="text-sm opacity-90">총 수익</div>
+                        <div id="totalRevenue" class="text-xl font-bold">0 THB</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-red-400 to-red-500 rounded-lg p-4 text-white">
+                        <div class="text-sm opacity-90">총 지출</div>
+                        <div id="totalExpense" class="text-xl font-bold">0 THB</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-blue-400 to-blue-500 rounded-lg p-4 text-white">
+                        <div class="text-sm opacity-90">순수익</div>
+                        <div id="netProfit" class="text-xl font-bold">0 THB</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-purple-400 to-purple-500 rounded-lg p-4 text-white">
+                        <div class="text-sm opacity-90">투자자 배당</div>
+                        <div id="investorDividend" class="text-xl font-bold">0 THB</div>
+                    </div>
+                </div>
+
+                <!-- 상세 수익 테이블 -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">숙소</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">내용</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">수익</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">지출</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">순손익</th>
+                            </tr>
+                        </thead>
+                        <tbody id="revenueTableBody" class="divide-y divide-gray-200">
+                            <!-- 데이터가 여기에 표시됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 정산 계산서 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-calculator text-purple-600 mr-2"></i>
+                    정산 계산서 <span class="text-sm font-normal text-gray-500">(단위: THB)</span>
+                </h3>
+                
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- 수익 분석 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-4">수익 분석</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">총 숙박 수익:</span>
+                                    <span id="calc_totalRevenue" class="font-medium">0 THB</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">총 운영 비용:</span>
+                                    <span id="calc_totalExpense" class="font-medium text-red-600">0 THB</span>
+                                </div>
+                                <div class="border-t pt-2">
+                                    <div class="flex justify-between font-semibold">
+                                        <span>순수익:</span>
+                                        <span id="calc_netProfit" class="text-lg">0 THB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 배당 계산 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-4">배당 계산</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">투자자 지분 (<span id="calc_investorRatio">70</span>%):</span>
+                                    <span id="calc_investorShare" class="font-medium text-blue-600">0 THB</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">회사 지분 (<span id="calc_companyRatio">30</span>%):</span>
+                                    <span id="calc_companyShare" class="font-medium text-green-600">0 THB</span>
+                                </div>
+                                <div class="border-t pt-2">
+                                    <div class="flex justify-between font-bold text-lg">
+                                        <span>투자자 배당금:</span>
+                                        <span id="calc_finalDividend" class="text-blue-600">0 THB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 정산 요약 -->
+                    <div class="mt-6 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+                        <div class="text-center">
+                            <h4 class="text-lg font-bold text-blue-800 mb-2">이번 달 정산 금액</h4>
+                            <div class="text-3xl font-bold text-blue-600" id="finalSettlementAmount">0 THB</div>
+                            <p class="text-xs text-blue-600 mt-2">위 금액은 투자자님께 지급될 배당금입니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 서명 및 날인 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-6">
+                    <i class="fas fa-signature text-gray-600 mr-2"></i>
+                    확인 및 서명
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="text-center">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 mb-4">
+                            <p class="text-gray-500 mb-4">투자자 확인</p>
+                            <div class="h-16 flex items-end justify-center">
+                                <div class="border-b-2 border-gray-400 w-32 text-center pb-2">
+                                    <span class="text-sm text-gray-600">서명</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm">
+                            <strong id="signature_investorName">투자자명</strong><br>
+                            <span class="text-gray-600" id="signature_date">날짜: </span>
+                        </p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 mb-4">
+                            <p class="text-gray-500 mb-4">회사 확인</p>
+                            <div class="h-16 flex items-end justify-center">
+                                <div class="border-b-2 border-gray-400 w-32 text-center pb-2">
+                                    <span class="text-sm text-gray-600">서명</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm">
+                            <strong>Teamk Co., Ltd</strong><br>
+                            <span class="text-gray-600">대표이사</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 안내 메시지 -->
+        <div id="noDataMessage" class="bg-white rounded-lg shadow-sm p-8 text-center">
+            <i class="fas fa-chart-bar text-gray-300 text-4xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-800 mb-2">정산 리포트</h3>
+            <p class="text-gray-600">투자자와 정산 월을 선택하면 상세 리포트가 표시됩니다.</p>
+        </div>
+    </div>
+
+    <script>
+        // 전역 데이터 저장소
+        let investors = [];
+        let accommodations = [];
+        let accountingData = [];
+
+        // API 기본 함수들
+        async function fetchTableData(tableName, params = {}) {
+            try {
+                const queryParams = new URLSearchParams(params).toString();
+                const response = await fetch(`tables/${tableName}${queryParams ? '?' + queryParams : ''}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                return result.data || [];
+            } catch (error) {
+                console.error(`Error fetching ${tableName}:`, error);
+                return [];
+            }
+        }
+
+        // 투자자 데이터를 localStorage에서 로드
+        function loadInvestorDataFromStorage() {
+            const saved = localStorage.getItem('investorData');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            // 샘플 데이터 제거됨 - 빈 배열 반환
+            return [];
+        }
+        
+        async function loadInvestors() {
+            investors = loadInvestorDataFromStorage();
+        }
+
+        // 숙소 데이터 로드
+        async function loadAccommodations() {
+            const rawData = await fetchTableData('accommodations');
+            accommodations = rawData.map(acc => ({
+                id: acc.id,
+                name: acc.accommodationName,
+                building: acc.buildingName || '정보 없음'
+            }));
+        }
+
+        // 회계 데이터 로드
+        async function loadAccountingData() {
+            const rawData = await fetchTableData('accounting');
+            accountingData = rawData.map(acc => ({
+                accommodationName: acc.accommodationName,
+                date: acc.date,
+                description: acc.description,
+                incomeAmount: parseFloat(acc.incomeAmount) || 0,
+                expenseAmount: parseFloat(acc.expenseAmount) || 0
+            }));
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (checkLoginStatus()) {
+                initializePagePermissions(); // 권한별 페이지 설정
+                await initializePage();
+            }
+        });
+
+        // 실시간 동기화를 위한 storage 이벤트 리스너
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'investorData') {
+                loadInvestors().then(() => {
+                    populateInvestors();
+                });
+            }
+        });
+
+        // 페이지 초기화
+        async function initializePage() {
+            try {
+                // 데이터 로드
+                await Promise.all([
+                    loadInvestors(),
+                    loadAccommodations(),
+                    loadAccountingData()
+                ]);
+                
+                // UI 초기화
+                populateInvestors();
+                updateReportDate();
+            } catch (error) {
+                console.error('페이지 초기화 오류:', error);
+                alert('데이터를 불러오는 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 투자자 옵션 채우기
+        function populateInvestors() {
+            const select = document.getElementById('investorFilter');
+            investors.forEach(investor => {
+                const option = document.createElement('option');
+                option.value = investor.id;
+                option.textContent = investor.name;
+                select.appendChild(option);
+            });
+        }
+
+        // 리포트 업데이트
+        function updateReport() {
+            try {
+                const investorId = parseInt(document.getElementById('investorFilter').value);
+                const selectedMonth = document.getElementById('monthFilter').value;
+
+                if (!investorId || !selectedMonth) {
+                    document.getElementById('reportSection').classList.add('hidden');
+                    document.getElementById('noDataMessage').classList.remove('hidden');
+                    return;
+                }
+
+                const investor = investors.find(inv => inv.id === investorId);
+                if (!validateReportData(investor, selectedMonth)) {
+                    return;
+                }
+
+                // 리포트 표시
+                document.getElementById('reportSection').classList.remove('hidden');
+                document.getElementById('noDataMessage').classList.add('hidden');
+
+                // 기본 정보 업데이트
+                updateBasicInfo(investor, selectedMonth);
+
+                // 숙소 목록 업데이트
+                updateAccommodationList(investor);
+
+                // 수익 데이터 업데이트
+                updateRevenueData(investor, selectedMonth);
+
+                // 정산 계산
+                calculateSettlement(investor, selectedMonth);
+                
+            } catch (error) {
+                console.error('리포트 업데이트 오류:', error);
+                alert('리포트 생성 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 기본 정보 업데이트
+        function updateBasicInfo(investor, month) {
+            const [year, monthNum] = month.split('-');
+            const monthName = `${year}년 ${parseInt(monthNum)}월`;
+
+            document.getElementById('reportTitle').textContent = `${investor.name}님 정산 리포트`;
+            document.getElementById('reportSubtitle').textContent = `${monthName} 정산 내역`;
+
+            document.getElementById('investorName').textContent = investor.name;
+            document.getElementById('investorPhone').textContent = investor.phone;
+            document.getElementById('investorEmail').textContent = investor.email;
+            document.getElementById('settlementDay').textContent = `매월 ${investor.settlementDay}일`;
+            document.getElementById('investorRatio').textContent = `${investor.investorRatio}%`;
+            document.getElementById('companyRatio').textContent = `${investor.companyRatio}%`;
+            document.getElementById('accommodationCount').textContent = `${investor.accommodations.length}개`;
+
+            // 서명란 업데이트
+            document.getElementById('signature_investorName').textContent = investor.name;
+            document.getElementById('signature_date').textContent = `날짜: ${new Date().toLocaleDateString('ko-KR')}`;
+        }
+
+        // 숙소 목록 업데이트
+        function updateAccommodationList(investor) {
+            const container = document.getElementById('accommodationList');
+            container.innerHTML = '';
+
+            investor.accommodations.forEach(accName => {
+                const acc = accommodations.find(a => a.name === accName);
+                if (!acc) {
+                    // 숙소 정보가 없는 경우 기본 정보로 표시
+                    const div = document.createElement('div');
+                    div.className = 'report-card border border-gray-200 rounded-lg p-4';
+                    div.innerHTML = `
+                        <div class="space-y-2">
+                            <div>
+                                <span class="text-xs font-medium text-gray-500">숙소명:</span>
+                                <div class="font-medium text-gray-900">${accName}</div>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500">건물명:</span>
+                                <div class="text-sm text-gray-600">정보 없음</div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                    return;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'report-card border border-gray-200 rounded-lg p-4';
+                div.innerHTML = `
+                    <div class="space-y-2">
+                        <div>
+                            <span class="text-xs font-medium text-gray-500">숙소명:</span>
+                            <div class="font-medium text-gray-900">${acc.name}</div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500">건물명:</span>
+                            <div class="text-sm text-gray-600">${acc.building}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 수익 데이터 업데이트
+        function updateRevenueData(investor, month) {
+            // 투자자의 숙소 이름 배열 (이미 이름으로 저장됨)
+            const investorAccommodations = investor.accommodations;
+
+            const monthData = accountingData.filter(item => {
+                const itemMonth = item.date.substring(0, 7);
+                return itemMonth === month && investorAccommodations.includes(item.accommodationName);
+            });
+
+            // KPI 계산
+            const totalRevenue = monthData.reduce((sum, item) => sum + (item.incomeAmount || 0), 0);
+            const totalExpense = monthData.reduce((sum, item) => sum + (item.expenseAmount || 0), 0);
+            const netProfit = totalRevenue - totalExpense;
+            const investorDividend = Math.round(netProfit * (investor.investorRatio / 100));
+
+            // KPI 카드 업데이트 (THB 단위 포함)
+            document.getElementById('totalRevenue').textContent = `${totalRevenue.toLocaleString()} THB`;
+            document.getElementById('totalExpense').textContent = `${totalExpense.toLocaleString()} THB`;
+            document.getElementById('netProfit').textContent = `${netProfit.toLocaleString()} THB`;
+            document.getElementById('investorDividend').textContent = `${investorDividend.toLocaleString()} THB`;
+
+            // 테이블 업데이트
+            const tbody = document.getElementById('revenueTableBody');
+            tbody.innerHTML = '';
+
+            monthData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            monthData.forEach(item => {
+                const netAmount = (item.incomeAmount || 0) - (item.expenseAmount || 0);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-sm">${formatDate(item.date)}</td>
+                    <td class="px-4 py-3 text-sm">${item.accommodationName}</td>
+                    <td class="px-4 py-3 text-sm">${item.description}</td>
+                    <td class="px-4 py-3 text-sm text-right font-mono text-green-600">
+                        ${item.incomeAmount > 0 ? item.incomeAmount.toLocaleString() + ' THB' : '-'}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right font-mono text-red-600">
+                        ${item.expenseAmount > 0 ? item.expenseAmount.toLocaleString() + ' THB' : '-'}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right font-mono font-semibold ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${netAmount >= 0 ? '+' : ''}${netAmount.toLocaleString()} THB
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 정산 계산
+        function calculateSettlement(investor, month) {
+            // 투자자의 숙소 이름 배열 (이미 이름으로 저장됨)
+            const investorAccommodations = investor.accommodations;
+
+            const monthData = accountingData.filter(item => {
+                const itemMonth = item.date.substring(0, 7);
+                return itemMonth === month && investorAccommodations.includes(item.accommodationName);
+            });
+
+            const totalRevenue = monthData.reduce((sum, item) => sum + (item.incomeAmount || 0), 0);
+            const totalExpense = monthData.reduce((sum, item) => sum + (item.expenseAmount || 0), 0);
+            const netProfit = totalRevenue - totalExpense;
+
+            const investorShare = Math.round(netProfit * (investor.investorRatio / 100));
+            const companyShare = netProfit - investorShare;
+
+            // 정산 계산서 업데이트 (THB 단위 포함)
+            document.getElementById('calc_totalRevenue').textContent = `${totalRevenue.toLocaleString()} THB`;
+            document.getElementById('calc_totalExpense').textContent = `${totalExpense.toLocaleString()} THB`;
+            document.getElementById('calc_netProfit').textContent = `${netProfit.toLocaleString()} THB`;
+
+            document.getElementById('calc_investorRatio').textContent = investor.investorRatio;
+            document.getElementById('calc_companyRatio').textContent = investor.companyRatio;
+            document.getElementById('calc_investorShare').textContent = `${investorShare.toLocaleString()} THB`;
+            document.getElementById('calc_companyShare').textContent = `${companyShare.toLocaleString()} THB`;
+            document.getElementById('calc_finalDividend').textContent = `${investorShare.toLocaleString()} THB`;
+
+            // 최종 정산 금액
+            document.getElementById('finalSettlementAmount').textContent = `${investorShare.toLocaleString()} THB`;
+
+            // 색상 적용
+            const profitElements = [
+                document.getElementById('calc_netProfit'),
+                document.getElementById('calc_finalDividend'),
+                document.getElementById('finalSettlementAmount')
+            ];
+            
+            profitElements.forEach(element => {
+                element.className = element.className.replace(/text-\w+-\d+/g, '');
+                element.classList.add(netProfit >= 0 ? 'text-green-600' : 'text-red-600');
+            });
+        }
+
+        // 리포트 날짜 업데이트
+        function updateReportDate() {
+            const now = new Date();
+            const reportNumber = `RPT-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${Math.floor(Math.random()*1000).toString().padStart(3,'0')}`;
+            
+            document.getElementById('reportDate').textContent = now.toLocaleDateString('ko-KR');
+            document.getElementById('reportNumber').textContent = reportNumber;
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        // 인쇄 기능
+        function printReport() {
+            if (document.getElementById('reportSection').classList.contains('hidden')) {
+                alert('인쇄할 리포트를 먼저 생성해주세요.');
+                return;
+            }
+            window.print();
+        }
+
+        // 오류 처리 및 데이터 검증 함수
+        function validateReportData(investor, month) {
+            if (!investor) {
+                alert('선택된 투자자 정보를 찾을 수 없습니다.');
+                return false;
+            }
+            
+            if (!month) {
+                alert('정산 월을 선택해주세요.');
+                return false;
+            }
+            
+            if (!investor.accommodations || investor.accommodations.length === 0) {
+                alert('해당 투자자의 보유 숙소 정보가 없습니다.');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // THB 통화 포맷팅 유틸리티 함수
+        function formatTHB(amount) {
+            if (amount === null || amount === undefined || isNaN(amount)) {
+                return '0 THB';
+            }
+            return `${Math.round(amount).toLocaleString()} THB`;
+        }
+    </script>
+</body>
+</html>

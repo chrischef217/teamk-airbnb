@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - Teamk 공유숙박 관리 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/translations.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .login-container {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .login-form {
+            transition: all 0.3s ease;
+        }
+        .input-field {
+            transition: all 0.2s ease;
+        }
+        .input-field:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            transition: all 0.3s ease;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="login-container w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white text-center relative">
+            <!-- 언어 선택기 -->
+            <div class="absolute top-2 right-2 sm:top-3 sm:right-3">
+                <div class="relative">
+                    <button id="languageButton" onclick="toggleLanguageMenu()" 
+                            class="bg-gray-800 text-white text-xs px-3 py-2 rounded-lg border-2 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 shadow-lg hover:bg-gray-700 transition-colors flex items-center gap-1">
+                        <span id="currentLanguage">🇰🇷 한국어</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div id="languageMenu" class="hidden absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border-2 border-gray-300 overflow-hidden z-10 min-w-[100px]">
+                        <button onclick="selectLanguage('ko')" class="w-full px-3 py-2 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-800 text-left flex items-center gap-2 transition-colors">
+                            🇰🇷 한국어
+                        </button>
+                        <button onclick="selectLanguage('th')" class="w-full px-3 py-2 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-800 text-left flex items-center gap-2 transition-colors">
+                            🇹🇭 ไทย
+                        </button>
+                        <button onclick="selectLanguage('en')" class="w-full px-3 py-2 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-800 text-left flex items-center gap-2 transition-colors">
+                            🇺🇸 English
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <i class="fas fa-building text-4xl mb-2"></i>
+            </div>
+            <h1 class="text-2xl font-bold mb-2">Teamk</h1>
+            <p class="text-blue-100 text-sm" data-translate="loginSubtitle">공유숙박 관리 시스템</p>
+        </div>
+
+        <!-- 로그인 타입 선택 탭 -->
+        <div class="p-6">
+            <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                <button id="adminTab" onclick="switchTab('admin')" 
+                        class="tab-button flex-1 py-3 px-4 text-sm font-medium rounded-md text-white active">
+                    <i class="fas fa-user-shield mr-2"></i>
+                    <span data-translate="adminLogin">관리자 로그인</span>
+                </button>
+                <button id="investorTab" onclick="switchTab('investor')" 
+                        class="tab-button flex-1 py-3 px-4 text-sm font-medium rounded-md text-gray-600">
+                    <i class="fas fa-users mr-2"></i>
+                    <span data-translate="investorLogin">투자자 로그인</span>
+                </button>
+            </div>
+
+            <!-- 관리자 로그인 폼 -->
+            <div id="adminLoginForm" class="login-form">
+                <form onsubmit="handleAdminLogin(event)">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-user mr-2"></i><span data-translate="adminId">관리자 아이디</span>
+                            </label>
+                            <input type="text" id="adminUserId" required 
+                                   data-translate-placeholder="adminIdPlaceholder" placeholder="관리자 아이디를 입력하세요"
+                                   class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-lock mr-2"></i><span data-translate="password">비밀번호</span>
+                            </label>
+                            <input type="password" id="adminPassword" required 
+                                   data-translate-placeholder="passwordPlaceholder" placeholder="비밀번호를 입력하세요"
+                                   class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <button type="submit" 
+                                class="btn-login w-full py-3 px-4 text-white font-medium rounded-lg">
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            <span data-translate="loginAsAdmin">관리자로 로그인</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 투자자 로그인 폼 -->
+            <div id="investorLoginForm" class="login-form hidden">
+                <form onsubmit="handleInvestorLogin(event)">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-user mr-2"></i><span data-translate="investorId">투자자 아이디</span>
+                            </label>
+                            <input type="text" id="investorUserId" required 
+                                   data-translate-placeholder="investorIdPlaceholder" placeholder="투자자 아이디를 입력하세요"
+                                   class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-lock mr-2"></i><span data-translate="password">비밀번호</span>
+                            </label>
+                            <input type="password" id="investorPassword" required 
+                                   data-translate-placeholder="passwordPlaceholder" placeholder="비밀번호를 입력하세요"
+                                   class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <button type="submit" 
+                                class="btn-login w-full py-3 px-4 text-white font-medium rounded-lg">
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            <span data-translate="loginAsInvestor">투자자로 로그인</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+
+        </div>
+
+        <!-- 푸터 -->
+        <div class="bg-gray-50 px-6 py-4 text-center">
+            <p class="text-xs text-gray-500">
+                <i class="fas fa-copyright mr-1"></i>
+                2024 Teamk. <span data-translate="allRightsReserved">All rights reserved</span>.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 관리자 로그인 정보
+        const adminCredentials = {
+            userId: 'master',
+            password: '881114'
+        };
+
+        // 투자자 정보를 localStorage에서 동적으로 가져오기
+        function getInvestorCredentials() {
+            const investorData = localStorage.getItem('investorData');
+            if (investorData) {
+                try {
+                    const investors = JSON.parse(investorData);
+                    return investors.map(inv => ({
+                        userId: inv.userId,
+                        password: inv.password,
+                        name: inv.name
+                    }));
+                } catch (e) {
+                    console.error('투자자 데이터 파싱 오류:', e);
+                }
+            }
+            
+            // 기본 투자자 정보 없음 - 사용자가 직접 등록해야 함
+            return [];
+        }
+
+        // 현재 활성 탭
+        let currentTab = 'admin';
+
+        // 탭 전환
+        function switchTab(tabType) {
+            currentTab = tabType;
+            
+            const adminTab = document.getElementById('adminTab');
+            const investorTab = document.getElementById('investorTab');
+            const adminForm = document.getElementById('adminLoginForm');
+            const investorForm = document.getElementById('investorLoginForm');
+
+            if (tabType === 'admin') {
+                adminTab.classList.add('active', 'text-white');
+                adminTab.classList.remove('text-gray-600');
+                investorTab.classList.remove('active', 'text-white');
+                investorTab.classList.add('text-gray-600');
+                
+                adminForm.classList.remove('hidden');
+                investorForm.classList.add('hidden');
+            } else {
+                investorTab.classList.add('active', 'text-white');
+                investorTab.classList.remove('text-gray-600');
+                adminTab.classList.remove('active', 'text-white');
+                adminTab.classList.add('text-gray-600');
+                
+                investorForm.classList.remove('hidden');
+                adminForm.classList.add('hidden');
+            }
+        }
+
+        // 관리자 로그인 처리
+        function handleAdminLogin(event) {
+            event.preventDefault();
+            
+            const userId = document.getElementById('adminUserId').value;
+            const password = document.getElementById('adminPassword').value;
+
+            if (userId === adminCredentials.userId && password === adminCredentials.password) {
+                // 세션 저장
+                sessionStorage.setItem('userType', 'admin');
+                sessionStorage.setItem('userId', userId);
+                sessionStorage.setItem('userName', '관리자');
+                
+                showSuccessMessage(translator ? translator.t('adminLoginSuccess') : '관리자 로그인 성공!');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            } else {
+                showErrorMessage(translator ? translator.t('loginError') : '아이디 또는 비밀번호가 올바르지 않습니다.');
+            }
+        }
+
+        // 투자자 로그인 처리
+        function handleInvestorLogin(event) {
+            event.preventDefault();
+            
+            console.log('🔐 투자자 로그인 시도 시작');
+            
+            const userId = document.getElementById('investorUserId').value;
+            const password = document.getElementById('investorPassword').value;
+            
+            console.log(`📝 입력된 정보: ID="${userId}", PW="${password}"`);
+
+            // 동적으로 투자자 계정 정보 가져오기
+            const investorCredentials = getInvestorCredentials();
+            console.log('📋 사용 가능한 계정:', investorCredentials);
+            
+            const investor = investorCredentials.find(inv => 
+                inv.userId === userId && inv.password === password
+            );
+            
+            console.log('🔍 검증 결과:', investor ? '✅ 매칭됨' : '❌ 매칭 실패');
+
+            if (investor) {
+                console.log('✅ 로그인 성공:', investor.name);
+                
+                // 세션 저장
+                sessionStorage.setItem('userType', 'investor');
+                sessionStorage.setItem('userId', userId);
+                sessionStorage.setItem('userName', investor.name);
+                
+                console.log('💾 세션 저장 완료');
+                
+                showSuccessMessage(`${investor.name}님 로그인 성공!`);
+                
+                console.log('🔄 3초 후 index.html로 이동');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 3000);
+                
+            } else {
+                console.log('❌ 로그인 실패: 계정 정보 불일치');
+                console.log('🔍 디버그 정보:');
+                console.log('- 입력된 ID:', userId);
+                console.log('- 입력된 PW:', password);
+                console.log('- 등록된 계정들:', investorCredentials.map(inv => `${inv.userId}/${inv.password}`));
+                
+                showErrorMessage('❌ 아이디 또는 비밀번호가 올바르지 않습니다.\n\n투자자 관리 페이지에서 먼저 계정을 등록해주세요.');
+            }
+        }
+
+        // 성공 메시지 표시
+        function showSuccessMessage(message) {
+            showMessage(message, 'success');
+        }
+
+        // 에러 메시지 표시
+        function showErrorMessage(message) {
+            showMessage(message, 'error');
+        }
+
+        // 메시지 표시
+        function showMessage(message, type) {
+            // 기존 메시지 제거
+            const existingMessage = document.querySelector('.message-alert');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-alert fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+                type === 'success' 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-red-500 text-white'
+            }`;
+            
+            messageDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            // 3초 후 자동 제거
+            setTimeout(() => {
+                if (messageDiv) {
+                    messageDiv.remove();
+                }
+            }, 3000);
+        }
+
+
+
+        // 페이지 로드 시 세션 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            // 이미 로그인된 상태라면 메인 페이지로 리다이렉트
+            const userType = sessionStorage.getItem('userType');
+            if (userType) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Enter 키 처리
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (currentTab === 'admin') {
+                    const adminForm = document.querySelector('#adminLoginForm form');
+                    adminForm.dispatchEvent(new Event('submit'));
+                } else {
+                    const investorForm = document.querySelector('#investorLoginForm form');
+                    investorForm.dispatchEvent(new Event('submit'));
+                }
+            }
+        });
+
+        // 언어 메뉴 표시/숨기기
+        function toggleLanguageMenu() {
+            const menu = document.getElementById('languageMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // 언어 선택 함수
+        function selectLanguage(language) {
+            const languageLabels = {
+                'ko': '🇰🇷 한국어',
+                'th': '🇹🇭 ไทย', 
+                'en': '🇺🇸 English'
+            };
+            
+            // 버튼 텍스트 업데이트
+            document.getElementById('currentLanguage').textContent = languageLabels[language];
+            
+            // 메뉴 닫기
+            document.getElementById('languageMenu').classList.add('hidden');
+            
+            // 언어 변경
+            if (translator) {
+                translator.changeLanguage(language);
+            }
+        }
+
+        // 언어 변경 함수 (호환성 유지)
+        function changeLanguage(language) {
+            selectLanguage(language);
+        }
+
+        // 메뉴 외부 클릭 시 닫기
+        document.addEventListener('click', function(e) {
+            const languageButton = document.getElementById('languageButton');
+            const languageMenu = document.getElementById('languageMenu');
+            
+            if (languageButton && languageMenu && 
+                !languageButton.contains(e.target) && 
+                !languageMenu.contains(e.target)) {
+                languageMenu.classList.add('hidden');
+            }
+        });
+
+        // 페이지 로드 시 언어 선택기 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 기존 코드...
+            
+            // 저장된 언어 설정 적용
+            const savedLanguage = localStorage.getItem('teamk-language') || 'ko';
+            selectLanguage(savedLanguage);
+        });
+    </script>
+</body>
+</html>

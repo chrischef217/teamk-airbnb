@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teamk 공유숙박 관리 시스템 - 수익/지출 관리</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+        }
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .accounting-table th {
+            position: sticky;
+            top: 0;
+            background: #f9fafb;
+            z-index: 10;
+        }
+        .income-row {
+            background-color: #f0f9ff;
+        }
+        .expense-row {
+            background-color: #fef2f2;
+        }
+        .balance-positive {
+            color: #059669;
+            font-weight: 600;
+        }
+        .balance-negative {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .tab-button {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+            }
+            .tab-button i {
+                display: none;
+            }
+            .modal-content {
+                margin: 1rem;
+                max-height: 85vh;
+            }
+            .accounting-table {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-4 sm:mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
+                <h1 class="text-lg sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-2" data-translate="systemTitle">
+                    Teamk 공유숙박 관리 시스템
+                </h1>
+
+            </div>
+            
+            <!-- Tab Navigation - 모바일 최적화 -->
+            <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
+                <div class="flex flex-wrap border-b overflow-x-auto">
+                    <button onclick="window.location.href='index.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-tachometer-alt mr-1"></i><span class="hidden sm:inline" data-translate="dashboard">대시보드</span><span class="sm:hidden" data-translate="dashboard">대시보드</span>
+                    </button>
+                    <button onclick="window.location.href='accommodation.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-home mr-1"></i><span class="hidden sm:inline" data-translate="accommodations">숙소 관리</span><span class="sm:hidden" data-translate="accommodations">숙소관리</span>
+                    </button>
+                    <button onclick="window.location.href='reservation.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-calendar-check mr-1"></i><span class="hidden sm:inline" data-translate="reservations">예약 관리</span><span class="sm:hidden" data-translate="reservations">예약관리</span>
+                    </button>
+                    <button onclick="window.location.href='analytics.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-chart-bar mr-1"></i><span class="hidden sm:inline" data-translate="analytics">지표 관리</span><span class="sm:hidden" data-translate="analytics">지표관리</span>
+                    </button>
+                    <button class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600 whitespace-nowrap">
+                        <i class="fas fa-coins mr-1"></i><span class="hidden sm:inline" data-translate="accounting">수익/지출 관리</span><span class="sm:hidden" data-translate="accounting">수익관리</span>
+                    </button>
+                    <button onclick="window.location.href='investor.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-users mr-1"></i><span class="hidden sm:inline" data-translate="investors">투자자 관리</span><span class="sm:hidden" data-translate="investors">투자자</span>
+                    </button>
+                    <button onclick="window.location.href='settlement.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-calculator mr-1"></i><span class="hidden sm:inline" data-translate="settlement">투자자 정산</span><span class="sm:hidden" data-translate="settlement">정산</span>
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-download mr-1"></i><span class="hidden sm:inline" data-translate="backup">백업</span><span class="sm:hidden" data-translate="backup">백업</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-coins text-green-600 mr-2"></i>
+                        <span data-translate="accountingManagement">수익/지출 관리</span>
+                    </h2>
+                    <p class="text-sm sm:text-base text-gray-600" data-translate="accountingManagementSubtitle">숙소별 월별 수익 및 지출 회계장부</p>
+                </div>
+                <button onclick="openModal('add')" class="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span data-translate="addItem">새 항목 추가</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 숙소 및 월별 필터 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-4 sm:mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">숙소 선택 *</label>
+                    <select id="accommodationFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base" onchange="filterAccounting()">
+                        <option value="">숙소를 먼저 선택하세요</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">조회 월 *</label>
+                    <input type="month" id="monthFilter" 
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base"
+                           onchange="filterAccounting()">
+                </div>
+            </div>
+        </div>
+
+        <!-- 회계장부 테이블 -->
+        <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
+            <div class="p-4 border-b flex justify-between items-center">
+                <div>
+                    <h3 id="accountingTitle" class="text-lg font-semibold text-gray-800">회계장부</h3>
+                    <p class="text-xs text-gray-500 mt-1">숙소와 월을 선택해주세요</p>
+                </div>
+                <span id="entryCount" class="text-sm text-gray-500">0건</span>
+            </div>
+            
+            <div class="overflow-x-auto" style="max-height: 500px;">
+                <div class="bg-blue-50 px-4 py-2 border-b">
+                    <p class="text-xs text-blue-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        모든 금액은 태국 바트(THB) 단위입니다.
+                    </p>
+                </div>
+                <table class="w-full accounting-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">날짜</th>
+                            <th class="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">내용</th>
+                            <th class="px-2 sm:px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">수익금액</th>
+                            <th class="px-2 sm:px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">지출금액</th>
+                            <th class="px-2 sm:px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">누적 잔액</th>
+                            <th class="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountingTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                <i class="fas fa-calculator text-gray-300 text-2xl sm:text-3xl mb-3 block"></i>
+                                숙소와 월을 선택하면 회계장부가 표시됩니다.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 월별 요약 -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-6">
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">총 수익</h3>
+                    <p id="totalIncome" class="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">0 THB</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">총 지출</h3>
+                    <p id="totalExpense" class="text-lg sm:text-2xl font-bold text-red-600 mt-1 sm:mt-2">0 THB</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">순 수익</h3>
+                    <p id="netProfit" class="text-lg sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">0 THB</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">총 건수</h3>
+                    <p id="totalEntries" class="text-lg sm:text-2xl font-bold text-blue-600 mt-1 sm:mt-2">0건</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수익/지출 항목 모달 -->
+    <div id="accountingModal" class="fixed inset-0 z-50 hidden modal-overlay">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-lg modal-content">
+                <div class="flex justify-between items-center p-4 sm:p-6 border-b">
+                    <h3 id="modalTitle" class="text-lg sm:text-xl font-semibold text-gray-800">회계 항목</h3>
+                    <div class="flex items-center gap-2">
+                        <button id="editButton" onclick="toggleEditMode()" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">
+                            <i class="fas fa-edit mr-1"></i>
+                            <span id="editButtonText">수정</span>
+                        </button>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-lg sm:text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="accountingForm" class="p-4 sm:p-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">숙소명 *</label>
+                            <select id="modalAccommodationName" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                                <option value="">숙소를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">날짜 *</label>
+                            <input type="date" id="entryDate" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">내용 *</label>
+                        <input type="text" id="description" required placeholder="예: 숙박비 수입, 청소비 지출 등"
+                               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                    </div>
+
+                    <!-- 거래 유형 선택 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">거래 유형 *</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" id="incomeTypeBtn" onclick="setTransactionType('income')"
+                                    class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-plus-circle text-green-600 mr-2"></i>수익
+                            </button>
+                            <button type="button" id="expenseTypeBtn" onclick="setTransactionType('expense')"
+                                    class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-minus-circle text-red-600 mr-2"></i>지출
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 금액 입력 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <span id="amountLabel">금액</span> (THB) *
+                        </label>
+                        <input type="number" id="amount" min="0" placeholder="금액을 입력하세요" required
+                               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                    </div>
+
+                    <div id="buttonGroup" class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                        <button type="submit" id="saveButton" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base">
+                            <i class="fas fa-save mr-2"></i>
+                            저장
+                        </button>
+                        <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors text-sm sm:text-base">
+                            취소
+                        </button>
+                        <button type="button" id="deleteButton" onclick="deleteEntry()" class="sm:w-auto bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base">
+                            <i class="fas fa-trash mr-2"></i>
+                            삭제
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 숙소 리스트
+        const accommodations = [];
+
+        // 회계 데이터 - 샘플 데이터 제거됨
+        const accountingData = [
+            {
+                id: 2,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-12-02',
+                description: '청소비 지출',
+                incomeAmount: 0,
+                expenseAmount: 80000
+            },
+            {
+                id: 3,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-12-05',
+                description: '세탁비 지출',
+                incomeAmount: 0,
+                expenseAmount: 25000
+            },
+            {
+                id: 4,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-12-10',
+                description: '관리사무소 월세',
+                incomeAmount: 0,
+                expenseAmount: 300000
+            },
+            {
+                id: 5,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-12-15',
+                description: '숙박비 수입 (이민수 - 12/28~01/02)',
+                incomeAmount: 750000,
+                expenseAmount: 0
+            },
+            {
+                id: 6,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-12-20',
+                description: '인터넷/케이블 요금',
+                incomeAmount: 0,
+                expenseAmount: 45000
+            },
+            {
+                id: 7,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-12-25',
+                description: '어메니티 구매비',
+                incomeAmount: 0,
+                expenseAmount: 60000
+            },
+
+            // === 치안마이 디럭스 B동 - 2024년 12월 ===
+            {
+                id: 8,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-12-03',
+                description: '숙박비 수입 (박영희 - 12/20~12/23)',
+                incomeAmount: 320000,
+                expenseAmount: 0
+            },
+            {
+                id: 9,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-12-04',
+                description: '유지보수비 (배관 수리)',
+                incomeAmount: 0,
+                expenseAmount: 150000
+            },
+            {
+                id: 10,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-12-08',
+                description: '월세 (건물주)',
+                incomeAmount: 0,
+                expenseAmount: 250000
+            },
+            {
+                id: 11,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-12-12',
+                description: '청소용품 구매',
+                incomeAmount: 0,
+                expenseAmount: 35000
+            },
+            {
+                id: 12,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-12-18',
+                description: '숙박비 수입 (Sarah Johnson - 12/18~12/21)',
+                incomeAmount: 240000,
+                expenseAmount: 0
+            },
+
+            // === 푸켓 오션뷰 C동 - 2024년 12월 ===
+            {
+                id: 13,
+                accommodationName: '푸켓 오션뷰 C동',
+                date: '2024-12-01',
+                description: '숙박비 수입 (John Smith - 12/25~12/30)',
+                incomeAmount: 850000,
+                expenseAmount: 0
+            },
+            {
+                id: 14,
+                accommodationName: '푸켓 오션뷰 C동',
+                date: '2024-12-05',
+                description: '에어컨 수리비',
+                incomeAmount: 0,
+                expenseAmount: 200000
+            },
+            {
+                id: 15,
+                accommodationName: '푸켓 오션뷰 C동',
+                date: '2024-12-10',
+                description: '월세 및 관리비',
+                incomeAmount: 0,
+                expenseAmount: 400000
+            },
+            {
+                id: 16,
+                accommodationName: '푸켓 오션뷰 C동',
+                date: '2024-12-15',
+                description: '수영장 청소 서비스',
+                incomeAmount: 0,
+                expenseAmount: 80000
+            },
+            {
+                id: 17,
+                accommodationName: '푸켓 오션뷰 C동',
+                date: '2024-12-30',
+                description: '숙박비 수입 (정민아 - 12/30~01/05)',
+                incomeAmount: 1200000,
+                expenseAmount: 0
+            },
+
+            // === 쿠러비 팔레스 D동 - 2024년 12월 ===
+            {
+                id: 18,
+                accommodationName: '쿠러비 팔레스 D동',
+                date: '2024-12-02',
+                description: '숙박비 수입 (이상호 - 12/12~12/15)',
+                incomeAmount: 270000,
+                expenseAmount: 0
+            },
+            {
+                id: 19,
+                accommodationName: '쿠러비 팔레스 D동',
+                date: '2024-12-08',
+                description: '월세 지출',
+                incomeAmount: 0,
+                expenseAmount: 180000
+            },
+            {
+                id: 20,
+                accommodationName: '쿠러비 팔레스 D동',
+                date: '2024-12-20',
+                description: '전기료',
+                incomeAmount: 0,
+                expenseAmount: 65000
+            },
+
+            // === 팩낭 비치 E동 - 2024년 12월 ===
+            {
+                id: 21,
+                accommodationName: '팩낭 비치 E동',
+                date: '2024-12-01',
+                description: '숙박비 수입 (정수진 - 12/10~12/14)',
+                incomeAmount: 380000,
+                expenseAmount: 0
+            },
+            {
+                id: 22,
+                accommodationName: '팩낭 비치 E동',
+                date: '2024-12-12',
+                description: '관리비 지출',
+                incomeAmount: 0,
+                expenseAmount: 120000
+            },
+            {
+                id: 23,
+                accommodationName: '팩낭 비치 E동',
+                date: '2024-12-25',
+                description: '비치 용품 교체',
+                incomeAmount: 0,
+                expenseAmount: 45000
+            },
+
+            // === 치안마이 시티 F동 - 2024년 12월 ===
+            {
+                id: 24,
+                accommodationName: '치안마이 시티 F동',
+                date: '2024-12-18',
+                description: '숙박비 수입 (Sarah Johnson - 12/18~12/21)',
+                incomeAmount: 240000,
+                expenseAmount: 0
+            },
+            {
+                id: 25,
+                accommodationName: '치안마이 시티 F동',
+                date: '2024-12-05',
+                description: '월세 및 관리비',
+                incomeAmount: 0,
+                expenseAmount: 200000
+            },
+
+            // === 파타야 오션 G동 - 2024년 12월 ===
+            {
+                id: 26,
+                accommodationName: '파타야 오션 G동',
+                date: '2024-12-05',
+                description: '숙박비 수입 (송미영 - 12/05~12/08)',
+                incomeAmount: 390000,
+                expenseAmount: 0
+            },
+            {
+                id: 27,
+                accommodationName: '파타야 오션 G동',
+                date: '2024-12-10',
+                description: '월세 지출',
+                incomeAmount: 0,
+                expenseAmount: 280000
+            },
+            {
+                id: 28,
+                accommodationName: '파타야 오션 G동',
+                date: '2024-12-15',
+                description: '발코니 수리비',
+                incomeAmount: 0,
+                expenseAmount: 95000
+            },
+
+            // === 후아힌 리조트 H동 - 2024년 12월 ===
+            {
+                id: 29,
+                accommodationName: '후아힌 리조트 H동',
+                date: '2024-12-01',
+                description: '숙박비 수입 (최윤정 - 12/22~12/26)',
+                incomeAmount: 420000,
+                expenseAmount: 0
+            },
+            {
+                id: 30,
+                accommodationName: '후아힌 리조트 H동',
+                date: '2024-12-08',
+                description: '리조트 관리비',
+                incomeAmount: 0,
+                expenseAmount: 150000
+            },
+            {
+                id: 31,
+                accommodationName: '후아힌 리조트 H동',
+                date: '2024-12-20',
+                description: '골프장 이용료 (게스트 서비스)',
+                incomeAmount: 0,
+                expenseAmount: 80000
+            },
+
+            // === 2024년 11월 데이터 ===
+            // 방콕 스위트룸 A동 - 11월
+            {
+                id: 32,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-11-01',
+                description: '숙박비 수입 (김태희 - 11/28~12/02)',
+                incomeAmount: 520000,
+                expenseAmount: 0
+            },
+            {
+                id: 33,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-11-05',
+                description: '월세 지출',
+                incomeAmount: 0,
+                expenseAmount: 300000
+            },
+            {
+                id: 34,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-11-15',
+                description: '청소 및 관리비',
+                incomeAmount: 0,
+                expenseAmount: 85000
+            },
+            {
+                id: 35,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2024-11-25',
+                description: '인터넷 요금',
+                incomeAmount: 0,
+                expenseAmount: 45000
+            },
+
+            // 치안마이 디럭스 B동 - 11월
+            {
+                id: 36,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-11-01',
+                description: '숙박비 수입 (홍길동 - 11/15~11/19)',
+                incomeAmount: 280000,
+                expenseAmount: 0
+            },
+            {
+                id: 37,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-11-08',
+                description: '월세 지출',
+                incomeAmount: 0,
+                expenseAmount: 250000
+            },
+            {
+                id: 38,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2024-11-20',
+                description: '전기료',
+                incomeAmount: 0,
+                expenseAmount: 55000
+            },
+
+            // 팩낭 비치 E동 - 11월
+            {
+                id: 39,
+                accommodationName: '팩낭 비치 E동',
+                date: '2024-11-01',
+                description: '숙박비 수입 (박서준 - 11/22~11/25)',
+                incomeAmount: 320000,
+                expenseAmount: 0
+            },
+            {
+                id: 40,
+                accommodationName: '팩낭 비치 E동',
+                date: '2024-11-10',
+                description: '관리비 지출',
+                incomeAmount: 0,
+                expenseAmount: 120000
+            },
+            {
+                id: 41,
+                accommodationName: '팩낭 비치 E동',
+                date: '2024-11-28',
+                description: '비치 장비 유지보수',
+                incomeAmount: 0,
+                expenseAmount: 75000
+            },
+
+            // 후아힌 리조트 H동 - 11월
+            {
+                id: 42,
+                accommodationName: '후아힌 리조트 H동',
+                date: '2024-11-01',
+                description: '숙박비 수입 (David Wilson - 11/10~11/14)',
+                incomeAmount: 360000,
+                expenseAmount: 0
+            },
+            {
+                id: 43,
+                accommodationName: '후아힌 리조트 H동',
+                date: '2024-11-05',
+                description: '리조트 관리비',
+                incomeAmount: 0,
+                expenseAmount: 150000
+            },
+
+            // 파타야 오션 G동 - 11월
+            {
+                id: 44,
+                accommodationName: '파타야 오션 G동',
+                date: '2024-11-01',
+                description: '숙박비 수입 (윤수정 - 11/05~11/08)',
+                incomeAmount: 290000,
+                expenseAmount: 0
+            },
+            {
+                id: 45,
+                accommodationName: '파타야 오션 G동',
+                date: '2024-11-08',
+                description: '월세 지출',
+                incomeAmount: 0,
+                expenseAmount: 280000
+            },
+            {
+                id: 46,
+                accommodationName: '파타야 오션 G동',
+                date: '2024-11-20',
+                description: '오션뷰 발코니 청소',
+                incomeAmount: 0,
+                expenseAmount: 60000
+            },
+
+            // === 2025년 1월 예상 데이터 ===
+            // 치안마이 디럭스 B동 - 1월
+            {
+                id: 47,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2025-01-05',
+                description: '숙박비 수입 (강하늘 - 01/15~01/18)',
+                incomeAmount: 330000,
+                expenseAmount: 0
+            },
+            {
+                id: 48,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2025-01-08',
+                description: '신년 청소 서비스',
+                incomeAmount: 0,
+                expenseAmount: 120000
+            },
+
+            // 쿠러비 팔레스 D동 - 1월
+            {
+                id: 49,
+                accommodationName: '쿠러비 팔레스 D동',
+                date: '2025-01-10',
+                description: '숙박비 수입 (Emma Thompson - 01/20~01/24)',
+                incomeAmount: 300000,
+                expenseAmount: 0
+            },
+
+            // 팩낭 비치 E동 - 1월
+            {
+                id: 50,
+                accommodationName: '팩낭 비치 E동',
+                date: '2025-01-15',
+                description: '숙박비 수입 (이병헌 - 01/25~01/28)',
+                incomeAmount: 340000,
+                expenseAmount: 0
+            },
+
+            // === 2025년 10월 테스트 데이터 ===
+            // 방콕 스위트룸 A동 - 10월
+            {
+                id: 51,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2025-10-01',
+                description: '숙박비 수입 (현재테스트)',
+                incomeAmount: 600000,
+                expenseAmount: 0
+            },
+            {
+                id: 52,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2025-10-05',
+                description: '청소비 지출',
+                incomeAmount: 0,
+                expenseAmount: 80000
+            },
+            {
+                id: 53,
+                accommodationName: '방콕 스위트룸 A동',
+                date: '2025-10-10',
+                description: '월세 지출',
+                incomeAmount: 0,
+                expenseAmount: 300000
+            },
+
+            // 푸켓 오션뷰 C동 - 10월  
+            {
+                id: 54,
+                accommodationName: '푸켓 오션뷰 C동',
+                date: '2025-10-10',
+                description: '숙박비 수입 (실시간확인)',
+                incomeAmount: 900000,
+                expenseAmount: 0
+            },
+            {
+                id: 55,
+                accommodationName: '푸켓 오션뷰 C동',
+                date: '2025-10-12',
+                description: '관리비 지출',
+                incomeAmount: 0,
+                expenseAmount: 150000
+            },
+
+            // 치안마이 디럭스 B동 - 10월
+            {
+                id: 56,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2025-10-05',
+                description: '전기료 지출',
+                incomeAmount: 0,
+                expenseAmount: 65000
+            },
+            {
+                id: 57,
+                accommodationName: '치안마이 디럭스 B동',
+                date: '2025-10-15',
+                description: '월세 지출', 
+                incomeAmount: 0,
+                expenseAmount: 250000
+            }
+        ];
+
+        let currentMode = 'view';
+        let currentId = null;
+        let isEditMode = false;
+        let currentAccommodation = '';
+        let currentMonth = '2024-12'; // 샘플 데이터가 있는 월로 설정
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 모든 로그인 사용자 접근 허용 (데이터는 권한별 필터링)
+            if (checkLoginStatus()) {
+                initializePagePermissions(); // 권한별 페이지 설정
+                initializePage();
+            }
+        });
+
+        function initializePage() {
+            // 현재 월로 설정
+            document.getElementById('monthFilter').value = currentMonth;
+            
+            // 숙소 옵션 설정
+            populateAccommodationOptions();
+        }
+
+        // 숙소 옵션 채우기
+        function populateAccommodationOptions() {
+            const accommodationFilter = document.getElementById('accommodationFilter');
+            const modalAccommodationSelect = document.getElementById('modalAccommodationName');
+            
+            accommodations.forEach(accommodation => {
+                // 필터용 select
+                const option1 = document.createElement('option');
+                option1.value = accommodation;
+                option1.textContent = accommodation;
+                accommodationFilter.appendChild(option1);
+                
+                // 모달용 select
+                const option2 = document.createElement('option');
+                option2.value = accommodation;
+                option2.textContent = accommodation;
+                modalAccommodationSelect.appendChild(option2);
+            });
+        }
+
+        // 회계 데이터 필터링
+        function filterAccounting() {
+            const selectedAccommodation = document.getElementById('accommodationFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+            
+            if (!selectedAccommodation || !selectedMonth) {
+                resetAccountingView();
+                return;
+            }
+
+            currentAccommodation = selectedAccommodation;
+            currentMonth = selectedMonth;
+
+            const filteredData = accountingData.filter(entry => {
+                const entryMonth = entry.date.slice(0, 7);
+                return entry.accommodationName === selectedAccommodation && 
+                       entryMonth === selectedMonth;
+            });
+
+            updateAccountingTitle(selectedAccommodation, selectedMonth);
+            renderAccountingTable(filteredData);
+            updateSummary(filteredData);
+        }
+
+        // 회계 뷰 리셋
+        function resetAccountingView() {
+            document.getElementById('accountingTitle').textContent = '회계장부';
+            document.getElementById('accountingTitle').nextElementSibling.textContent = '숙소와 월을 선택해주세요';
+            document.getElementById('entryCount').textContent = '0건';
+            
+            const tableBody = document.getElementById('accountingTableBody');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        <i class="fas fa-calculator text-gray-300 text-2xl sm:text-3xl mb-3 block"></i>
+                        숙소와 월을 선택하면 회계장부가 표시됩니다.
+                    </td>
+                </tr>
+            `;
+
+            // 요약 리셋
+            document.getElementById('totalIncome').textContent = '0 THB';
+            document.getElementById('totalExpense').textContent = '0 THB';
+            document.getElementById('netProfit').textContent = '0 THB';
+            document.getElementById('totalEntries').textContent = '0건';
+        }
+
+        // 회계 제목 업데이트
+        function updateAccountingTitle(accommodation, month) {
+            const [year, monthNum] = month.split('-');
+            const monthName = `${year}년 ${parseInt(monthNum)}월`;
+            document.getElementById('accountingTitle').textContent = `${accommodation} 회계장부`;
+            document.getElementById('accountingTitle').nextElementSibling.textContent = `${monthName} 수익/지출 내역`;
+        }
+
+        // 회계 테이블 렌더링
+        function renderAccountingTable(data) {
+            const tableBody = document.getElementById('accountingTableBody');
+            const entryCount = document.getElementById('entryCount');
+            
+            entryCount.textContent = `${data.length}건`;
+
+            if (data.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-receipt text-gray-300 text-2xl sm:text-3xl mb-3 block"></i>
+                            해당 월의 회계 내역이 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // 날짜순 정렬
+            data.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            let runningBalance = 0;
+            tableBody.innerHTML = '';
+
+            data.forEach(entry => {
+                const balance = (entry.incomeAmount || 0) - (entry.expenseAmount || 0);
+                runningBalance += balance;
+                
+                const isIncome = entry.incomeAmount > 0;
+                const rowClass = isIncome ? 'income-row' : 'expense-row';
+                
+                const row = document.createElement('tr');
+                row.className = `${rowClass} hover:bg-opacity-75 cursor-pointer transition-colors`;
+                row.onclick = () => openModal('view', entry.id);
+                
+                row.innerHTML = `
+                    <td class="px-2 sm:px-4 py-3 text-sm font-medium text-gray-900">
+                        ${formatDate(entry.date)}
+                    </td>
+                    <td class="px-2 sm:px-4 py-3 text-sm text-gray-900">
+                        ${entry.description}
+                    </td>
+                    <td class="px-2 sm:px-4 py-3 text-sm text-right font-mono">
+                        ${entry.incomeAmount > 0 ? entry.incomeAmount.toLocaleString() : '-'}
+                    </td>
+                    <td class="px-2 sm:px-4 py-3 text-sm text-right font-mono">
+                        ${entry.expenseAmount > 0 ? entry.expenseAmount.toLocaleString() : '-'}
+                    </td>
+                    <td class="px-2 sm:px-4 py-3 text-sm text-right font-mono ${runningBalance >= 0 ? 'balance-positive' : 'balance-negative'}">
+                        ${runningBalance >= 0 ? '+' : ''}${runningBalance.toLocaleString()}
+                    </td>
+                    <td class="px-2 sm:px-4 py-3 text-center">
+                        <button onclick="event.stopPropagation(); openModal('view', ${entry.id})" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 요약 통계 업데이트
+        function updateSummary(data) {
+            const totalIncome = data.reduce((sum, entry) => sum + (entry.incomeAmount || 0), 0);
+            const totalExpense = data.reduce((sum, entry) => sum + (entry.expenseAmount || 0), 0);
+            const netProfit = totalIncome - totalExpense;
+
+            document.getElementById('totalIncome').textContent = totalIncome.toLocaleString() + ' THB';
+            document.getElementById('totalExpense').textContent = totalExpense.toLocaleString() + ' THB';
+            document.getElementById('netProfit').textContent = netProfit.toLocaleString() + ' THB';
+            document.getElementById('netProfit').className = `text-lg sm:text-2xl font-bold mt-1 sm:mt-2 ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`;
+            document.getElementById('totalEntries').textContent = data.length + '건';
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${month}/${day}`;
+        }
+
+        // 모달 열기
+        function openModal(mode, id = null) {
+            currentMode = mode;
+            currentId = id;
+            isEditMode = false;
+            
+            const modal = document.getElementById('accountingModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('accountingForm');
+            const editButton = document.getElementById('editButton');
+            const deleteButton = document.getElementById('deleteButton');
+            const editButtonText = document.getElementById('editButtonText');
+            
+            if (mode === 'add') {
+                title.textContent = '새 회계 항목 추가';
+                form.reset();
+                editButton.style.display = 'none';
+                deleteButton.style.display = 'none';
+                isEditMode = true;
+                
+                // 거래 유형 버튼 초기화
+                document.getElementById('incomeTypeBtn').className = 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors';
+                document.getElementById('expenseTypeBtn').className = 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors';
+                document.getElementById('amountLabel').textContent = '금액';
+                document.getElementById('amount').removeAttribute('data-type');
+                
+                // 현재 선택된 숙소로 기본값 설정
+                if (currentAccommodation) {
+                    document.getElementById('modalAccommodationName').value = currentAccommodation;
+                }
+            } else if (mode === 'view') {
+                const entry = accountingData.find(e => e.id === id);
+                if (entry) {
+                    title.textContent = '회계 항목 정보';
+                    populateForm(entry);
+                    editButton.style.display = 'block';
+                    deleteButton.style.display = 'block';
+                    editButtonText.textContent = '수정';
+                    isEditMode = false;
+                }
+            }
+            
+            updateFormState();
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 폼에 데이터 채우기
+        function populateForm(entry) {
+            document.getElementById('modalAccommodationName').value = entry.accommodationName || '';
+            document.getElementById('entryDate').value = entry.date || '';
+            document.getElementById('description').value = entry.description || '';
+            
+            // 거래 유형 및 금액 설정
+            if (entry.incomeAmount > 0) {
+                setTransactionType('income');
+                document.getElementById('amount').value = entry.incomeAmount;
+            } else if (entry.expenseAmount > 0) {
+                setTransactionType('expense');
+                document.getElementById('amount').value = entry.expenseAmount;
+            }
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            const modal = document.getElementById('accountingModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentMode = 'view';
+            currentId = null;
+            isEditMode = false;
+        }
+
+        // 수정 모드 토글
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const editButtonText = document.getElementById('editButtonText');
+            
+            if (isEditMode) {
+                editButtonText.textContent = '취소';
+            } else {
+                editButtonText.textContent = '수정';
+                // 원래 데이터로 복원
+                const entry = accountingData.find(e => e.id === currentId);
+                if (entry) {
+                    populateForm(entry);
+                }
+            }
+            
+            updateFormState();
+        }
+
+        // 폼 상태 업데이트
+        function updateFormState() {
+            const form = document.getElementById('accountingForm');
+            const formElements = form.querySelectorAll('input, select');
+            const saveButton = document.getElementById('saveButton');
+            
+            const isReadOnly = currentMode === 'view' && !isEditMode;
+            
+            formElements.forEach(element => {
+                if (element.id !== 'balanceAmount') {
+                    element.readOnly = isReadOnly && element.type !== 'select-one';
+                    element.disabled = isReadOnly;
+                    if (isReadOnly) {
+                        element.classList.add('bg-gray-50');
+                    } else {
+                        element.classList.remove('bg-gray-50');
+                    }
+                }
+            });
+            
+            // 저장 버튼 표시/숨김
+            if (currentMode === 'add' || isEditMode) {
+                saveButton.style.display = 'block';
+            } else {
+                saveButton.style.display = 'none';
+            }
+        }
+
+        // 항목 삭제
+        function deleteEntry() {
+            if (!currentId) return;
+            
+            if (confirm('이 회계 항목을 삭제하시겠습니까?')) {
+                const index = accountingData.findIndex(e => e.id === currentId);
+                if (index !== -1) {
+                    accountingData.splice(index, 1);
+                    alert('회계 항목이 삭제되었습니다.');
+                    filterAccounting(); // 테이블 새로고침
+                    closeModal();
+                }
+            }
+        }
+
+        // 폼 제출 처리
+        document.getElementById('accountingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (currentMode === 'view' && !isEditMode) return;
+            
+            const amount = parseInt(document.getElementById('amount').value) || 0;
+            const transactionType = document.getElementById('amount').getAttribute('data-type');
+            
+            if (!transactionType) {
+                alert('거래 유형(수익/지출)을 선택해주세요.');
+                return;
+            }
+            
+            const entryData = {
+                accommodationName: document.getElementById('modalAccommodationName').value,
+                date: document.getElementById('entryDate').value,
+                description: document.getElementById('description').value,
+                incomeAmount: transactionType === 'income' ? amount : 0,
+                expenseAmount: transactionType === 'expense' ? amount : 0
+            };
+            
+            if (currentMode === 'add') {
+                entryData.id = Math.max(...accountingData.map(e => e.id)) + 1;
+                accountingData.push(entryData);
+                alert('회계 항목이 성공적으로 추가되었습니다.');
+                closeModal();
+            } else if (isEditMode) {
+                const index = accountingData.findIndex(e => e.id === currentId);
+                if (index !== -1) {
+                    accountingData[index] = { ...accountingData[index], ...entryData };
+                    alert('회계 항목이 성공적으로 수정되었습니다.');
+                }
+                // 수정 마친 후 읽기 모드로 전환
+                isEditMode = false;
+                document.getElementById('editButtonText').textContent = '수정';
+                updateFormState();
+            }
+            
+            filterAccounting(); // 테이블 새로고침
+        });
+
+        // 거래 유형 설정 함수
+        function setTransactionType(type) {
+            const incomeBtn = document.getElementById('incomeTypeBtn');
+            const expenseBtn = document.getElementById('expenseTypeBtn');
+            const amountLabel = document.getElementById('amountLabel');
+            const amountInput = document.getElementById('amount');
+            
+            // 버튼 스타일 리셋
+            incomeBtn.className = 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors';
+            expenseBtn.className = 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors';
+            
+            if (type === 'income') {
+                incomeBtn.className += ' bg-green-100 border-green-500 text-green-700';
+                amountLabel.textContent = '수익 금액';
+                amountInput.setAttribute('data-type', 'income');
+            } else if (type === 'expense') {
+                expenseBtn.className += ' bg-red-100 border-red-500 text-red-700';
+                amountLabel.textContent = '지출 금액';
+                amountInput.setAttribute('data-type', 'expense');
+            }
+        }
+        
+        // 계산 함수 (더 이상 필요없음 - 제거됨)
+        function calculateBalance() {
+            // 이 함수는 더 이상 사용되지 않음
+        }
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('accountingModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

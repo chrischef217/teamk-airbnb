@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지표관리 - Teamk 공유숙박 관리 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+        }
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .filter-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-2" data-translate="systemTitle">
+                    Teamk 공유숙박 관리 시스템
+                </h1>
+
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex flex-wrap border-b">
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
+                    </button>
+                    <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-home mr-1"></i> <span data-translate="accommodations">숙소 관리</span>
+                    </button>
+                    <button onclick="window.location.href='reservation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calendar-check mr-1"></i> <span data-translate="reservations">예약 관리</span>
+                    </button>
+                    <button class="px-4 py-3 text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600">
+                        <i class="fas fa-chart-bar mr-1"></i> <span data-translate="analytics">지표 관리</span>
+                    </button>
+                    <button onclick="window.location.href='accounting.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-coins mr-1"></i> <span data-translate="accounting">수익 관리</span>
+                    </button>
+                    <button onclick="window.location.href='investor.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-users mr-1"></i> <span data-translate="investors">투자자 관리</span>
+                    </button>
+                    <button onclick="window.location.href='settlement.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-card rounded-lg p-6 text-white mb-6">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-filter mr-2"></i>
+                <span data-translate="analysisFilter">분석 필터</span>
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2" data-translate="analysisType">분석 기준</label>
+                    <select id="analysisType" onchange="updateCharts()" 
+                            class="w-full px-3 py-2 text-gray-900 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="investor">투자자</option>
+                        <option value="accommodation">숙소</option>
+                        <option value="monthly">월</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2" data-translate="periodSetting">기간 설정</label>
+                    <select id="periodFilter" onchange="updateCharts()"
+                            class="w-full px-3 py-2 text-gray-900 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="all">전체 기간</option>
+                        <option value="2024">2024년</option>
+                        <option value="2025">2025년</option>
+                        <option value="recent6">최근 6개월</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">차트 유형</label>
+                    <select id="chartType" onchange="updateCharts()"
+                            class="w-full px-3 py-2 text-gray-900 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="bar">막대 차트</option>
+                        <option value="line">선형 차트</option>
+                        <option value="doughnut">도넛 차트</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- 수익 분석 차트 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                    수익 분석
+                </h3>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 지출 분석 차트 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line text-red-600 mr-2"></i>
+                    지출 분석
+                </h3>
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 순수익 분석 차트 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-bar text-blue-600 mr-2"></i>
+                    순수익 분석
+                </h3>
+                <div class="chart-container">
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+
+            <!-- ROI 분석 차트 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-percentage text-purple-600 mr-2"></i>
+                    ROI 분석
+                </h3>
+                <div class="chart-container">
+                    <canvas id="roiChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 상세 통계 테이블 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-table text-gray-600 mr-2"></i>
+                    상세 통계 데이터
+                </h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr id="tableHeaders">
+                            <!-- Headers will be populated by JavaScript -->
+                        </tr>
+                    </thead>
+                    <tbody id="statisticsTableBody">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 차트 인스턴스 저장
+        let charts = {
+            revenue: null,
+            expense: null,
+            profit: null,
+            roi: null
+        };
+
+        // 투자자 데이터를 localStorage에서 로드
+        function loadInvestorDataFromStorage() {
+            const saved = localStorage.getItem('investorData');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            // 샘플 데이터 제거됨 - 빈 배열 반환
+            return [];
+        }
+        
+        let investors = loadInvestorDataFromStorage();
+        
+        // 숙소 ID를 이름으로 매핑 - 빈 배열
+        const accommodations = [];
+        
+        function getAccommodationName(id) {
+            const acc = accommodations.find(a => a.id === id);
+            return acc ? acc.name : '알 수 없는 숙소';
+        }
+        
+        // 실시간 동기화를 위한 storage 이벤트 리스너
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'investorData') {
+                investors = loadInvestorDataFromStorage();
+                // 차트를 다시 렌더링
+                if (typeof updateCharts === 'function') {
+                    updateCharts();
+                }
+            }
+        });
+
+        // 회계 데이터 - 샘플 데이터 제거됨, 빈 배열로 시작
+        const sampleAccountingData = [];
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 투자자도 조회 가능한 페이지
+            if (checkLoginStatus(true, false)) {
+                initializePagePermissions(); // 권한별 페이지 설정
+                updateCharts();
+            }
+        });
+
+        // 차트 업데이트 메인 함수
+        function updateCharts() {
+            const analysisType = document.getElementById('analysisType').value;
+            const periodFilter = document.getElementById('periodFilter').value;
+            const chartType = document.getElementById('chartType').value;
+
+            // 필터링된 데이터 가져오기
+            const filteredData = filterDataByPeriod(sampleAccountingData, periodFilter);
+            
+            let chartData;
+            switch (analysisType) {
+                case 'investor':
+                    chartData = generateInvestorData(filteredData);
+                    break;
+                case 'accommodation':
+                    chartData = generateAccommodationData(filteredData);
+                    break;
+                case 'monthly':
+                    chartData = generateMonthlyData(filteredData);
+                    break;
+            }
+
+            // 각 차트 업데이트
+            updateRevenueChart(chartData, chartType);
+            updateExpenseChart(chartData, chartType);
+            updateProfitChart(chartData, chartType);
+            updateROIChart(chartData, chartType);
+
+            // 테이블 업데이트
+            updateStatisticsTable(chartData, analysisType);
+        }
+
+        // 기간별 데이터 필터링
+        function filterDataByPeriod(data, period) {
+            if (period === 'all') return data;
+            
+            const now = new Date();
+            return data.filter(item => {
+                const itemDate = new Date(item.date);
+                
+                switch (period) {
+                    case '2024':
+                        return itemDate.getFullYear() === 2024;
+                    case '2025':
+                        return itemDate.getFullYear() === 2025;
+                    case 'recent6':
+                        const sixMonthsAgo = new Date();
+                        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                        return itemDate >= sixMonthsAgo;
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        // 투자자별 데이터 생성
+        function generateInvestorData(data) {
+            const investorData = {};
+            
+            investors.forEach(investor => {
+                investorData[investor.name] = {
+                    revenue: 0,
+                    expense: 0,
+                    profit: 0,
+                    investment: 0
+                };
+
+                investor.accommodations.forEach(accommodationId => {
+                    const accommodationName = getAccommodationName(accommodationId);
+                    const accommodationData = data.filter(item => 
+                        item.accommodationName === accommodationName
+                    );
+
+                    accommodationData.forEach(item => {
+                        investorData[investor.name].revenue += item.incomeAmount || 0;
+                        investorData[investor.name].expense += item.expenseAmount || 0;
+                    });
+
+                    // 투자금 계산 (가상의 값)
+                    investorData[investor.name].investment += getAccommodationInvestment(accommodationName);
+                });
+
+                investorData[investor.name].profit = 
+                    investorData[investor.name].revenue - investorData[investor.name].expense;
+            });
+
+            return investorData;
+        }
+
+        // 숙소별 데이터 생성
+        function generateAccommodationData(data) {
+            const accommodationData = {};
+            
+            // 숙소별로 데이터 집계
+            data.forEach(item => {
+                const name = item.accommodationName;
+                if (!accommodationData[name]) {
+                    accommodationData[name] = {
+                        revenue: 0,
+                        expense: 0,
+                        profit: 0,
+                        investment: getAccommodationInvestment(name)
+                    };
+                }
+
+                accommodationData[name].revenue += item.incomeAmount || 0;
+                accommodationData[name].expense += item.expenseAmount || 0;
+            });
+
+            // 순수익 계산
+            Object.keys(accommodationData).forEach(name => {
+                accommodationData[name].profit = 
+                    accommodationData[name].revenue - accommodationData[name].expense;
+            });
+
+            return accommodationData;
+        }
+
+        // 월별 데이터 생성
+        function generateMonthlyData(data) {
+            const monthlyData = {};
+            
+            data.forEach(item => {
+                const monthKey = item.date.substring(0, 7); // YYYY-MM 형식
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = {
+                        revenue: 0,
+                        expense: 0,
+                        profit: 0,
+                        investment: 0 // 월별로는 투자금 의미가 다름
+                    };
+                }
+
+                monthlyData[monthKey].revenue += item.incomeAmount || 0;
+                monthlyData[monthKey].expense += item.expenseAmount || 0;
+            });
+
+            // 순수익 계산
+            Object.keys(monthlyData).forEach(month => {
+                monthlyData[month].profit = 
+                    monthlyData[month].revenue - monthlyData[month].expense;
+            });
+
+            return monthlyData;
+        }
+
+        // 숙소별 투자금 반환 (샘플 데이터 제거됨)
+        function getAccommodationInvestment(accommodationName) {
+            // 실제 데이터는 투자자 정보와 연동하여 구현
+            return 0;
+        }
+
+        // 수익 차트 업데이트
+        function updateRevenueChart(data, chartType) {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            if (charts.revenue) {
+                charts.revenue.destroy();
+            }
+
+            const labels = Object.keys(data);
+            const values = labels.map(label => data[label].revenue);
+
+            charts.revenue = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '수익 (THB)',
+                        data: values,
+                        backgroundColor: generateColors(labels.length, 'green'),
+                        borderColor: generateColors(labels.length, 'green', 0.8),
+                        borderWidth: 2
+                    }]
+                },
+                options: getChartOptions('수익 분석', 'THB')
+            });
+        }
+
+        // 지출 차트 업데이트
+        function updateExpenseChart(data, chartType) {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            if (charts.expense) {
+                charts.expense.destroy();
+            }
+
+            const labels = Object.keys(data);
+            const values = labels.map(label => data[label].expense);
+
+            charts.expense = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '지출 (THB)',
+                        data: values,
+                        backgroundColor: generateColors(labels.length, 'red'),
+                        borderColor: generateColors(labels.length, 'red', 0.8),
+                        borderWidth: 2
+                    }]
+                },
+                options: getChartOptions('지출 분석', 'THB')
+            });
+        }
+
+        // 순수익 차트 업데이트
+        function updateProfitChart(data, chartType) {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            
+            if (charts.profit) {
+                charts.profit.destroy();
+            }
+
+            const labels = Object.keys(data);
+            const values = labels.map(label => data[label].profit);
+
+            charts.profit = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '순수익 (THB)',
+                        data: values,
+                        backgroundColor: generateColors(labels.length, 'blue'),
+                        borderColor: generateColors(labels.length, 'blue', 0.8),
+                        borderWidth: 2
+                    }]
+                },
+                options: getChartOptions('순수익 분석', 'THB')
+            });
+        }
+
+        // ROI 차트 업데이트
+        function updateROIChart(data, chartType) {
+            const ctx = document.getElementById('roiChart').getContext('2d');
+            
+            if (charts.roi) {
+                charts.roi.destroy();
+            }
+
+            const labels = Object.keys(data);
+            const values = labels.map(label => {
+                const investment = data[label].investment;
+                const profit = data[label].profit;
+                return investment > 0 ? ((profit / investment) * 100) : 0;
+            });
+
+            charts.roi = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'ROI (%)',
+                        data: values,
+                        backgroundColor: generateColors(labels.length, 'purple'),
+                        borderColor: generateColors(labels.length, 'purple', 0.8),
+                        borderWidth: 2
+                    }]
+                },
+                options: getChartOptions('ROI 분석', '%')
+            });
+        }
+
+        // 통계 테이블 업데이트
+        function updateStatisticsTable(data, analysisType) {
+            const headers = document.getElementById('tableHeaders');
+            const tbody = document.getElementById('statisticsTableBody');
+
+            // 헤더 설정
+            let headerText = '';
+            switch (analysisType) {
+                case 'investor':
+                    headerText = '<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">투자자</th>';
+                    break;
+                case 'accommodation':
+                    headerText = '<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">숙소</th>';
+                    break;
+                case 'monthly':
+                    headerText = '<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">월</th>';
+                    break;
+            }
+
+            headers.innerHTML = headerText + `
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">수익</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">지출</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">순수익</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">ROI</th>
+            `;
+
+            // 데이터 행 생성
+            tbody.innerHTML = '';
+            Object.keys(data).forEach(key => {
+                const item = data[key];
+                const roi = item.investment > 0 ? ((item.profit / item.investment) * 100) : 0;
+                
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900">${key}</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900 font-mono">${item.revenue.toLocaleString()} THB</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900 font-mono">${item.expense.toLocaleString()} THB</td>
+                    <td class="px-4 py-3 text-sm text-right font-mono ${item.profit >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${item.profit.toLocaleString()} THB
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right font-mono ${roi >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${roi.toFixed(1)}%
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 차트 옵션 생성
+        function getChartOptions(title, unit) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: title,
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        }
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString() + ' ' + unit;
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        // 색상 생성 함수
+        function generateColors(count, baseColor, opacity = 0.6) {
+            const colors = {
+                green: `rgba(34, 197, 94, ${opacity})`,
+                red: `rgba(239, 68, 68, ${opacity})`,
+                blue: `rgba(59, 130, 246, ${opacity})`,
+                purple: `rgba(147, 51, 234, ${opacity})`
+            };
+
+            const result = [];
+            for (let i = 0; i < count; i++) {
+                result.push(colors[baseColor] || colors.blue);
+            }
+            return result;
+        }
+    </script>
+</body>
+</html>

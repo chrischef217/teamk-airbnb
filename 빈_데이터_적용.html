@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>빈 데이터 적용</title>
+</head>
+<body>
+    <h1>모든 파일에 빈 데이터 적용</h1>
+    <div id="result"></div>
+
+    <script>
+        // 이 스크립트는 브라우저에서 실행되면서 localStorage를 완전히 정리합니다
+        
+        function clearAllData() {
+            // 1. localStorage 완전 삭제
+            localStorage.clear();
+            
+            // 2. sessionStorage 완전 삭제  
+            sessionStorage.clear();
+            
+            // 3. 빈 투자자 데이터 강제 설정
+            localStorage.setItem('investorData', JSON.stringify([]));
+            
+            // 4. 빈 숙소 데이터 강제 설정
+            localStorage.setItem('accommodationData', JSON.stringify([]));
+            
+            // 5. 빈 회계 데이터 강제 설정
+            localStorage.setItem('accountingData', JSON.stringify([]));
+            
+            // 6. 빈 예약 데이터 강제 설정
+            localStorage.setItem('reservationData', JSON.stringify([]));
+            
+            console.log('모든 데이터 완전 삭제 및 빈 배열 설정 완료');
+            
+            document.getElementById('result').innerHTML = `
+                <h2>데이터 정리 완료</h2>
+                <p>✅ localStorage: 완전 삭제</p>
+                <p>✅ sessionStorage: 완전 삭제</p>
+                <p>✅ 모든 데이터 배열: 빈 배열로 초기화</p>
+                <br>
+                <p><strong>이제 모든 페이지에서 빈 상태로 시작됩니다.</strong></p>
+            `;
+        }
+        
+        // 페이지 로드 즉시 실행
+        clearAllData();
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "teamk-accommodation-api"
+source = "."
+
+[services.variables]
+NODE_ENV = "production"
+PORT = "3000"
+
+[[services]]
+name = "teamk-mysql"  
+source = "mysql:8.0"
+
+[services.variables]
+MYSQL_ROOT_PASSWORD = { $ref = "MYSQL_ROOT_PASSWORD" }
+MYSQL_DATABASE = "teamk_accommodation"
+MYSQL_USER = "teamk_user" 
+MYSQL_PASSWORD = { $ref = "MYSQL_PASSWORD" }

@@ -1,0 +1,12 @@
+{
+  "github": {
+    "enabled": true,
+    "repository": "chrischef217/teamk-airbnb",
+    "branch": "main",
+    "auto_deploy": true
+  },
+  "project": {
+    "name": "teamk-airbnb",
+    "type": "static-website"
+  }
+}

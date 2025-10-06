@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회계관리 - Teamk 공유숙박 관리 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-800 mb-2" data-translate="systemTitle">
+                        Teamk 공유숙박 관리 시스템
+                    </h1>
+                    <div class="language-selector">
+                        <select id="languageSelect" onchange="changeLanguage(this.value)" class="text-sm border border-gray-300 rounded px-2 py-1">
+                            <option value="ko">한국어</option>
+                            <option value="en">English</option>
+                            <option value="th">ไทย</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex flex-wrap border-b">
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
+                    </button>
+                    <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-home mr-1"></i> <span data-translate="accommodations">숙소 관리</span>
+                    </button>
+                    <button onclick="window.location.href='reservation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calendar-check mr-1"></i> <span data-translate="reservations">예약 관리</span>
+                    </button>
+                    <button onclick="window.location.href='analytics.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-chart-bar mr-1"></i> <span data-translate="analytics">지표 관리</span>
+                    </button>
+                    <button class="px-4 py-3 text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600">
+                        <i class="fas fa-coins mr-1"></i> <span data-translate="accounting">수익 관리</span>
+                    </button>
+                    <button onclick="window.location.href='investor.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-users mr-1"></i> <span data-translate="investors">투자자 관리</span>
+                    </button>
+                    <button onclick="window.location.href='settlement.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 빈 상태 표시 -->
+        <div class="bg-white rounded-lg shadow-sm p-8 text-center">
+            <i class="fas fa-calculator text-gray-300 text-6xl mb-4"></i>
+            <h2 class="text-xl font-semibold text-gray-600 mb-2">회계 데이터가 없습니다</h2>
+            <p class="text-gray-500">새로운 수입/지출 내역을 추가해보세요.</p>
+        </div>
+    </div>
+
+    <script>
+        // 회계 데이터 - 완전히 빈 상태
+        const accountingData = [];
+        const accommodations = [];
+        
+        console.log('회계 시스템 - 빈 상태로 시작');
+    </script>
+</body>
+</html>
