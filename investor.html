@@ -321,9 +321,31 @@
 
         // 페이지 초기화 (서버에서 데이터 로드)
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔄 투자자 관리 페이지 초기화 시작');
+            
             // 테스트 모드 확인 및 설정
             if (isTestMode()) {
                 setupTestMode();
+            }
+            
+            // Firebase 연결 상태 확인
+            if (!firebaseStorage.isConfigured()) {
+                console.warn('⚠️ Firebase 설정이 되지 않았습니다.');
+                const firebaseWarning = document.createElement('div');
+                firebaseWarning.className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6';
+                firebaseWarning.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                        <div class="text-yellow-800">
+                            <strong>Firebase 연동이 필요합니다!</strong>
+                            <p class="text-sm mt-1">PC와 모바일 간 데이터 동기화를 위해 Firebase 설정을 완료해주세요.</p>
+                            <a href="firebase-setup.html" class="inline-block mt-2 bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700">
+                                Firebase 연동하기
+                            </a>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('.container').insertBefore(firebaseWarning, document.querySelector('.bg-white'));
             }
             
             if (checkLoginStatus()) {
@@ -331,25 +353,38 @@
                 
                 // 서버에서 데이터 로드
                 try {
+                    console.log('📡 Firebase에서 데이터 로드 시작...');
                     investorData = await loadInvestorData();
                     accommodations = await loadAccommodationsFromServer();
-                    console.log('📊 투자자 데이터 로드 완료:', investorData.length + '명');
-                    console.log('🏠 숙소 데이터 로드 완료:', accommodations.length + '개');
+                    console.log('✅ 투자자 데이터 로드 완료:', investorData.length + '명');
+                    console.log('✅ 숙소 데이터 로드 완료:', accommodations.length + '개');
                 } catch (error) {
-                    console.error('데이터 로드 실패:', error);
-                    alert('서버에서 데이터를 불러오는데 실패했습니다.');
+                    console.error('❌ 데이터 로드 실패:', error);
+                    
+                    // Firebase 연결 실패시 localStorage 폴백 시도
+                    try {
+                        console.log('🔄 localStorage 폴백 시도...');
+                        const localInvestors = localStorage.getItem('investorData');
+                        const localAccommodations = localStorage.getItem('accommodationData');
+                        
+                        investorData = localInvestors ? JSON.parse(localInvestors) : [];
+                        accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+                        
+                        console.log('✅ localStorage에서 데이터 로드:', investorData.length + '명 투자자');
+                        
+                        if (investorData.length === 0 && accommodations.length === 0) {
+                            alert('데이터가 없습니다. Firebase를 연동하거나 새로운 데이터를 입력해주세요.');
+                        }
+                    } catch (fallbackError) {
+                        console.error('❌ localStorage 폴백도 실패:', fallbackError);
+                        alert('데이터를 불러올 수 없습니다. Firebase 연동을 먼저 설정해주세요.');
+                    }
                 }
                 
                 populateAccommodationSelect();
                 renderInvestorTable();
                 
-                // 숙소 데이터 변경 감지 (다른 탭에서 숙소가 추가/수정된 경우)
-                window.addEventListener('storage', function(e) {
-                    if (e.key === 'accommodationData') {
-                        accommodations = loadAccommodationsFromStorage();
-                        populateAccommodationSelect();
-                    }
-                });
+                console.log('🎉 투자자 관리 페이지 초기화 완료');
             }
         });
 
@@ -504,7 +539,28 @@
 
         // 모달 열기
         window.openModal = function(mode, id = null) {
-            console.log('openModal 호출됨, mode:', mode, 'id:', id);
+            console.log('🔄 openModal 호출됨, mode:', mode, 'id:', id);
+            
+            // Firebase 연동 확인 (새 투자자 추가시)
+            if (mode === 'add' && !firebaseStorage.isConfigured()) {
+                console.warn('⚠️ Firebase가 연동되지 않았습니다');
+                const confirmed = confirm(`
+⚠️ Firebase 연동이 필요합니다!
+
+PC와 모바일 간 데이터 동기화를 위해 Firebase를 먼저 설정해주세요.
+
+지금 Firebase 연동 페이지로 이동하시겠습니까?
+                `);
+                
+                if (confirmed) {
+                    window.location.href = 'firebase-setup.html';
+                    return;
+                }
+                
+                // 로컬에서만 사용하겠다면 계속 진행
+                console.log('🔧 로컬 모드로 계속 진행');
+            }
+            
             currentMode = mode;
             currentId = id;
             isEditMode = false;
@@ -517,6 +573,7 @@
             const deleteButton = document.getElementById('deleteButton');
 
             if (mode === 'add') {
+                console.log('✅ 새 투자자 추가 모달 열기');
                 title.textContent = '새 투자자 추가';
                 form.reset();
                 editButton.style.display = 'none';
@@ -527,23 +584,26 @@
             } else if (mode === 'view') {
                 const investor = investorData.find(inv => inv.id === id);
                 if (investor) {
-                    console.log('투자자 정보 로드:', investor.name);
+                    console.log('✅ 투자자 정보 로드:', investor.name);
                     title.textContent = `투자자 정보 - ${investor.name}`;
                     populateForm(investor);
                     editButton.style.display = 'block';
                     deleteButton.style.display = 'block';
                     isEditMode = false;
                 } else {
-                    console.error('투자자를 찾을 수 없음, ID:', id);
+                    console.error('❌ 투자자를 찾을 수 없음, ID:', id);
                     console.log('현재 investorData:', investorData);
+                    alert('투자자 정보를 찾을 수 없습니다.');
                     return;
                 }
             }
 
-            console.log('모달 열기 전 isEditMode:', isEditMode);
+            console.log('🎯 모달 열기 전 상태:', {mode, isEditMode, currentId});
             updateFormState();
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            
+            console.log('✅ 모달이 성공적으로 열렸습니다');
         }
 
         // 폼에 데이터 채우기
@@ -776,23 +836,18 @@
                     console.error('❌ 투자자 수정 실패:', error);
                     alert('투자자 수정 중 오류가 발생했습니다: ' + error.message);
                 }
-                    
-                    // UI 업데이트
-                    renderInvestorTable();
-                    
-                    // 모달 제목 업데이트 (수정된 이름 반영)
-                    document.getElementById('modalTitle').textContent = `투자자 정보 - ${formData.name}`;
-                    
-                    // 수정 모드 해제
-                    isEditMode = false;
-                    updateFormState();
-                    
-                    console.log('투자자 정보 수정 완료');
-                    
-                } else {
-                    console.error('투자자를 찾을 수 없음:', currentId);
-                    alert('❌ 투자자 정보 업데이트에 실패했습니다.');
-                }
+                
+                // UI 업데이트
+                renderInvestorTable();
+                
+                // 모달 제목 업데이트 (수정된 이름 반영)
+                document.getElementById('modalTitle').textContent = `투자자 정보 - ${formData.name}`;
+                
+                // 수정 모드 해제
+                isEditMode = false;
+                updateFormState();
+                
+                console.log('투자자 정보 수정 완료');
             } else {
                 console.log('알 수 없는 모드:', currentMode, isEditMode);
                 alert('⚠️ 잘못된 작업 모드입니다.');
