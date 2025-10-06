@@ -334,6 +334,44 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🔄 투자자 관리 페이지 초기화 시작');
             
+            // 🚨 페이크 데이터 완전 차단 - localStorage에서 테스트 데이터 제거
+            console.log('🧹 페이크 데이터 완전 삭제 시작...');
+            
+            const keysToCheck = ['investorData', 'accommodationData', 'accountingData'];
+            keysToCheck.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsedData = JSON.parse(data);
+                        if (Array.isArray(parsedData)) {
+                            // 테스트/페이크 데이터 필터링
+                            const cleanData = parsedData.filter(item => {
+                                const itemStr = JSON.stringify(item).toLowerCase();
+                                return !itemStr.includes('테스트') && 
+                                       !itemStr.includes('test') && 
+                                       !itemStr.includes('더미') && 
+                                       !itemStr.includes('dummy') &&
+                                       !itemStr.includes('방콕 시티') &&
+                                       !itemStr.includes('파타야 비치');
+                            });
+                            
+                            if (cleanData.length !== parsedData.length) {
+                                console.log(`🚨 ${key}에서 페이크 데이터 ${parsedData.length - cleanData.length}개 삭제`);
+                                if (cleanData.length > 0) {
+                                    localStorage.setItem(key, JSON.stringify(cleanData));
+                                } else {
+                                    localStorage.removeItem(key);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`⚠️ ${key} 파싱 실패:`, e);
+                    }
+                }
+            });
+            
+            console.log('✅ 페이크 데이터 완전 삭제 완료');
+            
             // 테스트 모드 제거됨 - 실제 로그인 시스템만 사용
             
             // Firebase 연결 상태 확인
@@ -376,33 +414,31 @@ Firebase 연동 페이지로 이동하시겠습니까?
                     } else {
                         console.warn('⚠️ 숙소 데이터가 비어있음 - 빈 배열로 설정');
                         
-                        // 더미 데이터 생성하지 않고 빈 배열 사용
+                        // 🚨 페이크 데이터 완전 차단 - 절대 생성하지 않음
                         accommodations = [];
-                        console.log('✅ 숙소 데이터 없음 - 사용자가 직접 등록 필요');
+                        console.log('🚨 페이크 데이터 차단: 숙소 데이터 없음 - 사용자가 직접 등록 필요');
                     }
                 } catch (error) {
                     console.error('❌ 데이터 로드 실패:', error);
                     
-                    // Firebase 연결 실패시 localStorage 폴백 시도
+                    // Firebase 연결 실패시 localStorage 폴백 시도 (페이크 데이터 완전 차단)
                     try {
                         console.log('🔄 localStorage 폴백 시도...');
                         const localInvestors = localStorage.getItem('investorData');
                         const localAccommodations = localStorage.getItem('accommodationData');
                         
-                        investorData = localInvestors ? JSON.parse(localInvestors) : [];
-                        accommodations = localAccommodations ? JSON.parse(localAccommodations) : [];
+                        // 🚨 페이크 데이터 완전 차단 - 빈 배열로 강제 설정
+                        investorData = [];
+                        accommodations = [];
                         
-                        console.log('✅ localStorage에서 데이터 로드:', investorData.length + '명 투자자');
+                        console.log('🚨 페이크 데이터 차단: localStorage 데이터 무시하고 빈 배열 사용');
+                        console.log('💡 모든 데이터는 사용자가 직접 등록해야 합니다.');
                         
-                        // 더미 데이터 생성하지 않음 - 실제 데이터만 사용
-                        console.log('💡 숙소 데이터가 없으면 사용자가 직접 등록해야 합니다.');
-                        
-                        if (investorData.length === 0 && accommodations.length === 0) {
-                            alert('데이터가 없습니다. Firebase를 연동하거나 새로운 데이터를 입력해주세요.');
-                        }
+                        alert('페이크 데이터 차단: 새로운 데이터를 직접 입력하거나 Firebase를 연동해주세요.');
                     } catch (fallbackError) {
                         console.error('❌ localStorage 폴백도 실패:', fallbackError);
-                        alert('데이터를 불러올 수 없습니다. Firebase 연동을 먼저 설정해주세요.');
+                        investorData = [];
+                        accommodations = [];
                     }
                 }
                 
