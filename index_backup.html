@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 - Teamk 공유숙박 관리 시스템</title>
+    <title>로그인 - Teamk 태국 에어비앤비 숙박관리 시스템</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/translations.js"></script>
@@ -75,7 +75,7 @@
                 <i class="fas fa-building text-4xl mb-2"></i>
             </div>
             <h1 class="text-2xl font-bold mb-2">Teamk</h1>
-            <p class="text-blue-100 text-sm" data-translate="loginSubtitle">공유숙박 관리 시스템</p>
+            <p class="text-blue-100 text-sm" data-translate="loginSubtitle">태국 에어비앤비 숙박관리 시스템</p>
         </div>
 
         <!-- 로그인 타입 선택 탭 -->
@@ -236,7 +236,7 @@
                 
                 showSuccessMessage(translator ? translator.t('adminLoginSuccess') : '관리자 로그인 성공!');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'dashboard.html';
                 }, 1000);
             } else {
                 showErrorMessage(translator ? translator.t('loginError') : '아이디 또는 비밀번호가 올바르지 않습니다.');
@@ -276,10 +276,10 @@
                 
                 showSuccessMessage(`${investor.name}님 로그인 성공!`);
                 
-                console.log('🔄 1초 후 index.html로 이동');
+                console.log('🔄 3초 후 index.html로 이동');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
+                    window.location.href = 'dashboard.html';
+                }, 3000);
                 
             } else {
                 console.log('❌ 로그인 실패: 계정 정보 불일치');
@@ -336,6 +336,28 @@
 
 
 
+        // 페이지 로드 시 세션 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            // 이미 로그인된 상태라면 메인 페이지로 리다이렉트
+            const userType = sessionStorage.getItem('userType');
+            if (userType) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+
+        // Enter 키 처리
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (currentTab === 'admin') {
+                    const adminForm = document.querySelector('#adminLoginForm form');
+                    adminForm.dispatchEvent(new Event('submit'));
+                } else {
+                    const investorForm = document.querySelector('#investorLoginForm form');
+                    investorForm.dispatchEvent(new Event('submit'));
+                }
+            }
+        });
+
         // 언어 메뉴 표시/숨기기
         function toggleLanguageMenu() {
             const menu = document.getElementById('languageMenu');
@@ -379,31 +401,13 @@
             }
         });
 
-        // 페이지 로드 시 초기화 (통합된 DOMContentLoaded 이벤트)
+        // 페이지 로드 시 언어 선택기 초기화
         document.addEventListener('DOMContentLoaded', function() {
-            // 이미 로그인된 상태라면 메인 페이지로 리다이렉트
-            const userType = sessionStorage.getItem('userType');
-            if (userType) {
-                window.location.href = 'index.html';
-                return;
-            }
+            // 기존 코드...
             
             // 저장된 언어 설정 적용
             const savedLanguage = localStorage.getItem('teamk-language') || 'ko';
             selectLanguage(savedLanguage);
-        });
-
-        // Enter 키 처리
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                if (currentTab === 'admin') {
-                    const adminForm = document.querySelector('#adminLoginForm form');
-                    adminForm.dispatchEvent(new Event('submit'));
-                } else {
-                    const investorForm = document.querySelector('#investorLoginForm form');
-                    investorForm.dispatchEvent(new Event('submit'));
-                }
-            }
         });
     </script>
 </body>
