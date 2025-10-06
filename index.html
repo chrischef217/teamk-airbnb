@@ -6,7 +6,6 @@
     <title>로그인 - Teamk 태국 에어비앤비 숙박관리 시스템</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-    <script src="js/auth.js"></script>
     <script src="js/translations.js"></script>
     <style>
         body { 
@@ -230,46 +229,15 @@
             const password = document.getElementById('adminPassword').value;
 
             if (userId === adminCredentials.userId && password === adminCredentials.password) {
-                console.log('✅ 관리자 인증 성공');
-                
-                // 기존 저장소 정리 후 새로 저장
-                sessionStorage.clear();
-                localStorage.removeItem('userType');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('userName');
-                
                 // 세션 저장
                 sessionStorage.setItem('userType', 'admin');
                 sessionStorage.setItem('userId', userId);
                 sessionStorage.setItem('userName', '관리자');
                 
-                // localStorage에도 백업 저장
-                localStorage.setItem('userType', 'admin');
-                localStorage.setItem('userId', userId);
-                localStorage.setItem('userName', '관리자');
-                
-                // 저장 확인
-                const verification = {
-                    sessionUserType: sessionStorage.getItem('userType'),
-                    sessionUserId: sessionStorage.getItem('userId'),
-                    sessionUserName: sessionStorage.getItem('userName'),
-                    localUserType: localStorage.getItem('userType'),
-                    localUserId: localStorage.getItem('userId'),
-                    localUserName: localStorage.getItem('userName')
-                };
-                
-                console.log('✅ 세션 저장 확인:', verification);
-                
-                if (verification.sessionUserType === 'admin' && verification.localUserType === 'admin') {
-                    showSuccessMessage(translator ? translator.t('adminLoginSuccess') : '관리자 로그인 성공!');
-                    setTimeout(() => {
-                        console.log('🚀 dashboard.html로 이동 시작');
-                        window.location.replace('dashboard.html'); // replace로 변경하여 히스토리 남기지 않음
-                    }, 500);
-                } else {
-                    console.error('❌ 세션 저장 실패:', verification);
-                    showErrorMessage('로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
-                }
+                showSuccessMessage(translator ? translator.t('adminLoginSuccess') : '관리자 로그인 성공!');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
             } else {
                 showErrorMessage(translator ? translator.t('loginError') : '아이디 또는 비밀번호가 올바르지 않습니다.');
             }
@@ -297,47 +265,21 @@
             console.log('🔍 검증 결과:', investor ? '✅ 매칭됨' : '❌ 매칭 실패');
 
             if (investor) {
-                console.log('✅ 투자자 인증 성공:', investor.name);
-                
-                // 기존 저장소 정리 후 새로 저장
-                sessionStorage.clear();
-                localStorage.removeItem('userType');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('userName');
+                console.log('✅ 로그인 성공:', investor.name);
                 
                 // 세션 저장
                 sessionStorage.setItem('userType', 'investor');
                 sessionStorage.setItem('userId', userId);
                 sessionStorage.setItem('userName', investor.name);
                 
-                // localStorage에도 백업 저장
-                localStorage.setItem('userType', 'investor');
-                localStorage.setItem('userId', userId);
-                localStorage.setItem('userName', investor.name);
+                console.log('💾 세션 저장 완료');
                 
-                // 저장 확인
-                const verification = {
-                    sessionUserType: sessionStorage.getItem('userType'),
-                    sessionUserId: sessionStorage.getItem('userId'),
-                    sessionUserName: sessionStorage.getItem('userName'),
-                    localUserType: localStorage.getItem('userType'),
-                    localUserId: localStorage.getItem('userId'),
-                    localUserName: localStorage.getItem('userName')
-                };
+                showSuccessMessage(`${investor.name}님 로그인 성공!`);
                 
-                console.log('✅ 세션 저장 확인:', verification);
-                
-                if (verification.sessionUserType === 'investor' && verification.localUserType === 'investor') {
-                    showSuccessMessage(`${investor.name}님 로그인 성공!`);
-                    console.log('🔄 0.5초 후 dashboard.html로 이동');
-                    setTimeout(() => {
-                        console.log('🚀 dashboard.html로 이동 시작');
-                        window.location.replace('dashboard.html'); // replace로 변경하여 히스토리 남기지 않음
-                    }, 500);
-                } else {
-                    console.error('❌ 세션 저장 실패:', verification);
-                    showErrorMessage('로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
-                }
+                console.log('🔄 3초 후 index.html로 이동');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 3000);
                 
             } else {
                 console.log('❌ 로그인 실패: 계정 정보 불일치');
@@ -394,40 +336,12 @@
 
 
 
-        // 페이지 로드 시 세션 확인 (강화된 체크)
+        // 페이지 로드 시 세션 확인
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔍 index.html 세션 확인 시작');
-            
             // 이미 로그인된 상태라면 메인 페이지로 리다이렉트
-            let userType = sessionStorage.getItem('userType');
-            let userName = sessionStorage.getItem('userName');
-            let userId = sessionStorage.getItem('userId');
-            
-            console.log('📋 현재 세션 상태:', { userType, userName, userId });
-            
-            // sessionStorage가 비어있으면 localStorage에서 확인
-            if (!userType) {
-                userType = localStorage.getItem('userType');
-                userName = localStorage.getItem('userName');
-                userId = localStorage.getItem('userId');
-                
-                console.log('📋 localStorage 상태:', { userType, userName, userId });
-                
-                if (userType) {
-                    // localStorage에서 sessionStorage로 복원
-                    sessionStorage.setItem('userType', userType);
-                    sessionStorage.setItem('userName', userName);
-                    sessionStorage.setItem('userId', userId);
-                    console.log('✅ localStorage에서 세션 복원 완료');
-                }
-            }
-            
-            // 유효한 로그인 상태면 대시보드로 리다이렉트
-            if (userType && userName && userId) {
-                console.log('✅ 로그인 상태 확인됨 - dashboard.html로 이동');
+            const userType = sessionStorage.getItem('userType');
+            if (userType) {
                 window.location.href = 'dashboard.html';
-            } else {
-                console.log('ℹ️ 로그인 필요 - 로그인 페이지 표시');
             }
         });
 

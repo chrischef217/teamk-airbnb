@@ -380,12 +380,6 @@
         
         async function loadInvestors() {
             investors = loadInvestorDataFromStorage();
-            
-            // 투자자 권한 필터링
-            const user = getCurrentUser();
-            if (user.userType === 'investor') {
-                investors = investors.filter(investor => investor.userId === user.userId);
-            }
         }
 
         // 숙소 데이터 로드

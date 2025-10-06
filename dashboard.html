@@ -142,54 +142,12 @@
     </div>
 
     <script>
-        // 페이지 로드 시 로그인 확인 (강화된 체크)
-        function verifyLoginAndInit() {
-            console.log('🔍 dashboard.html 로그인 확인 시작');
-            
-            let userType = sessionStorage.getItem('userType');
-            let userName = sessionStorage.getItem('userName');
-            let userId = sessionStorage.getItem('userId');
-            
-            console.log('📋 현재 세션 상태:', { userType, userName, userId });
-            
-            // sessionStorage가 비어있으면 localStorage에서 복원 시도
-            if (!userType) {
-                console.log('⚠️ 세션 스토리지가 비어있음, localStorage에서 복원 시도');
-                userType = localStorage.getItem('userType');
-                userName = localStorage.getItem('userName');
-                userId = localStorage.getItem('userId');
-                
-                console.log('📋 localStorage 상태:', { userType, userName, userId });
-                
-                if (userType) {
-                    // localStorage에서 sessionStorage로 복원
-                    sessionStorage.setItem('userType', userType);
-                    sessionStorage.setItem('userName', userName);
-                    sessionStorage.setItem('userId', userId);
-                    console.log('✅ localStorage에서 세션 복원 완료');
-                }
-            }
-            
-            // 여전히 로그인 정보가 없으면 로그인 페이지로
-            if (!userType || !userName || !userId) {
-                console.log('❌ 로그인 정보 없음 - index.html로 리다이렉트');
-                window.location.href = 'index.html';
-                return;
-            }
-            
-            console.log('✅ 로그인 확인됨 - 페이지 초기화 진행');
-            
+        // 페이지 로드 시 로그인 확인
+        document.addEventListener('DOMContentLoaded', function() {
             if (checkLoginStatus()) { // 모든 사용자 접근 허용
                 initializePagePermissions(); // 권한별 페이지 설정
-                console.log('✅ 페이지 권한 초기화 완료');
             }
-        }
-        
-        // 페이지 로드 시 실행
-        document.addEventListener('DOMContentLoaded', verifyLoginAndInit);
-        
-        // 추가 안전장치: 페이지 포커스 시에도 세션 확인
-        window.addEventListener('focus', verifyLoginAndInit);
+        });
 
         // 태국 숙소 데이터 - 샘플 데이터 제거됨
         const tableData = [];

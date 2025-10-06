@@ -331,18 +331,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔍 accommodation.html 로그인 확인 시작');
-            
-            // 강화된 세션 검증
-            const session = verifySession();
-            if (!session) {
-                console.log('❌ 로그인 정보 없음 - index.html로 리다이렉트');
-                window.location.replace('index.html');
-                return;
-            }
-            
-            console.log('✅ 로그인 확인됨 - 페이지 초기화 진행');
-            
             // 모든 로그인 사용자 접근 허용 (데이터는 권한별 필터링)
             if (checkLoginStatus()) {
                 initializePagePermissions(); // 권한별 페이지 설정
