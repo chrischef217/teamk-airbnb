@@ -479,59 +479,12 @@
 
         // 페이지 로드 시 실행
         document.addEventListener('DOMContentLoaded', function() {
-            // 테스트 데이터가 없으면 자동 생성
-            if (!localStorage.getItem('investorData')) {
-                console.log('🔧 테스트 데이터 자동 생성...');
-                setupTestData();
-            }
+            // 테스트 데이터 자동 생성 제거됨 - 실제 데이터만 사용
             
             initializeReport();
         });
 
-        function setupTestData() {
-            const currentMonth = new Date().toISOString().substring(0, 7);
-            
-            const accommodations = [
-                { id: 'test-acc-1', name: '방콕 시티 아파트', location: '방콕 시내' },
-                { id: 'test-acc-2', name: '파타야 비치 콘도', location: '파타야 해변가' }
-            ];
-            
-            const investors = [
-                {
-                    id: 'test-investor-1',
-                    name: '김투자',
-                    initialInvestment: 50000000,
-                    ownershipPercentage: 60,
-                    contact: 'kim@example.com',
-                    accommodations: ['test-acc-1', 'test-acc-2']
-                }
-            ];
-            
-            const accounting = [
-                {
-                    id: 'test-income-1',
-                    date: currentMonth + '-05',
-                    accommodationId: 'test-acc-1',
-                    type: 'income',
-                    category: '숙박료',
-                    amount: 1200000,
-                    description: '에어비앤비 예약 수익'
-                },
-                {
-                    id: 'test-expense-1',
-                    date: currentMonth + '-10',
-                    accommodationId: 'test-acc-1',
-                    type: 'expense',
-                    category: '청소비',
-                    amount: 150000,
-                    description: '정기 청소 비용'
-                }
-            ];
-            
-            localStorage.setItem('accommodationData', JSON.stringify(accommodations));
-            localStorage.setItem('investorData', JSON.stringify(investors));
-            localStorage.setItem('accountingData', JSON.stringify(accounting));
-        }
+
 
         async function initializeReport() {
             try {
