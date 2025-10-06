@@ -6,21 +6,21 @@ function checkLoginStatus(allowInvestor = true, adminOnly = false) {
     const userName = sessionStorage.getItem('userName');
     
     if (!userType) {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return false;
     }
     
     // 관리자 전용 페이지 체크
     if (adminOnly && userType !== 'admin') {
         alert('관리자만 접근할 수 있는 페이지입니다.');
-        window.location.href = 'index.html';
+        window.location.href = 'dashboard.html';
         return false;
     }
     
     // 투자자 접근 허용 여부 체크
     if (!allowInvestor && userType === 'investor') {
         alert('투자자는 이 기능을 이용할 수 없습니다.');
-        window.location.href = 'index.html';
+        window.location.href = 'dashboard.html';
         return false;
     }
     
@@ -50,7 +50,7 @@ function addUserInfo(userName, userType) {
 function logout() {
     if (confirm('로그아웃 하시겠습니까?')) {
         sessionStorage.clear();
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     }
 }
 
