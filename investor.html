@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
     <script src="js/translations.js"></script>
+    <script src="js/cloudflare-storage.js"></script>
     <style>
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -270,27 +271,34 @@
         let currentMode = 'view';
         let currentId = null;
         let isEditMode = false;
-        // 간단한 저장 함수
-        function saveInvestorData() {
-            localStorage.setItem('investorData', JSON.stringify(investorData));
-            console.log('💾 저장완료:', investorData.length + '명');
+        // Cloudflare D1 저장소 함수들
+        async function loadInvestorData() {
+            return await cloudflareStorage.loadInvestors();
         }
 
-        // localStorage에서 투자자 데이터 로드 또는 빈 배열
-        let investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+        async function saveInvestorToServer(investor) {
+            return await cloudflareStorage.saveInvestor(investor);
+        }
+
+        async function updateInvestorOnServer(id, investor) {
+            return await cloudflareStorage.updateInvestor(id, investor);
+        }
+
+        async function deleteInvestorFromServer(id) {
+            return await cloudflareStorage.deleteInvestor(id);
+        }
+
+        // 투자자 데이터 (Cloudflare D1에서 로드)
+        let investorData = [];
         let selectedAccommodations = [];
 
-        // 숙소 데이터 로드 함수
-        function loadAccommodationsFromStorage() {
-            const saved = localStorage.getItem('accommodationData');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-            return [];
+        // 숙소 데이터 로드 함수 (Cloudflare D1 사용)
+        async function loadAccommodationsFromServer() {
+            return await cloudflareStorage.loadAccommodations();
         }
 
-        // 숙소 목록 - localStorage에서 로드
-        let accommodations = loadAccommodationsFromStorage();
+        // 숙소 목록 - Cloudflare D1에서 로드
+        let accommodations = [];
 
         // 샘플 투자자 데이터 - 제거됨 (사용자가 직접 등록)
 
@@ -311,8 +319,8 @@
             }
         }
 
-        // 단순한 초기화
-        document.addEventListener('DOMContentLoaded', function() {
+        // 페이지 초기화 (서버에서 데이터 로드)
+        document.addEventListener('DOMContentLoaded', async function() {
             // 테스트 모드 확인 및 설정
             if (isTestMode()) {
                 setupTestMode();
@@ -321,7 +329,16 @@
             if (checkLoginStatus()) {
                 initializePagePermissions();
                 
-                // 샘플 데이터 자동 초기화 제거됨 - 빈 상태로 시작
+                // 서버에서 데이터 로드
+                try {
+                    investorData = await loadInvestorData();
+                    accommodations = await loadAccommodationsFromServer();
+                    console.log('📊 투자자 데이터 로드 완료:', investorData.length + '명');
+                    console.log('🏠 숙소 데이터 로드 완료:', accommodations.length + '개');
+                } catch (error) {
+                    console.error('데이터 로드 실패:', error);
+                    alert('서버에서 데이터를 불러오는데 실패했습니다.');
+                }
                 
                 populateAccommodationSelect();
                 renderInvestorTable();
@@ -633,15 +650,24 @@
         }
 
         // 투자자 삭제
-        window.deleteInvestor = function() {
+        window.deleteInvestor = async function() {
             if (!currentId) return;
             
             if (confirm('이 투자자를 삭제하시겠습니까?')) {
-                investorData = investorData.filter(inv => inv.id !== currentId);
-                saveInvestorData(); // localStorage에 저장
-                alert('투자자가 삭제되었습니다.');
-                renderInvestorTable();
-                closeModal();
+                try {
+                    await deleteInvestorFromServer(currentId);
+                    console.log('✅ Cloudflare D1에서 투자자 삭제 완료');
+                    
+                    // 로컬 데이터에서 제거
+                    investorData = investorData.filter(inv => inv.id !== currentId);
+                    
+                    alert('투자자가 삭제되었습니다.');
+                    renderInvestorTable();
+                    closeModal();
+                } catch (error) {
+                    console.error('❌ 삭제 실패:', error);
+                    alert('삭제 중 오류가 발생했습니다: ' + error.message);
+                }
             }
         }
 
@@ -682,7 +708,7 @@
         }
 
         // 단순한 폼 제출 처리
-        document.getElementById('investorForm').addEventListener('submit', function(e) {
+        document.getElementById('investorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             console.log('폼 제출 이벤트 발생:', {currentMode, isEditMode, currentId});
@@ -709,42 +735,47 @@
             console.log('폼 데이터:', formData);
 
             if (currentMode === 'add') {
-                // 새 투자자 추가
-                formData.id = Math.max(...investorData.map(inv => inv.id), 0) + 1;
-                console.log('🔢 새 투자자 ID 할당:', formData.id);
-                
-                investorData.push(formData);
-                console.log('📋 투자자 데이터 배열에 추가:', investorData.length + '명');
-                
-                saveInvestorData(); // localStorage에 저장
-                console.log('💾 localStorage 저장 완료');
-                
-                console.log('새 투자자 추가됨:', formData.name);
-                alert('✅ 새 투자자가 성공적으로 추가되었습니다!');
-                
-                renderInvestorTable();
-                console.log('📊 테이블 다시 렌더링 완료');
-                
-                closeModal();
-                console.log('🚪 모달 닫기 완료');
+                // 새 투자자 추가 (Cloudflare D1)
+                try {
+                    console.log('🚀 Cloudflare D1에 새 투자자 추가 중...');
+                    const savedInvestor = await saveInvestorToServer(formData);
+                    console.log('✅ D1 저장 성공:', savedInvestor);
+                    
+                    // 로컬 데이터 업데이트
+                    investorData.push(savedInvestor);
+                    console.log('📋 데이터 업데이트 완료:', investorData.length + '명');
+                    
+                    alert('✅ 새 투자자가 성공적으로 추가되었습니다!');
+                    renderInvestorTable();
+                    closeModal();
+                    
+                } catch (error) {
+                    console.error('❌ 투자자 추가 실패:', error);
+                    alert('투자자 추가 중 오류가 발생했습니다: ' + error.message);
+                }
                 
             } else if (currentMode === 'view' && isEditMode) {
-                // 기존 투자자 수정
-                console.log('투자자 수정 시도, ID:', currentId);
-                
-                const index = investorData.findIndex(inv => inv.id === currentId);
-                console.log('투자자 인덱스:', index);
-                
-                if (index !== -1) {
-                    // 데이터 업데이트
-                    const oldName = investorData[index].name;
-                    investorData[index] = { ...investorData[index], ...formData };
-                    saveInvestorData(); // localStorage에 저장
+                // 기존 투자자 수정 (Cloudflare D1)
+                try {
+                    console.log('🔄 Cloudflare D1에서 투자자 수정 중, ID:', currentId);
                     
-                    console.log(`투자자 정보 업데이트: ${oldName} → ${formData.name}`);
+                    const updatedInvestor = await updateInvestorOnServer(currentId, formData);
+                    console.log('✅ D1 수정 성공:', updatedInvestor);
                     
-                    // 성공 메시지
-                    alert(`✅ ${formData.name}님의 정보가 성공적으로 수정되었습니다!`);
+                    // 로컬 데이터 업데이트
+                    const index = investorData.findIndex(inv => inv.id === currentId);
+                    if (index !== -1) {
+                        const oldName = investorData[index].name;
+                        investorData[index] = updatedInvestor;
+                        console.log(`투자자 정보 업데이트: ${oldName} → ${updatedInvestor.name}`);
+                    }
+                    
+                    alert(`✅ ${updatedInvestor.name}님의 정보가 성공적으로 수정되었습니다!`);
+                    
+                } catch (error) {
+                    console.error('❌ 투자자 수정 실패:', error);
+                    alert('투자자 수정 중 오류가 발생했습니다: ' + error.message);
+                }
                     
                     // UI 업데이트
                     renderInvestorTable();

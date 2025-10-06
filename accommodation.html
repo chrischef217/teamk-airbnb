@@ -8,8 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
     <script src="js/translations.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/hybrid-storage.js"></script>
+    <script src="js/github-storage.js"></script>
     <style>
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -277,19 +276,13 @@
 
     <script>
         // 페이지 로드 시 로그인 확인
-        // localStorage에서 투자자 데이터 로드
-        function loadInvestorDataFromStorage() {
-            const saved = localStorage.getItem('investorData');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-            
-            // 기본 샘플 데이터 제거됨 - 빈 배열 반환
-            return [];
+        // GitHub에서 투자자 데이터 로드
+        async function loadInvestorDataFromServer() {
+            return await githubStorage.loadInvestors();
         }
 
-        // 투자자 데이터 (localStorage에서 로드)
-        let investors = loadInvestorDataFromStorage();
+        // 투자자 데이터 (GitHub에서 로드)
+        let investors = [];
 
         // 투자자 콤보박스 채우기
         function populateInvestorSelect() {
@@ -330,12 +323,24 @@
             renderAccommodationList(filteredAccommodations);
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // 모든 로그인 사용자 접근 허용 (데이터는 권한별 필터링)
             if (checkLoginStatus()) {
                 initializePagePermissions(); // 권한별 페이지 설정
+                
+                // 서버에서 데이터 로드
+                try {
+                    investors = await loadInvestorDataFromServer();
+                    accommodations = await loadAccommodationsFromServer();
+                    console.log('📊 투자자 데이터 로드 완료:', investors.length + '명');
+                    console.log('🏠 숙소 데이터 로드 완료:', accommodations.length + '개');
+                } catch (error) {
+                    console.error('데이터 로드 실패:', error);
+                    alert('서버에서 데이터를 불러오는데 실패했습니다.');
+                }
+                
                 populateInvestorSelect(); // 투자자 콤보박스 초기화
-                loadAccommodations();
+                renderAccommodationList(); // 숙소 리스트 렌더링
                 
                 // 투자자 데이터 변경 감지 (localStorage 변경)
                 window.addEventListener('storage', function(e) {
@@ -363,16 +368,16 @@
             }
         }
         
-        // 숙소 데이터 저장 함수 (하이브리드)
+        // GitHub 저장소 함수들
+        async function loadAccommodationsFromServer() {
+            return await githubStorage.loadAccommodations();
+        }
+
         async function saveAccommodationsToStorage() {
-            if (window.hybridStorage) {
-                await hybridStorage.save('accommodationData', accommodations);
-            } else {
-                localStorage.setItem('accommodationData', JSON.stringify(accommodations));
-            }
+            await githubStorage.saveAccommodations(accommodations);
         }
         
-        // 숙소 데이터 - localStorage에서 로드
+        // 숙소 데이터 - GitHub에서 로드
         let accommodations = [];
 
         let currentMode = 'view'; // 'view', 'edit', 'add'
@@ -552,7 +557,7 @@
         }
 
         // 폼 제출 처리
-        document.getElementById('accommodationForm').addEventListener('submit', function(e) {
+        document.getElementById('accommodationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             if (currentMode === 'view' && !isEditMode) return;
@@ -577,17 +582,39 @@
             };
             
             if (currentMode === 'add') {
-                accommodationData.id = Date.now(); // 고유 ID 생성
-                accommodations.push(accommodationData);
-                saveAccommodationsToStorage(); // localStorage에 저장
-                alert('숙소가 성공적으로 등록되었습니다.');
-            } else if (isEditMode) {
-                const index = accommodations.findIndex(a => a.id === currentId);
-                if (index !== -1) {
-                    accommodations[index] = { ...accommodations[index], ...accommodationData };
-                    saveAccommodationsToStorage(); // localStorage에 저장
-                    alert('숙소 정보가 성공적으로 수정되었습니다.');
+                // 새 숙소 추가 (GitHub 저장)
+                try {
+                    console.log('🚀 GitHub에 새 숙소 추가 중...');
+                    accommodationData.id = Date.now(); // 고유 ID 생성
+                    
+                    accommodations.push(accommodationData);
+                    await saveAccommodationsToStorage();
+                    console.log('✅ GitHub 저장 성공');
+                    
+                    alert('숙소가 성공적으로 등록되었습니다.');
+                    
+                } catch (error) {
+                    console.error('❌ 숙소 추가 실패:', error);
+                    alert('숙소 추가 중 오류가 발생했습니다: ' + error.message);
                 }
+            } else if (isEditMode) {
+                // 기존 숙소 수정 (GitHub 저장)
+                try {
+                    console.log('🔄 GitHub에서 숙소 수정 중, ID:', currentId);
+                    
+                    const index = accommodations.findIndex(a => a.id === currentId);
+                    if (index !== -1) {
+                        accommodations[index] = { ...accommodations[index], ...accommodationData };
+                        await saveAccommodationsToStorage();
+                        console.log('✅ GitHub 저장 성공');
+                        alert('숙소 정보가 성공적으로 수정되었습니다.');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ 숙소 수정 실패:', error);
+                    alert('숙소 수정 중 오류가 발생했습니다: ' + error.message);
+                }
+                
                 // 수정 마쳤 후 읽기 모드로 전환
                 isEditMode = false;
                 document.getElementById('editButtonText').textContent = '수정';

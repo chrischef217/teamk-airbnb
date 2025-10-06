@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub 연동 설정 - Teamk</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/github-storage.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .setup-step {
+            transition: all 0.3s ease;
+        }
+        .setup-step.completed {
+            background-color: #f0f9ff;
+            border-color: #3b82f6;
+        }
+        .code-block {
+            background-color: #1f2937;
+            color: #f9fafb;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fab fa-github mr-3 text-gray-800"></i>
+                    GitHub 데이터 저장소 설정
+                </h1>
+                <p class="text-gray-600">PC와 모바일 간 데이터 동기화를 위해 GitHub를 데이터베이스로 사용합니다.</p>
+            </div>
+        </div>
+
+        <!-- 현재 상태 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                현재 연결 상태
+            </h2>
+            <div id="currentStatus" class="space-y-2">
+                <div class="flex items-center">
+                    <span class="w-3 h-3 rounded-full bg-gray-400 mr-3" id="statusIndicator"></span>
+                    <span id="statusText" class="text-gray-600">확인 중...</span>
+                </div>
+                <div id="repoInfo" class="text-sm text-gray-500 ml-6 hidden"></div>
+            </div>
+        </div>
+
+        <!-- 설정 단계 -->
+        <div class="space-y-6">
+            <!-- 1단계: GitHub Token 생성 -->
+            <div class="setup-step bg-white rounded-lg shadow-sm p-6 border-2 border-gray-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">1</div>
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">GitHub Personal Access Token 생성</h3>
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-600 mb-2">다음 단계를 따라 토큰을 생성하세요:</p>
+                            <ol class="list-decimal list-inside space-y-1 text-sm text-gray-700">
+                                <li>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</li>
+                                <li>"Generate new token (classic)" 클릭</li>
+                                <li>Note: "Teamk Data Storage" 입력</li>
+                                <li>Expiration: "No expiration" 선택</li>
+                                <li>Scopes: <strong>"repo" 전체 선택</strong> (중요!)</li>
+                                <li>"Generate token" 클릭 후 토큰 복사</li>
+                            </ol>
+                        </div>
+
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-start">
+                                <i class="fas fa-exclamation-triangle text-yellow-600 mr-2 mt-1"></i>
+                                <div class="text-yellow-800 text-sm">
+                                    <strong>중요:</strong> 생성된 토큰은 한 번만 표시되므로 반드시 안전한 곳에 저장하세요.
+                                </div>
+                            </div>
+                        </div>
+
+                        <a href="https://github.com/settings/tokens" target="_blank" 
+                           class="inline-flex items-center bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fab fa-github mr-2"></i>
+                            GitHub Token 생성하기
+                            <i class="fas fa-external-link-alt ml-2 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2단계: 저장소 정보 입력 -->
+            <div class="setup-step bg-white rounded-lg shadow-sm p-6 border-2 border-gray-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">2</div>
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">GitHub 저장소 연결 설정</h3>
+                        
+                        <form id="githubSetupForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-key mr-1"></i>
+                                    Personal Access Token
+                                </label>
+                                <input type="password" id="githubToken" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                                <p class="text-xs text-gray-500 mt-1">위에서 생성한 토큰을 입력하세요</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-user mr-1"></i>
+                                        GitHub 사용자명
+                                    </label>
+                                    <input type="text" id="githubOwner" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           placeholder="your-username">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-repository mr-1"></i>
+                                        저장소 이름
+                                    </label>
+                                    <input type="text" id="githubRepo" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           placeholder="teamk-data">
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-start">
+                                    <i class="fas fa-lightbulb text-blue-600 mr-2 mt-1"></i>
+                                    <div class="text-blue-800 text-sm">
+                                        <strong>팁:</strong> 데이터 전용 비공개 저장소를 새로 만드는 것을 권장합니다.<br>
+                                        예: "teamk-data" 또는 "airbnb-management-data"
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex space-x-4">
+                                <button type="button" onclick="testConnection()" 
+                                        class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                                    <i class="fas fa-plug mr-2"></i>
+                                    연결 테스트
+                                </button>
+
+                                <button type="submit" 
+                                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                                    <i class="fas fa-save mr-2"></i>
+                                    설정 저장
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3단계: 데이터 마이그레이션 -->
+            <div class="setup-step bg-white rounded-lg shadow-sm p-6 border-2 border-gray-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">3</div>
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">기존 데이터 이전</h3>
+                        <p class="text-gray-600 mb-4">설정이 완료되면 기존 localStorage 데이터를 GitHub로 이전합니다.</p>
+                        
+                        <button onclick="window.location.href='data-migration.html'" 
+                                class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-database mr-2"></i>
+                            데이터 마이그레이션 도구로 이동
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 표시 -->
+        <div id="resultMessage" class="hidden mt-6 p-4 rounded-lg"></div>
+
+        <!-- 뒤로가기 버튼 -->
+        <div class="mt-8 text-center">
+            <button onclick="window.location.href='index.html'" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                메인 페이지로 돌아가기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 현재 상태 확인
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkCurrentStatus();
+            loadSavedSettings();
+        });
+
+        // 현재 연결 상태 확인
+        async function checkCurrentStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const repoInfo = document.getElementById('repoInfo');
+
+            if (githubStorage.isConfigured()) {
+                statusText.textContent = '연결 테스트 중...';
+                statusIndicator.className = 'w-3 h-3 rounded-full bg-yellow-400 mr-3';
+
+                const result = await githubStorage.testConnection();
+                
+                if (result.success) {
+                    statusText.textContent = '✅ GitHub 연결됨';
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-green-400 mr-3';
+                    repoInfo.textContent = result.message;
+                    repoInfo.classList.remove('hidden');
+                } else {
+                    statusText.textContent = '❌ 연결 실패: ' + result.error;
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-red-400 mr-3';
+                }
+            } else {
+                statusText.textContent = '🔧 GitHub 설정 필요';
+                statusIndicator.className = 'w-3 h-3 rounded-full bg-gray-400 mr-3';
+            }
+        }
+
+        // 저장된 설정 로드
+        function loadSavedSettings() {
+            const token = localStorage.getItem('github_token');
+            const owner = localStorage.getItem('github_owner');
+            const repo = localStorage.getItem('github_repo');
+
+            if (token) document.getElementById('githubToken').value = token;
+            if (owner) document.getElementById('githubOwner').value = owner;
+            if (repo) document.getElementById('githubRepo').value = repo;
+        }
+
+        // 연결 테스트
+        async function testConnection() {
+            const token = document.getElementById('githubToken').value;
+            const owner = document.getElementById('githubOwner').value;
+            const repo = document.getElementById('githubRepo').value;
+
+            if (!token || !owner || !repo) {
+                showMessage('모든 필드를 입력해주세요.', 'error');
+                return;
+            }
+
+            // 임시로 설정 저장
+            githubStorage.saveConfig(token, owner, repo);
+
+            showMessage('연결 테스트 중...', 'info');
+
+            const result = await githubStorage.testConnection();
+            
+            if (result.success) {
+                showMessage('✅ ' + result.message, 'success');
+            } else {
+                showMessage('❌ ' + result.error, 'error');
+            }
+        }
+
+        // 폼 제출
+        document.getElementById('githubSetupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const token = document.getElementById('githubToken').value;
+            const owner = document.getElementById('githubOwner').value;
+            const repo = document.getElementById('githubRepo').value;
+
+            if (!token || !owner || !repo) {
+                showMessage('모든 필드를 입력해주세요.', 'error');
+                return;
+            }
+
+            // 설정 저장
+            githubStorage.saveConfig(token, owner, repo);
+
+            // 연결 테스트
+            showMessage('설정을 저장하고 연결을 확인 중...', 'info');
+            
+            const result = await githubStorage.testConnection();
+            
+            if (result.success) {
+                showMessage('✅ GitHub 설정이 완료되었습니다! 이제 데이터가 PC와 모바일 간 동기화됩니다.', 'success');
+                setTimeout(() => {
+                    checkCurrentStatus();
+                }, 2000);
+            } else {
+                showMessage('❌ 설정은 저장되었지만 연결에 실패했습니다: ' + result.error, 'error');
+            }
+        });
+
+        // 메시지 표시
+        function showMessage(message, type) {
+            const resultMessage = document.getElementById('resultMessage');
+            const colors = {
+                success: 'bg-green-50 border border-green-200 text-green-800',
+                error: 'bg-red-50 border border-red-200 text-red-800',
+                info: 'bg-blue-50 border border-blue-200 text-blue-800'
+            };
+
+            resultMessage.className = `${colors[type]} p-4 rounded-lg`;
+            resultMessage.textContent = message;
+            resultMessage.classList.remove('hidden');
+
+            // 5초 후 자동 숨김
+            setTimeout(() => {
+                resultMessage.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

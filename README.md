@@ -3,9 +3,50 @@
 실제 다중 사용자를 지원하는 태국 에어비앤비 숙소 투자 및 운영 관리 플랫폼
 
 ## ⚠️ 최근 수정사항 (2024-10-06)
+
+### 🚨 **중요: 데이터 저장 방식 대폭 변경**
+- **localStorage → Cloudflare D1 전환**: 이제 모든 데이터가 Cloudflare D1 데이터베이스에 저장되어 PC와 모바일 간 실시간 동기화됩니다
+- **Cloudflare Workers API**: RESTful API를 통한 완전한 CRUD 작업 지원
+- **엔터프라이즈급 데이터베이스**: 무료 SQLite 기반 클라우드 데이터베이스
+- **자동 백업**: Cloudflare 인프라를 통한 데이터 안전성 보장
+- **데이터 마이그레이션 도구 제공**: 기존 localStorage 데이터를 D1로 안전하게 이전
+
+### 🔧 **기술적 개선사항**
 - **로그인 버튼 무한 리로드 문제 해결**: DOMContentLoaded 이벤트 리스너 중복 제거
 - **리다이렉션 경로 정리**: index.html을 메인 대시보드로 통일
 - **세션 관리 개선**: 로그인 상태 확인 로직 최적화
+
+### 📊 **Cloudflare D1 데이터베이스 구조**
+- `investors` 테이블: 투자자 정보 (id, userId, password, name, phone, email, investmentRatio, accommodations, created_at, updated_at)
+- `accommodations` 테이블: 숙소 정보 (id, name, location, contractType, monthlyRent, deposit, contractStart, contractEnd, airbnbUrl, notes, created_at, updated_at)
+- `reservations` 테이블: 예약 정보 (accommodationId, guestName, checkIn, checkOut, platform, amount, commission, status)
+- `accounting` 테이블: 정산 정보 (accommodationId, month, revenue, expenses, netIncome)
+
+### 🔧 **Cloudflare D1 연동 설정 방법**
+
+#### 1. **Cloudflare API 토큰 생성**:
+- Cloudflare Dashboard → "My Profile" → "API Tokens"
+- "Create Token" → "Custom token"
+- 권한: Account - Cloudflare D1:Edit, Zone - Zone:Read, Zone Settings:Edit
+
+#### 2. **D1 데이터베이스 생성**:
+- Cloudflare Dashboard → "Workers & Pages" → "D1 SQL Database"
+- "Create database" → Name: `teamk-data`
+- Database ID 복사
+
+#### 3. **Cloudflare Worker 배포**:
+- "Workers & Pages" → "Create application" → "Create Worker"
+- Name: `teamk-api`
+- `workers/teamk-api.js` 코드 붙여넣기
+- Settings → Variables → "D1 Database Bindings" 추가 (TEAMK_DB)
+
+#### 4. **시스템 설정**:
+- 사이트에서 "Cloudflare 연동" 탭 클릭
+- API Token, Account ID, Database ID, Worker URL 입력
+- 연결 테스트 → DB 초기화 → 설정 저장
+
+#### 5. **데이터 마이그레이션**:
+- "데이터 마이그레이션" 탭에서 기존 데이터를 D1로 이전
 
 ## 🌟 주요 기능
 
