@@ -1,77 +1,26 @@
 // 공통 인증 관련 함수들
 
-// 강화된 세션 검증 함수
-function verifySession() {
-    console.log('🔍 세션 검증 시작');
-    
-    let userType = sessionStorage.getItem('userType');
-    let userName = sessionStorage.getItem('userName');
-    let userId = sessionStorage.getItem('userId');
-    
-    console.log('📋 세션 스토리지 상태:', { userType, userName, userId });
-    
-    // sessionStorage가 비어있으면 localStorage에서 복원
-    if (!userType || !userName || !userId) {
-        console.log('⚠️ 세션 스토리지 불완전, localStorage에서 복원 시도');
-        
-        const localUserType = localStorage.getItem('userType');
-        const localUserName = localStorage.getItem('userName');
-        const localUserId = localStorage.getItem('userId');
-        
-        console.log('📋 로컬 스토리지 상태:', { localUserType, localUserName, localUserId });
-        
-        if (localUserType && localUserName && localUserId) {
-            // localStorage에서 sessionStorage로 복원
-            sessionStorage.setItem('userType', localUserType);
-            sessionStorage.setItem('userName', localUserName);
-            sessionStorage.setItem('userId', localUserId);
-            
-            userType = localUserType;
-            userName = localUserName;
-            userId = localUserId;
-            
-            console.log('✅ localStorage에서 세션 복원 완료');
-        }
-    }
-    
-    // 여전히 불완전하면 false 반환
-    if (!userType || !userName || !userId) {
-        console.log('❌ 유효한 세션 없음');
-        return false;
-    }
-    
-    console.log('✅ 세션 검증 성공:', { userType, userName, userId });
-    return { userType, userName, userId };
-}
-
 // 로그인 상태 확인
 function checkLoginStatus(allowInvestor = true, adminOnly = false) {
-    const session = verifySession();
+    const userType = sessionStorage.getItem('userType');
+    const userName = sessionStorage.getItem('userName');
     
-    if (!session) {
-        console.log('❌ 로그인되지 않음 - index.html로 이동');
-        // 현재 페이지가 이미 index.html이 아닌 경우에만 리다이렉트
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/index.html' && !currentPath.endsWith('index.html') && currentPath !== '/') {
-            window.location.replace('index.html');
-        }
+    if (!userType) {
+        window.location.href = 'login.html';
         return false;
     }
-    
-    const { userType, userName, userId } = session;
-    console.log('🔍 로그인 상태 체크:', { userType, userName, currentPage: window.location.pathname });
     
     // 관리자 전용 페이지 체크
     if (adminOnly && userType !== 'admin') {
         alert('관리자만 접근할 수 있는 페이지입니다.');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
         return false;
     }
     
     // 투자자 접근 허용 여부 체크
     if (!allowInvestor && userType === 'investor') {
         alert('투자자는 이 기능을 이용할 수 없습니다.');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
         return false;
     }
     
@@ -100,18 +49,8 @@ function addUserInfo(userName, userType) {
 // 로그아웃
 function logout() {
     if (confirm('로그아웃 하시겠습니까?')) {
-        console.log('🔓 로그아웃 진행');
-        
-        // 모든 인증 관련 데이터 완전 삭제
         sessionStorage.clear();
-        localStorage.removeItem('userType');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('userName');
-        
-        console.log('✅ 세션 데이터 완전 삭제');
-        
-        // 강제로 로그인 페이지로 이동
-        window.location.replace('index.html');
+        window.location.href = 'login.html';
     }
 }
 
@@ -167,32 +106,10 @@ function filterDataByAccess(data, accommodationIdField = 'accommodationId') {
     // 투자자는 자신의 숙소 데이터만
     if (user.userType === 'investor') {
         const accessibleIds = getAccessibleAccommodations();
-        return data.filter(item => {
-            // 숙소 데이터 자체인 경우 (accommodation.html)
-            if (item.id && accessibleIds.includes(item.id)) {
-                return true;
-            }
-            // 연결된 숙소 ID가 있는 경우 (analytics, reservation 등)
-            if (item[accommodationIdField] && accessibleIds.includes(item[accommodationIdField])) {
-                return true;
-            }
-            // 투자자 데이터인 경우 자신만 (investor.html)
-            if (item.userId && item.userId === user.userId) {
-                return true;
-            }
-            return false;
-        });
+        return data.filter(item => accessibleIds.includes(item[accommodationIdField]));
     }
     
     return [];
-}
-
-// 모든 데이터를 강제로 필터링하는 래퍼 함수
-function getFilteredData(dataArray, accommodationIdField = 'accommodationId') {
-    if (!Array.isArray(dataArray)) {
-        return [];
-    }
-    return filterDataByAccess(dataArray, accommodationIdField);
 }
 
 // 백업 기능 접근 권한 체크
@@ -369,47 +286,15 @@ function initializePagePermissions() {
 
 // 렌더링 함수들을 오버라이드해서 투자자 권한 적용
 function overrideRenderFunctions() {
-    // 모든 데이터 배열을 필터링하는 전역 객체
-    window.investorFilter = {
-        accommodations: [],
-        reservations: [],
-        investors: [],
-        accountingData: [],
-        
-        // 데이터 설정 시 자동 필터링
-        setData: function(dataType, data) {
-            this[dataType] = getFilteredData(data, dataType === 'accommodations' ? 'id' : 'accommodationId');
-        },
-        
-        // 데이터 가져오기
-        getData: function(dataType) {
-            return this[dataType] || [];
-        }
-    };
-    
-    // 전역 변수들을 필터링된 데이터로 교체
-    setTimeout(() => {
-        const user = getCurrentUser();
-        if (user.userType === 'investor') {
-            // accommodations 필터링
-            if (typeof window.accommodations !== 'undefined') {
-                window.accommodations = getFilteredData(window.accommodations, 'id');
-            }
-            
-            // reservations 필터링
-            if (typeof window.reservations !== 'undefined') {
-                window.reservations = getFilteredData(window.reservations);
-            }
-            
-            // investors 필터링 (자신만)
-            if (typeof window.investors !== 'undefined') {
-                window.investors = window.investors.filter(inv => inv.userId === user.userId);
-            }
-            
-            // accountingData 필터링
-            if (typeof window.accountingData !== 'undefined') {
-                window.accountingData = getFilteredData(window.accountingData);
-            }
-        }
-    }, 100);
+    // renderAccommodationList 함수 오버라이드
+    if (typeof window.renderAccommodationList === 'function') {
+        const originalRender = window.renderAccommodationList;
+        window.renderAccommodationList = function(...args) {
+            const result = originalRender.apply(this, args);
+            setTimeout(() => {
+                disableDelayedElements();
+            }, 100);
+            return result;
+        };
+    }
 }
