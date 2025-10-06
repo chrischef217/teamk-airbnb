@@ -37,7 +37,7 @@
             <!-- Tab Navigation -->
             <div class="bg-white rounded-lg shadow-sm mb-6">
                 <div class="flex flex-wrap border-b">
-                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                    <button onclick="window.location.href='dashboard.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
                         <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
                     </button>
                     <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
@@ -75,6 +75,13 @@
     </div>
 
     <script>
+        // 페이지 로드 시 로그인 확인 및 권한 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            if (checkLoginStatus()) { 
+                initializePagePermissions(); // 권한별 페이지 설정
+            }
+        });
+
         // 회계 데이터 - 완전히 빈 상태
         const accountingData = [];
         const accommodations = [];

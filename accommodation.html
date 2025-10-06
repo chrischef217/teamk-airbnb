@@ -67,7 +67,7 @@
             <!-- Tab Navigation - 모바일 최적화 -->
             <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
                 <div class="flex flex-wrap border-b overflow-x-auto">
-                    <button onclick="window.location.href='index.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                    <button onclick="window.location.href='dashboard.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
                         <i class="fas fa-tachometer-alt mr-1"></i><span class="hidden sm:inline" data-translate="dashboard">대시보드</span><span class="sm:hidden" data-translate="dashboard">대시보드</span>
                     </button>
                     <button class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600 whitespace-nowrap">
@@ -315,7 +315,10 @@
         }
 
         // 숙소 데이터 로드 함수
-        function loadAccommodations() {
+        async function loadAccommodations() {
+            // localStorage에서 데이터 로드
+            accommodations = await loadAccommodationsFromStorage();
+            
             const user = getCurrentUser();
             let filteredAccommodations = accommodations;
             
@@ -328,6 +331,18 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔍 accommodation.html 로그인 확인 시작');
+            
+            // 강화된 세션 검증
+            const session = verifySession();
+            if (!session) {
+                console.log('❌ 로그인 정보 없음 - index.html로 리다이렉트');
+                window.location.replace('index.html');
+                return;
+            }
+            
+            console.log('✅ 로그인 확인됨 - 페이지 초기화 진행');
+            
             // 모든 로그인 사용자 접근 허용 (데이터는 권한별 필터링)
             if (checkLoginStatus()) {
                 initializePagePermissions(); // 권한별 페이지 설정
@@ -370,26 +385,36 @@
         }
         
         // 숙소 데이터 - localStorage에서 로드
-        let accommodations = loadAccommodationsFromStorage();
+        let accommodations = [];
 
         let currentMode = 'view'; // 'view', 'edit', 'add'
         let currentId = null;
         let isEditMode = false;
 
-        // 페이지 로드 시 숙소 리스트 렌더링
-        document.addEventListener('DOMContentLoaded', function() {
-            renderAccommodationList();
-        });
+        // 페이지 로드 시 숙소 리스트 렌더링 - 메인 DOMContentLoaded에서 처리됨
 
         // 숙소 리스트 렌더링
         function renderAccommodationList(filteredData = accommodations) {
             const listContainer = document.getElementById('accommodationList');
             listContainer.innerHTML = '';
 
+            // 데이터가 배열인지 확인
+            if (!Array.isArray(filteredData)) {
+                console.error('filteredData is not an array:', filteredData);
+                filteredData = [];
+            }
+
             filteredData.forEach(accommodation => {
                 const listItem = document.createElement('div');
                 listItem.className = 'p-4 hover:bg-gray-50 cursor-pointer transition-colors';
-                listItem.onclick = () => openModal('view', accommodation.id);
+                listItem.onclick = () => {
+                    const user = getCurrentUser();
+                    if (user.userType === 'investor') {
+                        openModal('view', accommodation.id); // 투자자는 보기만 가능
+                    } else {
+                        openModal('view', accommodation.id);
+                    }
+                };
                 
                 const websiteButton = accommodation.websiteUrl ? 
                     `<button onclick="event.stopPropagation(); window.open('${accommodation.websiteUrl}', '_blank')" 
@@ -440,6 +465,14 @@
 
         // 모달 열기
         function openModal(mode, id = null) {
+            const user = getCurrentUser();
+            
+            // 투자자 권한 체크
+            if (user.userType === 'investor' && mode === 'add') {
+                alert('투자자는 새 숙소를 등록할 수 없습니다.');
+                return;
+            }
+            
             currentMode = mode;
             currentId = id;
             isEditMode = false;
@@ -460,8 +493,14 @@
                 if (accommodation) {
                     title.textContent = '숙소 정보';
                     populateForm(accommodation);
-                    editButton.style.display = 'block';
-                    editButtonText.textContent = '수정';
+                    
+                    // 투자자는 편집 버튼 숨김
+                    if (user.userType === 'investor') {
+                        editButton.style.display = 'none';
+                    } else {
+                        editButton.style.display = 'block';
+                        editButtonText.textContent = '수정';
+                    }
                     isEditMode = false;
                 }
             }
@@ -548,6 +587,13 @@
         // 폼 제출 처리
         document.getElementById('accommodationForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // 투자자 권한 체크
+            const user = getCurrentUser();
+            if (user.userType === 'investor') {
+                alert('투자자는 데이터를 수정할 수 없습니다.');
+                return;
+            }
             
             if (currentMode === 'view' && !isEditMode) return;
             

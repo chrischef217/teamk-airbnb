@@ -47,7 +47,7 @@
             <!-- Tab Navigation -->
             <div class="bg-white rounded-lg shadow-sm mb-6">
                 <div class="flex flex-wrap border-b">
-                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                    <button onclick="window.location.href='dashboard.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
                         <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
                     </button>
                     <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
@@ -229,6 +229,18 @@
 
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔍 analytics.html 로그인 확인 시작');
+            
+            // 강화된 세션 검증
+            const session = verifySession();
+            if (!session) {
+                console.log('❌ 로그인 정보 없음 - index.html로 리다이렉트');
+                window.location.replace('index.html');
+                return;
+            }
+            
+            console.log('✅ 로그인 확인됨 - 페이지 초기화 진행');
+            
             // 투자자도 조회 가능한 페이지
             if (checkLoginStatus(true, false)) {
                 initializePagePermissions(); // 권한별 페이지 설정
@@ -242,8 +254,15 @@
             const periodFilter = document.getElementById('periodFilter').value;
             const chartType = document.getElementById('chartType').value;
 
-            // 필터링된 데이터 가져오기
-            const filteredData = filterDataByPeriod(sampleAccountingData, periodFilter);
+            // 투자자 권한 데이터 필터링
+            let baseData = sampleAccountingData;
+            const user = getCurrentUser();
+            if (user.userType === 'investor') {
+                baseData = filterDataByAccess(sampleAccountingData);
+            }
+
+            // 기간별 필터링된 데이터 가져오기
+            const filteredData = filterDataByPeriod(baseData, periodFilter);
             
             let chartData;
             switch (analysisType) {
