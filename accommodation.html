@@ -67,7 +67,7 @@
             <!-- Tab Navigation - 모바일 최적화 -->
             <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
                 <div class="flex flex-wrap border-b overflow-x-auto">
-                    <button onclick="window.location.href='index.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                    <button onclick="window.location.href='dashboard.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
                         <i class="fas fa-tachometer-alt mr-1"></i><span class="hidden sm:inline" data-translate="dashboard">대시보드</span><span class="sm:hidden" data-translate="dashboard">대시보드</span>
                     </button>
                     <button class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600 whitespace-nowrap">
@@ -315,7 +315,10 @@
         }
 
         // 숙소 데이터 로드 함수
-        function loadAccommodations() {
+        async function loadAccommodations() {
+            // localStorage에서 데이터 로드
+            accommodations = await loadAccommodationsFromStorage();
+            
             const user = getCurrentUser();
             let filteredAccommodations = accommodations;
             
@@ -370,21 +373,24 @@
         }
         
         // 숙소 데이터 - localStorage에서 로드
-        let accommodations = loadAccommodationsFromStorage();
+        let accommodations = [];
 
         let currentMode = 'view'; // 'view', 'edit', 'add'
         let currentId = null;
         let isEditMode = false;
 
-        // 페이지 로드 시 숙소 리스트 렌더링
-        document.addEventListener('DOMContentLoaded', function() {
-            renderAccommodationList();
-        });
+        // 페이지 로드 시 숙소 리스트 렌더링 - 메인 DOMContentLoaded에서 처리됨
 
         // 숙소 리스트 렌더링
         function renderAccommodationList(filteredData = accommodations) {
             const listContainer = document.getElementById('accommodationList');
             listContainer.innerHTML = '';
+
+            // 데이터가 배열인지 확인
+            if (!Array.isArray(filteredData)) {
+                console.error('filteredData is not an array:', filteredData);
+                filteredData = [];
+            }
 
             filteredData.forEach(accommodation => {
                 const listItem = document.createElement('div');
