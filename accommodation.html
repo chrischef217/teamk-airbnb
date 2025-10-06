@@ -395,7 +395,14 @@
             filteredData.forEach(accommodation => {
                 const listItem = document.createElement('div');
                 listItem.className = 'p-4 hover:bg-gray-50 cursor-pointer transition-colors';
-                listItem.onclick = () => openModal('view', accommodation.id);
+                listItem.onclick = () => {
+                    const user = getCurrentUser();
+                    if (user.userType === 'investor') {
+                        openModal('view', accommodation.id); // 투자자는 보기만 가능
+                    } else {
+                        openModal('view', accommodation.id);
+                    }
+                };
                 
                 const websiteButton = accommodation.websiteUrl ? 
                     `<button onclick="event.stopPropagation(); window.open('${accommodation.websiteUrl}', '_blank')" 
@@ -446,6 +453,14 @@
 
         // 모달 열기
         function openModal(mode, id = null) {
+            const user = getCurrentUser();
+            
+            // 투자자 권한 체크
+            if (user.userType === 'investor' && mode === 'add') {
+                alert('투자자는 새 숙소를 등록할 수 없습니다.');
+                return;
+            }
+            
             currentMode = mode;
             currentId = id;
             isEditMode = false;
@@ -466,8 +481,14 @@
                 if (accommodation) {
                     title.textContent = '숙소 정보';
                     populateForm(accommodation);
-                    editButton.style.display = 'block';
-                    editButtonText.textContent = '수정';
+                    
+                    // 투자자는 편집 버튼 숨김
+                    if (user.userType === 'investor') {
+                        editButton.style.display = 'none';
+                    } else {
+                        editButton.style.display = 'block';
+                        editButtonText.textContent = '수정';
+                    }
                     isEditMode = false;
                 }
             }
@@ -554,6 +575,13 @@
         // 폼 제출 처리
         document.getElementById('accommodationForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // 투자자 권한 체크
+            const user = getCurrentUser();
+            if (user.userType === 'investor') {
+                alert('투자자는 데이터를 수정할 수 없습니다.');
+                return;
+            }
             
             if (currentMode === 'view' && !isEditMode) return;
             

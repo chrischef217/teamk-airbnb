@@ -242,8 +242,15 @@
             const periodFilter = document.getElementById('periodFilter').value;
             const chartType = document.getElementById('chartType').value;
 
-            // 필터링된 데이터 가져오기
-            const filteredData = filterDataByPeriod(sampleAccountingData, periodFilter);
+            // 투자자 권한 데이터 필터링
+            let baseData = sampleAccountingData;
+            const user = getCurrentUser();
+            if (user.userType === 'investor') {
+                baseData = filterDataByAccess(sampleAccountingData);
+            }
+
+            // 기간별 필터링된 데이터 가져오기
+            const filteredData = filterDataByPeriod(baseData, periodFilter);
             
             let chartData;
             switch (analysisType) {
