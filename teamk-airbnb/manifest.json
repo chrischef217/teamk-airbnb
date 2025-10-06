@@ -1,0 +1,8 @@
+{
+  "platform": "ai-developer",
+  "github": {
+    "repository": "chrischef217/teamk-airbnb",
+    "enabled": true,
+    "tab": true
+  }
+}

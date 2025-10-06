@@ -1,0 +1,9 @@
+# SPA fallback for client-side routing
+/* /index.html 200
+
+# Redirect old URLs to new structure
+/dashboard /index.html 301
+/home /index.html 301
+
+# Handle 404s
+/* /404.html 404

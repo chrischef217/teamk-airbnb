@@ -144,50 +144,6 @@ function setupNavigationPermissions() {
     }
 }
 
-// 편집 권한 체크 함수
-function checkEditPermission() {
-    const user = getCurrentUser();
-    
-    if (user.userType === 'investor') {
-        alert('투자자는 데이터를 수정할 수 없습니다. 읽기 전용 모드입니다.');
-        return false;
-    }
-    
-    return true;
-}
-
-// 투자자를 위한 수정 버튼 비활성화
-function disableEditingForInvestor() {
-    const user = getCurrentUser();
-    
-    if (user.userType === 'investor') {
-        // 수정, 추가, 삭제 버튼 비활성화
-        const editButtons = document.querySelectorAll('[onclick*="edit"], [onclick*="add"], [onclick*="delete"], [onclick*="openModal"]');
-        editButtons.forEach(button => {
-            const originalOnclick = button.onclick;
-            button.onclick = function(e) {
-                e.preventDefault();
-                alert('투자자는 데이터를 수정할 수 없습니다.');
-            };
-            button.classList.add('opacity-50', 'cursor-not-allowed');
-        });
-
-        // 폼의 입력 필드 비활성화
-        const inputs = document.querySelectorAll('input, textarea, select');
-        inputs.forEach(input => {
-            input.disabled = true;
-            input.classList.add('bg-gray-100');
-        });
-
-        // 제출 버튼 비활성화
-        const submitButtons = document.querySelectorAll('button[type="submit"], .btn-primary');
-        submitButtons.forEach(button => {
-            button.disabled = true;
-            button.classList.add('opacity-50', 'cursor-not-allowed');
-        });
-    }
-}
-
 // 페이지 로드 시 권한 설정 적용
 function initializePagePermissions() {
     const user = getCurrentUser();
@@ -195,12 +151,9 @@ function initializePagePermissions() {
     // 네비게이션 권한 설정
     setupNavigationPermissions();
     
-    // 투자자 편집 권한 제한
-    disableEditingForInvestor();
-    
     // 투자자인 경우 데이터 필터링 적용
     if (user.userType === 'investor') {
-        console.log('투자자 모드: 데이터 필터링 및 편집 제한 적용됨');
+        console.log('투자자 모드: 데이터 필터링 적용됨');
         console.log('접근 가능한 숙소:', getAccessibleAccommodations());
     }
 }

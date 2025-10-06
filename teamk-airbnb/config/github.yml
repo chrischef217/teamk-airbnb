@@ -1,0 +1,12 @@
+github:
+  repository: chrischef217/teamk-airbnb
+  enabled: true
+  tab_visible: true
+  auto_push: true
+  branch: main
+
+ui:
+  tabs:
+    - name: "GitHub"
+      type: "github"
+      enabled: true

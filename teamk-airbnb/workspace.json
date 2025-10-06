@@ -1,0 +1,14 @@
+{
+  "workspace": {
+    "name": "teamk-airbnb",
+    "type": "web-project"
+  },
+  "integrations": {
+    "github": {
+      "enabled": true,
+      "repository": "chrischef217/teamk-airbnb",
+      "owner": "chrischef217",
+      "showTab": true
+    }
+  }
+}

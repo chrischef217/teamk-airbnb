@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>투자자 관리 - Teamk 공유숙박 관리 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .ratio-input {
+            transition: all 0.2s ease-in-out;
+        }
+        .ratio-input:focus {
+            ring-2 ring-blue-500;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-2" data-translate="systemTitle">
+                    Teamk 공유숙박 관리 시스템
+                </h1>
+
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex flex-wrap border-b">
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
+                    </button>
+                    <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-home mr-1"></i> <span data-translate="accommodations">숙소 관리</span>
+                    </button>
+                    <button onclick="window.location.href='reservation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calendar-check mr-1"></i> <span data-translate="reservations">예약 관리</span>
+                    </button>
+                    <button onclick="window.location.href='analytics.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-chart-bar mr-1"></i> <span data-translate="analytics">지표 관리</span>
+                    </button>
+                    <button onclick="window.location.href='accounting.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-coins mr-1"></i> <span data-translate="accounting">수익 관리</span>
+                    </button>
+                    <button class="px-4 py-3 text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600">
+                        <i class="fas fa-users mr-1"></i> <span data-translate="investors">투자자 관리</span>
+                    </button>
+                    <button onclick="window.location.href='settlement.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 투자자 관리 헤더 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2" data-translate="investorManagement">투자자 관리</h2>
+                    <p class="text-sm text-gray-600" data-translate="investorManagementSubtitle">투자자 정보 및 수익 배분 비율 관리</p>
+                </div>
+                <button onclick="window.openModal && window.openModal('add')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span data-translate="addInvestor">새 투자자 추가</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 투자자 목록 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800" data-translate="investorList">
+                    투자자 목록
+                </h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">투자자 정보</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">투자 비율</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">보유 숙소</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">투자 정보</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="investorTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- 투자자 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 투자자 모달 -->
+    <div id="investorModal" class="fixed inset-0 z-50 hidden modal-overlay">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl modal-content">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <h3 id="modalTitle" class="text-xl font-semibold text-gray-800">투자자 정보</h3>
+                    <div class="flex items-center gap-2">
+                        <button id="editButton" onclick="window.toggleEditMode && window.toggleEditMode()" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-edit mr-1"></i>
+                            <span id="editButtonText">수정</span>
+                        </button>
+                        <button onclick="window.closeModal && window.closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="investorForm" class="p-6 space-y-6">
+                    <!-- 기본 정보 -->
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-800 mb-4">기본 정보</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">아이디 *</label>
+                                <input type="text" id="userId" required 
+                                       class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호 *</label>
+                                <input type="text" id="password" required 
+                                       class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                                <input type="text" id="investorName" required 
+                                       class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">연락처 *</label>
+                                <input type="tel" id="phone" required 
+                                       class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">이메일 주소 *</label>
+                                <input type="email" id="email" required 
+                                       class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 투자 정보 -->
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-800 mb-4">투자 정보</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">투자일자 *</label>
+                                <input type="date" id="investmentDate" required 
+                                       class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">정산일 (매월)</label>
+                                <input type="number" id="settlementDay" min="1" max="31" placeholder="예: 15일"
+                                       class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <p class="text-xs text-gray-500 mt-1">매월 정산일 (1-31일)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 수익 배분 비율 -->
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-800 mb-4">수익 배분 비율</h4>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">투자자 비율 (%)</label>
+                                    <input type="number" id="investorRatio" min="0" max="100" value="70" 
+                                           class="ratio-input w-full border border-gray-300 rounded-md px-3 py-2"
+                                           oninput="updateCompanyRatio()">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">회사 비율 (%)</label>
+                                    <input type="number" id="companyRatio" min="0" max="100" value="30" readonly
+                                           class="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100">
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                투자자 비율을 조정하면 회사 비율이 자동으로 계산됩니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 보유 숙소 -->
+                    <div id="accommodationsSection">
+                        <h4 class="text-lg font-medium text-gray-800 mb-4">보유 숙소</h4>
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">숙소 선택</label>
+                                <select id="accommodationSelect" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                    <option value="">숙소를 선택하세요</option>
+                                </select>
+                                <button type="button" onclick="window.addAccommodation && window.addAccommodation()" class="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                                    <i class="fas fa-plus mr-1"></i>추가
+                                </button>
+                            </div>
+                            <div id="selectedAccommodations" class="space-y-2">
+                                <!-- 선택된 숙소 목록 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 버튼 그룹 -->
+                    <div id="buttonGroup" class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                        <button type="submit" id="saveButton" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>
+                            저장
+                        </button>
+                        <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                            취소
+                        </button>
+                        <button type="button" id="deleteButton" onclick="window.deleteInvestor && window.deleteInvestor()" class="sm:w-auto bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                            <i class="fas fa-trash mr-2"></i>
+                            삭제
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 숙소 상세보기 모달 -->
+    <div id="accommodationDetailModal" class="fixed inset-0 z-50 hidden modal-overlay">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <h3 class="text-xl font-semibold text-gray-800">숙소 상세 정보</h3>
+                    <button onclick="window.closeAccommodationDetailModal && window.closeAccommodationDetailModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="accommodationDetailContent" class="p-6">
+                    <!-- 숙소 상세 정보가 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentMode = 'view';
+        let currentId = null;
+        let isEditMode = false;
+        // 간단한 저장 함수
+        function saveInvestorData() {
+            localStorage.setItem('investorData', JSON.stringify(investorData));
+            console.log('💾 저장완료:', investorData.length + '명');
+        }
+
+        // localStorage에서 투자자 데이터 로드 또는 빈 배열
+        let investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+        let selectedAccommodations = [];
+
+        // 숙소 데이터 로드 함수
+        function loadAccommodationsFromStorage() {
+            const saved = localStorage.getItem('accommodationData');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            return [];
+        }
+
+        // 숙소 목록 - localStorage에서 로드
+        let accommodations = loadAccommodationsFromStorage();
+
+        // 샘플 투자자 데이터 - 제거됨 (사용자가 직접 등록)
+
+        // 디버그/테스트 모드 확인
+        function isTestMode() {
+            return window.location.search.includes('test=true') || 
+                   window.location.hostname === 'localhost' ||
+                   !sessionStorage.getItem('userType');
+        }
+
+        // 테스트 모드용 가짜 로그인 설정
+        function setupTestMode() {
+            if (!sessionStorage.getItem('userType')) {
+                console.log('🔧 테스트 모드: 임시 관리자 세션 생성');
+                sessionStorage.setItem('userType', 'admin');
+                sessionStorage.setItem('userId', 'admin_test');
+                sessionStorage.setItem('userName', '테스트관리자');
+            }
+        }
+
+        // 단순한 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 테스트 모드 확인 및 설정
+            if (isTestMode()) {
+                setupTestMode();
+            }
+            
+            if (checkLoginStatus()) {
+                initializePagePermissions();
+                
+                // 샘플 데이터 자동 초기화 제거됨 - 빈 상태로 시작
+                
+                populateAccommodationSelect();
+                renderInvestorTable();
+                
+                // 숙소 데이터 변경 감지 (다른 탭에서 숙소가 추가/수정된 경우)
+                window.addEventListener('storage', function(e) {
+                    if (e.key === 'accommodationData') {
+                        accommodations = loadAccommodationsFromStorage();
+                        populateAccommodationSelect();
+                    }
+                });
+            }
+        });
+
+        // 투자자 테이블 렌더링
+        function renderInvestorTable() {
+            const tableBody = document.getElementById('investorTableBody');
+            tableBody.innerHTML = '';
+
+            if (investorData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-users text-gray-300 text-3xl mb-3 block"></i>
+                            등록된 투자자가 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            investorData.forEach(investor => {
+                const investorAccommodations = investor.accommodations.map(id => 
+                    accommodations.find(acc => acc.id === id)
+                ).filter(acc => acc);
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 cursor-pointer';
+                row.onclick = () => window.openModal && window.openModal('view', investor.id);
+
+                row.innerHTML = `
+                    <td class="px-4 py-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <i class="fas fa-user text-blue-600"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">${investor.name}</div>
+                                <div class="text-sm text-gray-500">${investor.email}</div>
+                                <div class="text-xs text-gray-400">${investor.phone}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <div class="flex justify-center items-center space-x-2">
+                            <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                ${investor.investorRatio}%
+                            </div>
+                            <div class="text-gray-400">:</div>
+                            <div class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
+                                ${investor.companyRatio}%
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <div class="flex justify-center items-center space-x-2">
+                            <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                ${investorAccommodations.length}개
+                            </span>
+                            <button onclick="event.stopPropagation(); window.showAccommodationList && window.showAccommodationList(${investor.id})" 
+                                    class="text-blue-600 hover:text-blue-800 p-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 text-right">
+                        <div class="text-sm text-gray-900">투자일: ${formatDate(investor.investmentDate)}</div>
+                        <div class="text-sm text-gray-500">정산일: ${investor.settlementDay ? `매월 ${investor.settlementDay}일` : '미정'}</div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <button onclick="event.stopPropagation(); window.openModal && window.openModal('view', ${investor.id})" 
+                                class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 숙소 select 옵션 채우기
+        function populateAccommodationSelect() {
+            const select = document.getElementById('accommodationSelect');
+            select.innerHTML = '<option value="">숙소를 선택하세요</option>';
+            
+            accommodations.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc.id;
+                option.textContent = `${acc.accommodationName} - ${acc.buildingName || ''}`;
+                select.appendChild(option);
+            });
+        }
+
+        // 회사 비율 자동 계산
+        function updateCompanyRatio() {
+            const investorRatio = parseInt(document.getElementById('investorRatio').value) || 0;
+            const companyRatio = 100 - investorRatio;
+            document.getElementById('companyRatio').value = companyRatio;
+        }
+
+        // 숙소 추가
+        window.addAccommodation = function() {
+            const select = document.getElementById('accommodationSelect');
+            const accommodationId = parseInt(select.value);
+            
+            if (!accommodationId) {
+                alert('숙소를 선택해주세요.');
+                return;
+            }
+
+            if (selectedAccommodations.includes(accommodationId)) {
+                alert('이미 추가된 숙소입니다.');
+                return;
+            }
+
+            selectedAccommodations.push(accommodationId);
+            renderSelectedAccommodations();
+            select.value = '';
+        }
+
+        // 선택된 숙소 렌더링
+        function renderSelectedAccommodations() {
+            const container = document.getElementById('selectedAccommodations');
+            container.innerHTML = '';
+
+            selectedAccommodations.forEach(accId => {
+                const acc = accommodations.find(a => a.id === accId);
+                if (!acc) return;
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-blue-50 p-3 rounded';
+                div.innerHTML = `
+                    <div>
+                        <div class="font-medium text-sm">${acc.accommodationName}</div>
+                        <div class="text-xs text-gray-500">${acc.buildingName || ''}</div>
+                    </div>
+                    <button onclick="window.removeAccommodation && window.removeAccommodation(${accId})" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 숙소 제거
+        window.removeAccommodation = function(accId) {
+            selectedAccommodations = selectedAccommodations.filter(id => id !== accId);
+            renderSelectedAccommodations();
+        }
+
+        // 모달 열기
+        window.openModal = function(mode, id = null) {
+            console.log('openModal 호출됨, mode:', mode, 'id:', id);
+            currentMode = mode;
+            currentId = id;
+            isEditMode = false;
+            selectedAccommodations = [];
+
+            const modal = document.getElementById('investorModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('investorForm');
+            const editButton = document.getElementById('editButton');
+            const deleteButton = document.getElementById('deleteButton');
+
+            if (mode === 'add') {
+                title.textContent = '새 투자자 추가';
+                form.reset();
+                editButton.style.display = 'none';
+                deleteButton.style.display = 'none';
+                isEditMode = true;
+                document.getElementById('investorRatio').value = 70;
+                document.getElementById('companyRatio').value = 30;
+            } else if (mode === 'view') {
+                const investor = investorData.find(inv => inv.id === id);
+                if (investor) {
+                    console.log('투자자 정보 로드:', investor.name);
+                    title.textContent = `투자자 정보 - ${investor.name}`;
+                    populateForm(investor);
+                    editButton.style.display = 'block';
+                    deleteButton.style.display = 'block';
+                    isEditMode = false;
+                } else {
+                    console.error('투자자를 찾을 수 없음, ID:', id);
+                    console.log('현재 investorData:', investorData);
+                    return;
+                }
+            }
+
+            console.log('모달 열기 전 isEditMode:', isEditMode);
+            updateFormState();
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 폼에 데이터 채우기
+        function populateForm(investor) {
+            document.getElementById('userId').value = investor.userId;
+            document.getElementById('password').value = investor.password;
+            document.getElementById('investorName').value = investor.name;
+            document.getElementById('phone').value = investor.phone;
+            document.getElementById('email').value = investor.email;
+            document.getElementById('investmentDate').value = investor.investmentDate;
+            document.getElementById('settlementDay').value = investor.settlementDay || '';
+            document.getElementById('investorRatio').value = investor.investorRatio;
+            document.getElementById('companyRatio').value = investor.companyRatio;
+            
+            selectedAccommodations = [...investor.accommodations];
+            renderSelectedAccommodations();
+        }
+
+        // 편집 모드 토글 (전역 함수)
+        window.toggleEditMode = function() {
+            console.log('🔧 수정 버튼 클릭됨! 현재 상태:', {
+                currentMode: currentMode,
+                isEditMode: isEditMode,
+                currentId: currentId
+            });
+            
+            if (currentMode !== 'view') {
+                console.log('⚠️ view 모드가 아닙니다:', currentMode);
+                alert('⚠️ view 모드가 아닙니다!');
+                return;
+            }
+            
+            if (!currentId) {
+                console.log('⚠️ 선택된 투자자가 없습니다');
+                alert('⚠️ 선택된 투자자가 없습니다!');
+                return;
+            }
+            
+            // 편집 모드 토글
+            isEditMode = !isEditMode;
+            
+            console.log('✅ 편집 모드 변경됨:', isEditMode ? 'ON' : 'OFF');
+            
+            // 사용자에게 즉시 피드백
+            if (isEditMode) {
+                console.log('📝 편집 모드 활성화 - 폼 필드가 수정 가능해집니다');
+                alert('📝 편집 모드가 활성화되었습니다! 이제 정보를 수정할 수 있습니다.');
+            } else {
+                console.log('🔒 편집 모드 비활성화 - 폼 필드가 읽기 전용이 됩니다');
+                alert('🔒 편집 모드가 비활성화되었습니다.');
+            }
+            
+            // 폼 상태 업데이트
+            updateFormState();
+        };
+
+        // 폼 상태 업데이트
+        function updateFormState() {
+            console.log('🔄 폼 상태 업데이트 중...', {currentMode, isEditMode});
+            
+            const formElements = document.querySelectorAll('#investorForm input, #investorForm select');
+            const isReadonly = currentMode === 'view' && !isEditMode;
+
+            console.log(`📝 폼 필드 ${isReadonly ? '비활성화' : '활성화'} (총 ${formElements.length}개)`);
+
+            formElements.forEach(element => {
+                element.disabled = isReadonly;
+                // 시각적 피드백을 위한 스타일 변경
+                if (isReadonly) {
+                    element.style.backgroundColor = '#f9fafb';
+                    element.style.color = '#6b7280';
+                } else {
+                    element.style.backgroundColor = '#ffffff';
+                    element.style.color = '#374151';
+                }
+            });
+
+            // 저장 버튼 표시/숨김
+            const saveButton = document.getElementById('saveButton');
+            if (saveButton) {
+                saveButton.style.display = isReadonly ? 'none' : 'block';
+                console.log(`💾 저장 버튼 ${isReadonly ? '숨김' : '표시'}`);
+            }
+            
+            // 수정 버튼 텍스트 업데이트
+            const editButtonText = document.getElementById('editButtonText');
+            if (editButtonText) {
+                const newText = isEditMode ? '취소' : '수정';
+                editButtonText.textContent = newText;
+                console.log(`🔧 수정 버튼 텍스트 변경: "${newText}"`);
+            }
+            
+            console.log('✅ 폼 상태 업데이트 완료');
+        }
+
+        // 모달 닫기
+        window.closeModal = function() {
+            document.getElementById('investorModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentMode = 'view';
+            currentId = null;
+            isEditMode = false;
+            selectedAccommodations = [];
+        }
+
+        // 투자자 삭제
+        window.deleteInvestor = function() {
+            if (!currentId) return;
+            
+            if (confirm('이 투자자를 삭제하시겠습니까?')) {
+                investorData = investorData.filter(inv => inv.id !== currentId);
+                saveInvestorData(); // localStorage에 저장
+                alert('투자자가 삭제되었습니다.');
+                renderInvestorTable();
+                closeModal();
+            }
+        }
+
+        // 숙소 목록 보기
+        window.showAccommodationList = function(investorId) {
+            const investor = investorData.find(inv => inv.id === investorId);
+            if (!investor) return;
+
+            const accommodationList = investor.accommodations.map(id => 
+                accommodations.find(acc => acc.id === id)
+            ).filter(acc => acc);
+
+            const content = document.getElementById('accommodationDetailContent');
+            content.innerHTML = `
+                <h4 class="font-semibold mb-4">${investor.name}님의 보유 숙소</h4>
+                <div class="space-y-3">
+                    ${accommodationList.map(acc => `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h5 class="font-medium text-gray-900">${acc.accommodationName}</h5>
+                            <p class="text-sm text-gray-600">${acc.buildingName || ''}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            document.getElementById('accommodationDetailModal').classList.remove('hidden');
+        }
+
+        // 숙소 상세 모달 닫기
+        window.closeAccommodationDetailModal = function() {
+            document.getElementById('accommodationDetailModal').classList.add('hidden');
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR');
+        }
+
+        // 단순한 폼 제출 처리
+        document.getElementById('investorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            console.log('폼 제출 이벤트 발생:', {currentMode, isEditMode, currentId});
+            
+            // 편집 모드가 아닌 view 모드에서는 제출 차단
+            if (currentMode === 'view' && !isEditMode) {
+                console.log('편집 모드가 아니므로 제출 차단됨');
+                return;
+            }
+            
+            const formData = {
+                userId: document.getElementById('userId').value,
+                password: document.getElementById('password').value,
+                name: document.getElementById('investorName').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                investmentDate: document.getElementById('investmentDate').value,
+                settlementDay: parseInt(document.getElementById('settlementDay').value) || null,
+                investorRatio: parseInt(document.getElementById('investorRatio').value),
+                companyRatio: parseInt(document.getElementById('companyRatio').value),
+                accommodations: [...selectedAccommodations]
+            };
+
+            console.log('폼 데이터:', formData);
+
+            if (currentMode === 'add') {
+                // 새 투자자 추가
+                formData.id = Math.max(...investorData.map(inv => inv.id), 0) + 1;
+                console.log('🔢 새 투자자 ID 할당:', formData.id);
+                
+                investorData.push(formData);
+                console.log('📋 투자자 데이터 배열에 추가:', investorData.length + '명');
+                
+                saveInvestorData(); // localStorage에 저장
+                console.log('💾 localStorage 저장 완료');
+                
+                console.log('새 투자자 추가됨:', formData.name);
+                alert('✅ 새 투자자가 성공적으로 추가되었습니다!');
+                
+                renderInvestorTable();
+                console.log('📊 테이블 다시 렌더링 완료');
+                
+                closeModal();
+                console.log('🚪 모달 닫기 완료');
+                
+            } else if (currentMode === 'view' && isEditMode) {
+                // 기존 투자자 수정
+                console.log('투자자 수정 시도, ID:', currentId);
+                
+                const index = investorData.findIndex(inv => inv.id === currentId);
+                console.log('투자자 인덱스:', index);
+                
+                if (index !== -1) {
+                    // 데이터 업데이트
+                    const oldName = investorData[index].name;
+                    investorData[index] = { ...investorData[index], ...formData };
+                    saveInvestorData(); // localStorage에 저장
+                    
+                    console.log(`투자자 정보 업데이트: ${oldName} → ${formData.name}`);
+                    
+                    // 성공 메시지
+                    alert(`✅ ${formData.name}님의 정보가 성공적으로 수정되었습니다!`);
+                    
+                    // UI 업데이트
+                    renderInvestorTable();
+                    
+                    // 모달 제목 업데이트 (수정된 이름 반영)
+                    document.getElementById('modalTitle').textContent = `투자자 정보 - ${formData.name}`;
+                    
+                    // 수정 모드 해제
+                    isEditMode = false;
+                    updateFormState();
+                    
+                    console.log('투자자 정보 수정 완료');
+                    
+                } else {
+                    console.error('투자자를 찾을 수 없음:', currentId);
+                    alert('❌ 투자자 정보 업데이트에 실패했습니다.');
+                }
+            } else {
+                console.log('알 수 없는 모드:', currentMode, isEditMode);
+                alert('⚠️ 잘못된 작업 모드입니다.');
+            }
+        });
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('investorModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                window.closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

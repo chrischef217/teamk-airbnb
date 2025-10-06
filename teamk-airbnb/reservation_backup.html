@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teamk 공유숙박 관리 시스템 - 예약관리</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+        }
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .month-picker {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .tab-button {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+            }
+            .tab-button i {
+                display: none;
+            }
+            .modal-content {
+                margin: 1rem;
+                max-height: 85vh;
+            }
+            .reservation-card {
+                padding: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-4 sm:mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
+                <h1 class="text-lg sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-2" data-translate="systemTitle">
+                    Teamk 공유숙박 관리 시스템
+                </h1>
+
+            </div>
+            
+            <!-- Tab Navigation - 모바일 최적화 -->
+            <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
+                <div class="flex flex-wrap border-b overflow-x-auto">
+                    <button onclick="window.location.href='index.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-tachometer-alt mr-1"></i><span class="hidden sm:inline" data-translate="dashboard">대시보드</span><span class="sm:hidden" data-translate="dashboard">대시보드</span>
+                    </button>
+                    <button onclick="window.location.href='accommodation.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-home mr-1"></i><span class="hidden sm:inline" data-translate="accommodations">숙소 관리</span><span class="sm:hidden" data-translate="accommodations">숙소관리</span>
+                    </button>
+                    <button class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600 whitespace-nowrap">
+                        <i class="fas fa-calendar-check mr-1"></i><span class="hidden sm:inline" data-translate="reservations">예약 관리</span><span class="sm:hidden" data-translate="reservations">예약관리</span>
+                    </button>
+                    <button onclick="window.location.href='analytics.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-chart-bar mr-1"></i><span class="hidden sm:inline" data-translate="analytics">지표 관리</span><span class="sm:hidden" data-translate="analytics">지표관리</span>
+                    </button>
+                    <button onclick="window.location.href='accounting.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-coins mr-1"></i><span class="hidden sm:inline" data-translate="accounting">수익 관리</span><span class="sm:hidden" data-translate="accounting">수익관리</span>
+                    </button>
+                    <button onclick="window.location.href='investor.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-users mr-1"></i><span class="hidden sm:inline" data-translate="investors">투자자 관리</span><span class="sm:hidden" data-translate="investors">투자자</span>
+                    </button>
+                    <button onclick="window.location.href='settlement.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-calculator mr-1"></i><span class="hidden sm:inline" data-translate="settlement">투자자 정산</span><span class="sm:hidden" data-translate="settlement">정산</span>
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="tab-button px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap">
+                        <i class="fas fa-download mr-1"></i><span class="hidden sm:inline" data-translate="backup">백업</span><span class="sm:hidden" data-translate="backup">백업</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-calendar-check text-blue-600 mr-2"></i>
+                        <span data-translate="reservationManagement">예약 관리</span>
+                    </h2>
+                    <p class="text-sm sm:text-base text-gray-600" data-translate="reservationManagementSubtitle">게스트 예약 현황 및 체크인/아웃 관리</p>
+                </div>
+                <button onclick="openModal('add')" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span data-translate="addReservation">새 예약 등록</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 월별 필터 및 검색 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-4 sm:mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">조회 월</label>
+                    <input type="month" id="monthFilter" 
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base"
+                           onchange="filterByMonth()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">숙소 필터</label>
+                    <select id="accommodationFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base" onchange="filterReservations()">
+                        <option value="">전체 숙소</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">게스트명 검색</label>
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="게스트명 검색..." 
+                               class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 text-sm sm:text-base"
+                               onkeyup="filterReservations()">
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 예약 리스트 -->
+        <div class="bg-white rounded-lg shadow-sm mb-4 sm:mb-6">
+            <div class="p-4 border-b flex justify-between items-center">
+                <div>
+                    <h3 id="reservationListTitle" class="text-lg font-semibold text-gray-800">예약 목록</h3>
+                    <p id="thailandTimeDisplay" class="text-xs text-gray-500 mt-1"></p>
+                </div>
+                <span id="reservationCount" class="text-sm text-gray-500"></span>
+            </div>
+            <div id="reservationList" class="divide-y divide-gray-200">
+                <!-- 예약 리스트가 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+
+        <!-- 월별 통계 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">총 예약</h3>
+                    <p id="totalReservations" class="text-lg sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">-</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">체크인 완료</h3>
+                    <p id="checkedInCount" class="text-lg sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">-</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">체크아웃 완료</h3>
+                    <p id="checkedOutCount" class="text-lg sm:text-2xl font-bold text-blue-600 mt-1 sm:mt-2">-</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">총 수익</h3>
+                    <p id="totalRevenue" class="text-lg sm:text-2xl font-bold text-purple-600 mt-1 sm:mt-2">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 예약 상세/수정 모달 -->
+    <div id="reservationModal" class="fixed inset-0 z-50 hidden modal-overlay">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl modal-content">
+                <div class="flex justify-between items-center p-4 sm:p-6 border-b">
+                    <h3 id="modalTitle" class="text-lg sm:text-xl font-semibold text-gray-800">예약 정보</h3>
+                    <div class="flex items-center gap-2">
+                        <button id="editButton" onclick="toggleEditMode()" class="text-blue-600 hover:text-blue-800 text-sm sm:text-base">
+                            <i class="fas fa-edit mr-1"></i>
+                            <span id="editButtonText">수정</span>
+                        </button>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-lg sm:text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="reservationForm" class="p-4 sm:p-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">숙소명 *</label>
+                            <select id="accommodationName" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                                <option value="">숙소를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">게스트명 *</label>
+                            <input type="text" id="guestName" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">체크인 날짜 *</label>
+                            <input type="date" id="checkinDate" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">체크인 시간</label>
+                            <input type="time" id="checkinTime" 
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">체크아웃 날짜 *</label>
+                            <input type="date" id="checkoutDate" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">체크아웃 시간</label>
+                            <input type="time" id="checkoutTime"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">수령 금액 (THB) *</label>
+                        <input type="number" id="amount" required min="0"
+                               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">요청사항</label>
+                        <textarea id="requests" rows="3"
+                                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base"></textarea>
+                    </div>
+
+                    <div id="buttonGroup" class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                        <button type="submit" id="saveButton" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                            <i class="fas fa-save mr-2"></i>
+                            저장
+                        </button>
+                        <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors text-sm sm:text-base">
+                            취소
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 숙소 리스트 - 샘플 데이터 제거됨
+        const accommodations = [];
+
+        // 예약 데이터 - 샘플 데이터 제거됨
+        const reservations = [
+            // 2024년 12월 예약
+
+            {
+                id: 2,
+                accommodationName: '치안마이 디럭스 B동',
+                guestName: '박영희',
+                checkinDate: '2024-12-20',
+                checkinTime: '16:00',
+                checkoutDate: '2024-12-23',
+                checkoutTime: '10:00',
+                amount: 320000,
+                requests: '금연실 요청, 조용한 환경 선호',
+                status: 'confirmed'
+            },
+            {
+                id: 3,
+                accommodationName: '푸켓 오션뷰 C동',
+                guestName: 'John Smith',
+                checkinDate: '2024-12-25',
+                checkinTime: '14:00',
+                checkoutDate: '2024-12-30',
+                checkoutTime: '12:00',
+                amount: 850000,
+                requests: 'Extra towels needed, ocean view room preferred',
+                status: 'confirmed'
+            },
+            {
+                id: 4,
+                accommodationName: '팩낭 비치 E동',
+                guestName: '정수진',
+                checkinDate: '2024-12-10',
+                checkinTime: '16:30',
+                checkoutDate: '2024-12-14',
+                checkoutTime: '10:30',
+                amount: 380000,
+                requests: '해변 접근 용이한 방 요청',
+                status: 'confirmed'
+            },
+            {
+                id: 5,
+                accommodationName: '후아힌 리조트 H동',
+                guestName: '최윤정',
+                checkinDate: '2024-12-22',
+                checkinTime: '15:00',
+                checkoutDate: '2024-12-26',
+                checkoutTime: '11:00',
+                amount: 420000,
+                requests: '골프장 이용 예정, 조기 체크인 가능 시간 문의',
+                status: 'confirmed'
+            },
+            {
+                id: 6,
+                accommodationName: '파타야 오션 G동',
+                guestName: '송미영',
+                checkinDate: '2024-12-05',
+                checkinTime: '16:00',
+                checkoutDate: '2024-12-08',
+                checkoutTime: '10:00',
+                amount: 390000,
+                requests: '발코니 씨뷰 요청',
+                status: 'confirmed'
+            },
+            {
+                id: 7,
+                accommodationName: '쿠러비 팔레스 D동',
+                guestName: '이상호',
+                checkinDate: '2024-12-12',
+                checkinTime: '14:00',
+                checkoutDate: '2024-12-15',
+                checkoutTime: '12:00',
+                amount: 270000,
+                requests: '공항 픽업 서비스 문의',
+                status: 'confirmed'
+            },
+            {
+                id: 8,
+                accommodationName: '치안마이 시티 F동',
+                guestName: 'Sarah Johnson',
+                checkinDate: '2024-12-18',
+                checkinTime: '15:30',
+                checkoutDate: '2024-12-21',
+                checkoutTime: '11:30',
+                amount: 240000,
+                requests: 'Vegetarian breakfast option',
+                status: 'confirmed'
+            },
+            {
+                id: 9,
+                accommodationName: '방콕 스위트룸 A동',
+                guestName: '이민수',
+                checkinDate: '2024-12-28',
+                checkinTime: '16:00',
+                checkoutDate: '2025-01-02',
+                checkoutTime: '12:00',
+                amount: 750000,
+                requests: '신정 연휴 장기 숙박, 조용한 환경',
+                status: 'confirmed'
+            },
+            {
+                id: 10,
+                accommodationName: '푸켓 오션뷰 C동',
+                guestName: '정민아',
+                checkinDate: '2024-12-30',
+                checkinTime: '15:00',
+                checkoutDate: '2025-01-05',
+                checkoutTime: '11:00',
+                amount: 1200000,
+                requests: '신년 파티 참석, 늦은 체크아웃 희망',
+                status: 'confirmed'
+            },
+
+            // 2024년 11월 예약
+            {
+                id: 11,
+                accommodationName: '방콕 스위트룸 A동',
+                guestName: '김태희',
+                checkinDate: '2024-11-28',
+                checkinTime: '15:30',
+                checkoutDate: '2024-12-02',
+                checkoutTime: '11:30',
+                amount: 520000,
+                requests: '비즈니스 미팅으로 인한 조기 체크인 요청',
+                status: 'completed'
+            },
+            {
+                id: 12,
+                accommodationName: '치안마이 디럭스 B동',
+                guestName: '홍길동',
+                checkinDate: '2024-11-15',
+                checkinTime: '14:30',
+                checkoutDate: '2024-11-19',
+                checkoutTime: '12:00',
+                amount: 280000,
+                requests: '현지 투어 정보 제공 요청',
+                status: 'completed'
+            },
+            {
+                id: 13,
+                accommodationName: '팩낭 비치 E동',
+                guestName: '박서준',
+                checkinDate: '2024-11-22',
+                checkinTime: '16:00',
+                checkoutDate: '2024-11-25',
+                checkoutTime: '10:00',
+                amount: 320000,
+                requests: '해변 스포츠 장비 대여 문의',
+                status: 'completed'
+            },
+            {
+                id: 14,
+                accommodationName: '후아힌 리조트 H동',
+                guestName: 'David Wilson',
+                checkinDate: '2024-11-10',
+                checkinTime: '15:00',
+                checkoutDate: '2024-11-14',
+                checkoutTime: '11:00',
+                amount: 360000,
+                requests: 'Golf course booking assistance',
+                status: 'completed'
+            },
+            {
+                id: 15,
+                accommodationName: '파타야 오션 G동',
+                guestName: '윤수정',
+                checkinDate: '2024-11-05',
+                checkinTime: '14:00',
+                checkoutDate: '2024-11-08',
+                checkoutTime: '12:00',
+                amount: 290000,
+                requests: '워킹스트리트 관광 정보 요청',
+                status: 'completed'
+            },
+
+            // 2025년 1월 예약 (미래)
+            {
+                id: 16,
+                accommodationName: '치안마이 디럭스 B동',
+                guestName: '강하늘',
+                checkinDate: '2025-01-15',
+                checkinTime: '15:00',
+                checkoutDate: '2025-01-18',
+                checkoutTime: '11:00',
+                amount: 330000,
+                requests: '템플 투어 예약 도움 요청',
+                status: 'confirmed'
+            },
+            {
+                id: 17,
+                accommodationName: '쿠러비 팔레스 D동',
+                guestName: 'Emma Thompson',
+                checkinDate: '2025-01-20',
+                checkinTime: '16:00',
+                checkoutDate: '2025-01-24',
+                checkoutTime: '10:00',
+                amount: 300000,
+                requests: 'Island hopping tour recommendations',
+                status: 'confirmed'
+            },
+            {
+                id: 18,
+                accommodationName: '팩낭 비치 E동',
+                guestName: '이병헌',
+                checkinDate: '2025-01-25',
+                checkinTime: '14:30',
+                checkoutDate: '2025-01-28',
+                checkoutTime: '11:30',
+                amount: 340000,
+                requests: '다이빙 투어 예약 문의',
+                status: 'confirmed'
+            },
+
+            // 2025년 10월 예약 (현재 월 테스트용)
+            {
+                id: 19,
+                accommodationName: '방콕 스위트룸 A동',
+                guestName: '현재테스트',
+                checkinDate: '2025-10-01',
+                checkinTime: '15:00',
+                checkoutDate: '2025-10-05',
+                checkoutTime: '11:00',
+                amount: 600000,
+                requests: '현재 월 테스트 데이터',
+                status: 'confirmed'
+            },
+            {
+                id: 20,
+                accommodationName: '푸켓 오션뷰 C동',
+                guestName: '실시간확인',
+                checkinDate: '2025-10-10',
+                checkinTime: '14:00',
+                checkoutDate: '2025-10-15',
+                checkoutTime: '12:00',
+                amount: 900000,
+                requests: '실시간 상태 확인용',
+                status: 'confirmed'
+            }
+        ];
+
+        let currentMode = 'view';
+        let currentId = null;
+        let isEditMode = false;
+        let currentMonth = '2024-12'; // 샘플 데이터가 있는 월로 설정
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 모든 로그인 사용자 접근 허용 (데이터는 권한별 필터링)
+            if (checkLoginStatus()) {
+                initializePagePermissions(); // 권한별 페이지 설정
+                initializePage();
+            }
+        });
+
+        function initializePage() {
+            // 현재 월로 설정
+            document.getElementById('monthFilter').value = currentMonth;
+            
+            // 숙소 옵션 설정
+            populateAccommodationOptions();
+            
+            // 예약 리스트 렌더링
+            filterByMonth();
+            
+            // 초기 제목 업데이트
+            updateReservationListTitle();
+            
+            // 태국 시간 주기적 업데이트 (30초마다)
+            setInterval(() => {
+                updateThailandTimeDisplay();
+                // 시간이 지나면서 체크인/체크아웃 상태가 변할 수 있으므로 통계도 업데이트
+                filterReservations();
+            }, 30000);
+        }
+
+        // 숙소 옵션 채우기
+        function populateAccommodationOptions() {
+            const accommodationSelect = document.getElementById('accommodationName');
+            const accommodationFilter = document.getElementById('accommodationFilter');
+            
+            accommodations.forEach(accommodation => {
+                // 모달용 select
+                const option1 = document.createElement('option');
+                option1.value = accommodation;
+                option1.textContent = accommodation;
+                accommodationSelect.appendChild(option1);
+                
+                // 필터용 select
+                const option2 = document.createElement('option');
+                option2.value = accommodation;
+                option2.textContent = accommodation;
+                accommodationFilter.appendChild(option2);
+            });
+        }
+
+        // 월별 필터링
+        function filterByMonth() {
+            currentMonth = document.getElementById('monthFilter').value;
+            if (!currentMonth) {
+                currentMonth = new Date().toISOString().slice(0, 7);
+                document.getElementById('monthFilter').value = currentMonth;
+            }
+            filterReservations();
+        }
+
+        // 예약 필터링
+        function filterReservations() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const selectedAccommodation = document.getElementById('accommodationFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filteredReservations = reservations.filter(reservation => {
+                // 체크인 날짜가 선택된 월에 속하거나, 체크인은 이전 월이지만 체크아웃이 선택된 월에 걸치는 경우
+                const checkinDate = new Date(reservation.checkinDate);
+                const checkoutDate = new Date(reservation.checkoutDate);
+                const selectedDate = new Date(selectedMonth + '-01');
+                
+                const checkinMonth = reservation.checkinDate.slice(0, 7);
+                const checkoutMonth = reservation.checkoutDate.slice(0, 7);
+                
+                const matchesMonth = checkinMonth === selectedMonth || checkoutMonth === selectedMonth;
+                const matchesAccommodation = !selectedAccommodation || reservation.accommodationName === selectedAccommodation;
+                const matchesSearch = reservation.guestName.toLowerCase().includes(searchTerm);
+                
+                return matchesMonth && matchesAccommodation && matchesSearch;
+            });
+
+            console.log('선택된 월:', selectedMonth);
+            console.log('필터링 결과:', filteredReservations);
+
+            renderReservationList(filteredReservations);
+            updateStatistics(filteredReservations);
+        }
+
+        // 예약 리스트 렌더링
+        function renderReservationList(filteredReservations = reservations) {
+            const listContainer = document.getElementById('reservationList');
+            const countElement = document.getElementById('reservationCount');
+            
+            listContainer.innerHTML = '';
+            countElement.textContent = `${filteredReservations.length}건`;
+
+            if (filteredReservations.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-calendar-times text-gray-300 text-2xl sm:text-3xl mb-3"></i>
+                        <p class="text-gray-500 text-sm sm:text-base">해당 월의 예약이 없습니다.</p>
+                    </div>
+                `;
+                // 빈 상태일 때도 제목 업데이트
+                updateReservationListTitle();
+                return;
+            }
+
+            filteredReservations.forEach(reservation => {
+                // 태국 시간 기준 실시간 상태 계산
+                const realTimeStatus = getRealTimeStatus(reservation);
+                const statusColor = getStatusColor(realTimeStatus);
+                const statusText = getStatusText(realTimeStatus);
+                
+                const listItem = document.createElement('div');
+                listItem.className = 'reservation-card p-4 hover:bg-gray-50 cursor-pointer transition-colors';
+                listItem.onclick = () => openModal('view', reservation.id);
+                
+                listItem.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                                <h4 class="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                                    ${reservation.guestName}
+                                </h4>
+                                <span class="px-2 py-1 rounded-full text-xs font-medium mt-1 sm:mt-0 self-start ${statusColor}">
+                                    ${statusText}
+                                </span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-gray-600 mb-1">${reservation.accommodationName}</p>
+                            <div class="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-500 gap-1 sm:gap-4">
+                                <span>
+                                    <i class="fas fa-calendar mr-1"></i>
+                                    ${formatDate(reservation.checkinDate)} ~ ${formatDate(reservation.checkoutDate)}
+                                </span>
+                                <span>
+                                    <i class="fas fa-money-bill mr-1"></i>
+                                    ${reservation.amount.toLocaleString()} THB
+                                </span>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 ml-4 flex-shrink-0"></i>
+                    </div>
+                `;
+                
+                listContainer.appendChild(listItem);
+            });
+        }
+
+        // 태국 시간 가져오기 (UTC+7)
+        function getThailandTime() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const thailandTime = new Date(utc + (7 * 3600000)); // UTC+7
+            return thailandTime;
+        }
+
+        // 체크인/체크아웃 시간과 현재 태국 시간 비교
+        function isCheckinTime(reservation) {
+            const thailandNow = getThailandTime();
+            const checkinDateTime = new Date(`${reservation.checkinDate}T${reservation.checkinTime || '15:00'}`);
+            return thailandNow >= checkinDateTime;
+        }
+
+        function isCheckoutTime(reservation) {
+            const thailandNow = getThailandTime();
+            const checkoutDateTime = new Date(`${reservation.checkoutDate}T${reservation.checkoutTime || '11:00'}`);
+            return thailandNow >= checkoutDateTime;
+        }
+
+        // 통계 업데이트 (태국 시간 기준)
+        function updateStatistics(filteredReservations) {
+            const total = filteredReservations.length;
+            
+            // 태국 시간 기준으로 체크인/체크아웃 완료 계산
+            const checkedIn = filteredReservations.filter(r => isCheckinTime(r) && !isCheckoutTime(r)).length;
+            const checkedOut = filteredReservations.filter(r => isCheckoutTime(r)).length;
+            const totalRevenue = filteredReservations.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+            const thailandNow = getThailandTime();
+            
+            // 디버깅용 콘솔 출력
+            console.log('현재 태국 시간:', thailandNow.toLocaleString('ko-KR', {timeZone: 'Asia/Bangkok'}));
+            console.log('필터된 예약:', filteredReservations.length, '건');
+            console.log('체크인 완료 (시간 기준):', checkedIn, '건');
+            console.log('체크아웃 완료 (시간 기준):', checkedOut, '건'); 
+            console.log('총 수익:', totalRevenue.toLocaleString(), 'THB');
+            
+            // 각 예약별 상태 디버깅
+            filteredReservations.forEach(r => {
+                const checkinPassed = isCheckinTime(r);
+                const checkoutPassed = isCheckoutTime(r);
+                console.log(`${r.guestName}: 체크인${checkinPassed ? '완료' : '대기'}, 체크아웃${checkoutPassed ? '완료' : '대기'}`);
+            });
+
+            document.getElementById('totalReservations').textContent = `${total}건`;
+            document.getElementById('checkedInCount').textContent = `${checkedIn}건`;
+            document.getElementById('checkedOutCount').textContent = `${checkedOut}건`;
+            document.getElementById('totalRevenue').textContent = `${totalRevenue.toLocaleString()} THB`;
+            
+            // 예약 목록 제목 업데이트
+            updateReservationListTitle();
+        }
+        
+        // 예약 목록 제목 업데이트
+        function updateReservationListTitle() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+            if (selectedMonth) {
+                const [year, month] = selectedMonth.split('-');
+                const monthName = `${year}년 ${parseInt(month)}월`;
+                document.getElementById('reservationListTitle').textContent = `예약 목록 (${monthName})`;
+            } else {
+                document.getElementById('reservationListTitle').textContent = '예약 목록';
+            }
+            
+            // 태국 시간 표시 업데이트
+            updateThailandTimeDisplay();
+        }
+
+        // 태국 시간 표시 업데이트
+        function updateThailandTimeDisplay() {
+            const thailandTime = getThailandTime();
+            const timeString = thailandTime.toLocaleString('ko-KR', {
+                timeZone: 'Asia/Bangkok',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('thailandTimeDisplay').textContent = `태국 현지시간: ${timeString}`;
+        }
+
+        // 태국 시간 기준 실시간 상태 계산
+        function getRealTimeStatus(reservation) {
+            const thailandNow = getThailandTime();
+            const checkinDateTime = new Date(`${reservation.checkinDate}T${reservation.checkinTime || '15:00'}`);
+            const checkoutDateTime = new Date(`${reservation.checkoutDate}T${reservation.checkoutTime || '11:00'}`);
+            
+            if (thailandNow < checkinDateTime) {
+                return 'confirmed'; // 체크인 시간 전
+            } else if (thailandNow >= checkinDateTime && thailandNow < checkoutDateTime) {
+                return 'checkedin'; // 체크인 시간 후, 체크아웃 시간 전
+            } else {
+                return 'checkedout'; // 체크아웃 시간 후
+            }
+        }
+
+        // 상태별 색상 (실시간 상태 기준)
+        function getStatusColor(status) {
+            switch (status) {
+                case 'confirmed': return 'bg-blue-100 text-blue-800';
+                case 'checkedin': return 'bg-green-100 text-green-800';
+                case 'checkedout': return 'bg-purple-100 text-purple-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // 상태별 텍스트 (실시간 상태 기준)
+        function getStatusText(status) {
+            switch (status) {
+                case 'confirmed': return '예약확정';
+                case 'checkedin': return '체크인완료';
+                case 'checkedout': return '체크아웃완료';
+                default: return '알 수 없음';
+            }
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        // 모달 열기
+        function openModal(mode, id = null) {
+            currentMode = mode;
+            currentId = id;
+            isEditMode = false;
+            
+            const modal = document.getElementById('reservationModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('reservationForm');
+            const editButton = document.getElementById('editButton');
+            const editButtonText = document.getElementById('editButtonText');
+            
+            if (mode === 'add') {
+                title.textContent = '새 예약 등록';
+                form.reset();
+                editButton.style.display = 'none';
+                isEditMode = true;
+            } else if (mode === 'view') {
+                const reservation = reservations.find(r => r.id === id);
+                if (reservation) {
+                    title.textContent = '예약 정보';
+                    populateForm(reservation);
+                    editButton.style.display = 'block';
+                    editButtonText.textContent = '수정';
+                    isEditMode = false;
+                }
+            }
+            
+            updateFormState();
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 폼에 데이터 채우기
+        function populateForm(reservation) {
+            document.getElementById('accommodationName').value = reservation.accommodationName || '';
+            document.getElementById('guestName').value = reservation.guestName || '';
+            document.getElementById('checkinDate').value = reservation.checkinDate || '';
+            document.getElementById('checkinTime').value = reservation.checkinTime || '';
+            document.getElementById('checkoutDate').value = reservation.checkoutDate || '';
+            document.getElementById('checkoutTime').value = reservation.checkoutTime || '';
+            document.getElementById('amount').value = reservation.amount || '';
+            document.getElementById('requests').value = reservation.requests || '';
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            const modal = document.getElementById('reservationModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentMode = 'view';
+            currentId = null;
+            isEditMode = false;
+        }
+
+        // 수정 모드 토글
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const editButtonText = document.getElementById('editButtonText');
+            
+            if (isEditMode) {
+                editButtonText.textContent = '취소';
+            } else {
+                editButtonText.textContent = '수정';
+                // 원래 데이터로 복원
+                const reservation = reservations.find(r => r.id === currentId);
+                if (reservation) {
+                    populateForm(reservation);
+                }
+            }
+            
+            updateFormState();
+        }
+
+        // 폼 상태 업데이트
+        function updateFormState() {
+            const form = document.getElementById('reservationForm');
+            const formElements = form.querySelectorAll('input, select, textarea');
+            const saveButton = document.getElementById('saveButton');
+            
+            const isReadOnly = currentMode === 'view' && !isEditMode;
+            
+            formElements.forEach(element => {
+                element.readOnly = isReadOnly && element.type !== 'select-one';
+                element.disabled = isReadOnly;
+                if (isReadOnly) {
+                    element.classList.add('bg-gray-50');
+                } else {
+                    element.classList.remove('bg-gray-50');
+                }
+            });
+            
+            // 저장 버튼 표시/숨김
+            if (currentMode === 'add' || isEditMode) {
+                saveButton.style.display = 'block';
+            } else {
+                saveButton.style.display = 'none';
+            }
+        }
+
+        // 폼 제출 처리
+        document.getElementById('reservationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (currentMode === 'view' && !isEditMode) return;
+            
+            const reservationData = {
+                accommodationName: document.getElementById('accommodationName').value,
+                guestName: document.getElementById('guestName').value,
+                checkinDate: document.getElementById('checkinDate').value,
+                checkinTime: document.getElementById('checkinTime').value,
+                checkoutDate: document.getElementById('checkoutDate').value,
+                checkoutTime: document.getElementById('checkoutTime').value,
+                amount: parseInt(document.getElementById('amount').value) || 0,
+                requests: document.getElementById('requests').value,
+                status: 'confirmed' // 기본 상태
+            };
+            
+            if (currentMode === 'add') {
+                reservationData.id = reservations.length + 1;
+                reservations.push(reservationData);
+                alert('예약이 성공적으로 등록되었습니다.');
+            } else if (isEditMode) {
+                const index = reservations.findIndex(r => r.id === currentId);
+                if (index !== -1) {
+                    reservations[index] = { ...reservations[index], ...reservationData };
+                    alert('예약 정보가 성공적으로 수정되었습니다.');
+                }
+                // 수정 마친 후 읽기 모드로 전환
+                isEditMode = false;
+                document.getElementById('editButtonText').textContent = '수정';
+                updateFormState();
+            }
+            
+            filterReservations(); // 리스트 새로고침
+            
+            if (currentMode === 'add') {
+                closeModal();
+            }
+        });
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('reservationModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

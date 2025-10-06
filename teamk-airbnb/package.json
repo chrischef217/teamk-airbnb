@@ -1,0 +1,19 @@
+{
+  "name": "teamk-airbnb",
+  "version": "1.0.0",
+  "description": "Thai Airbnb Investment Management System",
+  "main": "index.html",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrischef217/teamk-airbnb.git"
+  },
+  "author": "chrischef217",
+  "license": "MIT",
+  "homepage": "https://chrischef217.github.io/teamk-airbnb",
+  "aiDeveloper": {
+    "github": {
+      "enabled": true,
+      "repository": "chrischef217/teamk-airbnb"
+    }
+  }
+}
