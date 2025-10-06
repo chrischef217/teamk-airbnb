@@ -47,7 +47,7 @@
             <!-- Tab Navigation -->
             <div class="bg-white rounded-lg shadow-sm mb-6">
                 <div class="flex flex-wrap border-b">
-                    <button onclick="window.location.href='dashboard.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
                         <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
                     </button>
                     <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
@@ -242,15 +242,8 @@
             const periodFilter = document.getElementById('periodFilter').value;
             const chartType = document.getElementById('chartType').value;
 
-            // 투자자 권한 데이터 필터링
-            let baseData = sampleAccountingData;
-            const user = getCurrentUser();
-            if (user.userType === 'investor') {
-                baseData = filterDataByAccess(sampleAccountingData);
-            }
-
-            // 기간별 필터링된 데이터 가져오기
-            const filteredData = filterDataByPeriod(baseData, periodFilter);
+            // 필터링된 데이터 가져오기
+            const filteredData = filterDataByPeriod(sampleAccountingData, periodFilter);
             
             let chartData;
             switch (analysisType) {

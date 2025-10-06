@@ -52,7 +52,7 @@
             <!-- Tab Navigation -->
             <div class="bg-white rounded-lg shadow-sm mb-6">
                 <div class="flex flex-wrap border-b">
-                    <button onclick="window.location.href='dashboard.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                    <button onclick="window.location.href='index.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
                         <i class="fas fa-tachometer-alt mr-1"></i> 대시보드
                     </button>
                     <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
@@ -380,12 +380,6 @@
         
         async function loadInvestors() {
             investors = loadInvestorDataFromStorage();
-            
-            // 투자자 권한 필터링
-            const user = getCurrentUser();
-            if (user.userType === 'investor') {
-                investors = investors.filter(investor => investor.userId === user.userId);
-            }
         }
 
         // 숙소 데이터 로드

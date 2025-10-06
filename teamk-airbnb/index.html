@@ -3,24 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teamk 에어비앤비 관리 시스템</title>
+    <title>Teamk 공유숙박 관리 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/translations.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f8ff; }
-        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { color: #2563eb; font-size: 2.5em; margin-bottom: 20px; }
-        p { color: #374151; font-size: 1.2em; }
-        .success { background: #dcfce7; color: #166534; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+        .kpi-card {
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+        }
+        .property-card {
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        .property-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>🏢 Teamk 에어비앤비 관리 시스템</h1>
-        <p>태국 에어비앤비 숙소 투자 및 운영 관리 플랫폼</p>
-        <div class="success">
-            <h2>🎉 배포 성공!</h2>
-            <p>GitHub + Cloudflare 자동 배포가 완료되었습니다.</p>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-2" data-translate="systemTitle">
+                    Teamk 공유숙박 관리 시스템
+                </h1>
+
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex flex-wrap border-b">
+                    <button class="px-4 py-3 text-sm font-medium text-white bg-blue-600 border-b-2 border-blue-600 rounded-tl-lg">
+                        <i class="fas fa-tachometer-alt mr-1"></i> <span data-translate="dashboard">대시보드</span>
+                    </button>
+                    <button onclick="window.location.href='accommodation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-home mr-1"></i> <span data-translate="accommodations">숙소 관리</span>
+                    </button>
+                    <button onclick="window.location.href='reservation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calendar-check mr-1"></i> <span data-translate="reservations">예약 관리</span>
+                    </button>
+                    <button onclick="window.location.href='analytics.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-chart-bar mr-1"></i> <span data-translate="analytics">지표 관리</span>
+                    </button>
+                    <button onclick="window.location.href='accounting.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-coins mr-1"></i> <span data-translate="accounting">수익 관리</span>
+                    </button>
+                    <button onclick="window.location.href='investor.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-users mr-1"></i> <span data-translate="investors">투자자 관리</span>
+                    </button>
+                    <button onclick="window.location.href='settlement.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calculator mr-1"></i> <span data-translate="settlement">투자자 정산</span>
+                    </button>
+
+                    <button onclick="window.location.href='backup.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-download mr-1"></i> <span data-translate="backup">백업</span>
+                    </button>
+                </div>
+            </div>
         </div>
-        <p>시스템이 정상적으로 작동 중입니다!</p>
+
+        <!-- Key Metrics Summary -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <!-- 총 수익 카드 -->
+            <div class="bg-gradient-to-r from-pink-400 to-pink-500 rounded-lg p-6 text-white relative overflow-hidden">
+                <div class="relative z-10">
+                    <h3 class="text-sm font-medium opacity-90 mb-2">총 수익</h3>
+                    <p class="text-3xl font-bold mb-1">0 THB</p>
+                </div>
+                <div class="absolute top-4 right-4 text-4xl opacity-30">
+                    <i class="fas fa-coins"></i>
+                </div>
+            </div>
+            
+            <!-- 총 손익 카드 -->
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white relative overflow-hidden">
+                <div class="relative z-10">
+                    <h3 class="text-sm font-medium opacity-90 mb-2">총 손익</h3>
+                    <p class="text-3xl font-bold mb-1">0 THB</p>
+                </div>
+                <div class="absolute top-4 right-4 text-4xl opacity-30">
+                    <i class="fas fa-chart-line-down"></i>
+                </div>
+            </div>
+            
+            <!-- 평균 ROI 카드 -->
+            <div class="bg-gradient-to-r from-green-400 to-green-500 rounded-lg p-6 text-white relative overflow-hidden">
+                <div class="relative z-10">
+                    <h3 class="text-sm font-medium opacity-90 mb-2">평균 ROI</h3>
+                    <p class="text-3xl font-bold mb-1">0%</p>
+                </div>
+                <div class="absolute top-4 right-4 text-4xl opacity-30">
+                    <i class="fas fa-percentage"></i>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- 상세 데이터 테이블 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="bg-gray-50 px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    상세 숙소별 수익 데이터
+                </h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">숙소명</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">투자금</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 수익금</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 지출금</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">누적 순수익</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ROI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="bg-white divide-y divide-gray-200">
+                        <!-- Table data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // 페이지 로드 시 로그인 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            if (checkLoginStatus()) { // 모든 사용자 접근 허용
+                initializePagePermissions(); // 권한별 페이지 설정
+            }
+        });
+
+        // 태국 숙소 데이터 - 샘플 데이터 제거됨
+        const tableData = [];
+
+        // Populate table
+        const tableBody = document.getElementById('dataTable');
+        tableData.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50';
+            
+            row.forEach((cell, index) => {
+                const td = document.createElement('td');
+                td.className = 'px-4 py-3 whitespace-nowrap text-sm';
+                
+                if (index === 0) {
+                    // 숙소명
+                    td.className += ' font-medium text-gray-900';
+                    td.textContent = cell;
+                } else if (index >= 1 && index <= 4) {
+                    // 투자금, 누적 수익금, 누적 지출금, 누적 순수익
+                    td.className += ' text-right text-gray-900 font-mono';
+                    td.textContent = cell + ' THB';
+                } else if (index === 5) {
+                    // ROI
+                    td.className += ' text-center font-semibold text-green-600';
+                    td.textContent = cell;
+                }
+                
+                tr.appendChild(td);
+            });
+            
+            tableBody.appendChild(tr);
+        });
+    </script>
 </body>
 </html>
