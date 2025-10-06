@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
     <script src="js/translations.js"></script>
-    <script src="js/github-storage.js"></script>
+    <script src="js/firebase-storage.js"></script>
     <style>
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -278,7 +278,7 @@
         // 페이지 로드 시 로그인 확인
         // GitHub에서 투자자 데이터 로드
         async function loadInvestorDataFromServer() {
-            return await githubStorage.loadInvestors();
+            return await firebaseStorage.loadInvestors();
         }
 
         // 투자자 데이터 (GitHub에서 로드)
@@ -370,11 +370,11 @@
         
         // GitHub 저장소 함수들
         async function loadAccommodationsFromServer() {
-            return await githubStorage.loadAccommodations();
+            return await firebaseStorage.loadAccommodations();
         }
 
         async function saveAccommodationsToStorage() {
-            await githubStorage.saveAccommodations(accommodations);
+            await firebaseStorage.saveAccommodation(accommodation);
         }
         
         // 숙소 데이터 - GitHub에서 로드

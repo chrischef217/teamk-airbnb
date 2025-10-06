@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase 연동 설정 - Teamk</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="js/firebase-storage.js"></script>
+    <style>
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fab fa-google mr-3 text-orange-500"></i>
+                    Firebase 데이터베이스 설정
+                </h1>
+                <p class="text-gray-600">PC와 모바일 간 실시간 데이터 동기화를 위해 Google Firebase를 사용합니다.</p>
+                <p class="text-sm text-green-600 mt-2">✨ <strong>완전 무료</strong>이고 <strong>설정이 매우 쉽습니다!</strong></p>
+            </div>
+        </div>
+
+        <!-- 현재 상태 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                현재 연결 상태
+            </h2>
+            <div id="currentStatus" class="space-y-2">
+                <div class="flex items-center">
+                    <span class="w-3 h-3 rounded-full bg-gray-400 mr-3" id="statusIndicator"></span>
+                    <span id="statusText" class="text-gray-600">확인 중...</span>
+                </div>
+                <div id="connectionInfo" class="text-sm text-gray-500 ml-6 hidden"></div>
+            </div>
+        </div>
+
+        <!-- 설정 단계 -->
+        <div class="space-y-6">
+            <!-- 1단계: Firebase 프로젝트 생성 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 border-2 border-gray-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold mr-4">1</div>
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Firebase 프로젝트 생성 (2분 소요)</h3>
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-600 mb-2">매우 간단합니다:</p>
+                            <ol class="list-decimal list-inside space-y-1 text-sm text-gray-700">
+                                <li><strong>Firebase Console</strong> 접속</li>
+                                <li><strong>"프로젝트 추가"</strong> 클릭</li>
+                                <li>프로젝트 이름: <code class="bg-gray-100 px-2 py-1 rounded">teamk-data</code></li>
+                                <li>Google Analytics: <strong>사용 안 함</strong> 선택</li>
+                                <li><strong>"프로젝트 만들기"</strong> 클릭</li>
+                            </ol>
+                        </div>
+
+                        <a href="https://console.firebase.google.com" target="_blank" 
+                           class="inline-flex items-center bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fab fa-google mr-2"></i>
+                            Firebase Console 열기
+                            <i class="fas fa-external-link-alt ml-2 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2단계: Realtime Database 활성화 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 border-2 border-gray-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold mr-4">2</div>
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Realtime Database 활성화 (1분 소요)</h3>
+                        
+                        <div class="mb-4">
+                            <ol class="list-decimal list-inside space-y-1 text-sm text-gray-700">
+                                <li>Firebase 프로젝트에서 <strong>"Realtime Database"</strong> 클릭</li>
+                                <li><strong>"데이터베이스 만들기"</strong> 클릭</li>
+                                <li>위치: <strong>"asia-southeast1"</strong> 선택 (싱가포르 - 가장 가까움)</li>
+                                <li>보안 규칙: <strong>"테스트 모드에서 시작"</strong> 선택</li>
+                                <li><strong>"사용 설정"</strong> 클릭</li>
+                            </ol>
+                        </div>
+
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-start">
+                                <i class="fas fa-lightbulb text-blue-600 mr-2 mt-1"></i>
+                                <div class="text-blue-800 text-sm">
+                                    <strong>중요:</strong> "테스트 모드"를 선택하면 30일간 누구나 읽기/쓰기 가능합니다. 
+                                    나중에 보안 규칙을 수정할 수 있습니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3단계: Web API Key 복사 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 border-2 border-gray-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold mr-4">3</div>
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">API 키 복사 (30초 소요)</h3>
+                        
+                        <div class="mb-4">
+                            <ol class="list-decimal list-inside space-y-1 text-sm text-gray-700">
+                                <li>Firebase 프로젝트 <strong>⚙️ 설정</strong> (톱니바퀴) → <strong>"프로젝트 설정"</strong></li>
+                                <li><strong>"일반"</strong> 탭에서 아래로 스크롤</li>
+                                <li><strong>"웹 API 키"</strong> 복사</li>
+                                <li><strong>"프로젝트 ID"</strong> 복사</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4단계: 연결 설정 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 border-2 border-gray-200">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold mr-4">4</div>
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Firebase 연결 설정</h3>
+                        
+                        <form id="firebaseSetupForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-key mr-1"></i>
+                                    Web API Key
+                                </label>
+                                <input type="password" id="firebaseApiKey" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                       placeholder="AIzaSy...">
+                                <p class="text-xs text-gray-500 mt-1">Firebase 프로젝트 설정에서 복사한 Web API 키</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-project-diagram mr-1"></i>
+                                    Project ID
+                                </label>
+                                <input type="text" id="firebaseProjectId" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                       placeholder="teamk-data-xxxxx">
+                                <p class="text-xs text-gray-500 mt-1">Firebase 프로젝트 ID</p>
+                            </div>
+
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="flex items-start">
+                                    <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
+                                    <div class="text-green-800 text-sm">
+                                        <strong>완전 무료:</strong> Firebase Realtime Database는 월 1GB까지 무료입니다.<br>
+                                        일반적인 사용으로는 절대 초과하지 않습니다.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex space-x-4">
+                                <button type="button" onclick="testConnection()" 
+                                        class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                                    <i class="fas fa-plug mr-2"></i>
+                                    연결 테스트
+                                </button>
+
+                                <button type="submit" 
+                                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                                    <i class="fas fa-save mr-2"></i>
+                                    설정 저장
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 표시 -->
+        <div id="resultMessage" class="hidden mt-6 p-4 rounded-lg"></div>
+
+        <!-- 다음 단계 -->
+        <div class="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-green-800 mb-2">
+                <i class="fas fa-rocket mr-2"></i>
+                설정 완료 후 할 일
+            </h3>
+            <ol class="list-decimal list-inside space-y-1 text-sm text-green-700">
+                <li><strong>데이터 마이그레이션</strong>: 기존 localStorage 데이터를 Firebase로 이전</li>
+                <li><strong>PC/모바일 테스트</strong>: 투자자 추가 후 다른 기기에서 확인</li>
+                <li><strong>실시간 동기화 확인</strong>: 한 기기에서 수정하면 다른 기기에서 즉시 반영</li>
+            </ol>
+        </div>
+
+        <!-- 뒤로가기 버튼 -->
+        <div class="mt-8 text-center">
+            <button onclick="window.location.href='index.html'" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                메인 페이지로 돌아가기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 현재 상태 확인
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkCurrentStatus();
+            loadSavedSettings();
+        });
+
+        // 현재 연결 상태 확인
+        async function checkCurrentStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const connectionInfo = document.getElementById('connectionInfo');
+
+            if (firebaseStorage.isConfigured()) {
+                statusText.textContent = '연결 테스트 중...';
+                statusIndicator.className = 'w-3 h-3 rounded-full bg-yellow-400 mr-3';
+
+                const result = await firebaseStorage.testConnection();
+                
+                if (result.success) {
+                    statusText.textContent = '✅ Firebase 연결됨';
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-green-400 mr-3';
+                    connectionInfo.textContent = result.message;
+                    connectionInfo.classList.remove('hidden');
+                } else {
+                    statusText.textContent = '❌ 연결 실패: ' + result.error;
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-red-400 mr-3';
+                }
+            } else {
+                statusText.textContent = '🔧 Firebase 설정 필요';
+                statusIndicator.className = 'w-3 h-3 rounded-full bg-gray-400 mr-3';
+            }
+        }
+
+        // 저장된 설정 로드
+        function loadSavedSettings() {
+            const apiKey = localStorage.getItem('firebase_api_key');
+            const projectId = localStorage.getItem('firebase_project_id');
+
+            if (apiKey) document.getElementById('firebaseApiKey').value = apiKey;
+            if (projectId) document.getElementById('firebaseProjectId').value = projectId;
+        }
+
+        // 연결 테스트
+        async function testConnection() {
+            const apiKey = document.getElementById('firebaseApiKey').value;
+            const projectId = document.getElementById('firebaseProjectId').value;
+
+            if (!apiKey || !projectId) {
+                showMessage('API Key와 Project ID를 모두 입력해주세요.', 'error');
+                return;
+            }
+
+            // 임시로 설정 저장
+            firebaseStorage.saveConfig(apiKey, projectId);
+
+            showMessage('연결 테스트 중...', 'info');
+
+            const result = await firebaseStorage.testConnection();
+            
+            if (result.success) {
+                showMessage('✅ ' + result.message, 'success');
+            } else {
+                showMessage('❌ ' + result.error, 'error');
+            }
+        }
+
+        // 폼 제출
+        document.getElementById('firebaseSetupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const apiKey = document.getElementById('firebaseApiKey').value;
+            const projectId = document.getElementById('firebaseProjectId').value;
+
+            if (!apiKey || !projectId) {
+                showMessage('모든 필드를 입력해주세요.', 'error');
+                return;
+            }
+
+            // 설정 저장
+            firebaseStorage.saveConfig(apiKey, projectId);
+
+            // 연결 테스트
+            showMessage('설정을 저장하고 연결을 확인 중...', 'info');
+            
+            const result = await firebaseStorage.testConnection();
+            
+            if (result.success) {
+                showMessage('✅ Firebase 설정이 완료되었습니다! 이제 데이터가 실시간으로 동기화됩니다.', 'success');
+                setTimeout(() => {
+                    checkCurrentStatus();
+                }, 2000);
+            } else {
+                showMessage('❌ 설정은 저장되었지만 연결에 실패했습니다: ' + result.error, 'error');
+            }
+        });
+
+        // 메시지 표시
+        function showMessage(message, type) {
+            const resultMessage = document.getElementById('resultMessage');
+            const colors = {
+                success: 'bg-green-50 border border-green-200 text-green-800',
+                error: 'bg-red-50 border border-red-200 text-red-800',
+                info: 'bg-blue-50 border border-blue-200 text-blue-800'
+            };
+
+            resultMessage.className = `${colors[type]} p-4 rounded-lg`;
+            resultMessage.textContent = message;
+            resultMessage.classList.remove('hidden');
+
+            // 5초 후 자동 숨김
+            setTimeout(() => {
+                resultMessage.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="js/auth.js"></script>
     <script src="js/translations.js"></script>
-    <script src="js/cloudflare-storage.js"></script>
+    <script src="js/firebase-storage.js"></script>
     <style>
         body { 
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -271,30 +271,30 @@
         let currentMode = 'view';
         let currentId = null;
         let isEditMode = false;
-        // Cloudflare D1 저장소 함수들
+        // Firebase 저장소 함수들
         async function loadInvestorData() {
-            return await cloudflareStorage.loadInvestors();
+            return await firebaseStorage.loadInvestors();
         }
 
         async function saveInvestorToServer(investor) {
-            return await cloudflareStorage.saveInvestor(investor);
+            return await firebaseStorage.saveInvestor(investor);
         }
 
         async function updateInvestorOnServer(id, investor) {
-            return await cloudflareStorage.updateInvestor(id, investor);
+            return await firebaseStorage.updateInvestor(id, investor);
         }
 
         async function deleteInvestorFromServer(id) {
-            return await cloudflareStorage.deleteInvestor(id);
+            return await firebaseStorage.deleteInvestor(id);
         }
 
         // 투자자 데이터 (Cloudflare D1에서 로드)
         let investorData = [];
         let selectedAccommodations = [];
 
-        // 숙소 데이터 로드 함수 (Cloudflare D1 사용)
+        // 숙소 데이터 로드 함수 (Firebase 사용)
         async function loadAccommodationsFromServer() {
-            return await cloudflareStorage.loadAccommodations();
+            return await firebaseStorage.loadAccommodations();
         }
 
         // 숙소 목록 - Cloudflare D1에서 로드
