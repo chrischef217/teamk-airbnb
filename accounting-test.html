@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회계관리 필터 테스트</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">회계관리 필터 조회 기능 테스트</h1>
+        
+        <!-- 투자자 선택 및 조회 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">투자자 선택</label>
+                    <select id="selectedInvestor" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="">투자자를 선택하세요</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="searchBtn" onclick="performSearch()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md">
+                        <i class="fas fa-search mr-2"></i>
+                        조회
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 옵션 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">월별 필터</label>
+                    <select id="monthFilter" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="">전체 월</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">숙소 필터</label>
+                    <select id="accommodationFilter" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="">전체 숙소</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">구분 필터</label>
+                    <select id="typeFilter" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="">전체</option>
+                        <option value="income">수입</option>
+                        <option value="expense">지출</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">정렬</label>
+                    <select id="accountingSortBy" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <option value="date_desc">날짜 (최신순)</option>
+                        <option value="date_asc">날짜 (오래된순)</option>
+                        <option value="amount_desc">금액 (높은순)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 투자자 요약 정보 -->
+        <div id="investorSummary" class="bg-white rounded-lg shadow p-6 mb-6" style="display: none;">
+            <h3 class="text-lg font-semibold mb-4" id="investorInfo">투자자 정보</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-600">총 수입</div>
+                    <div class="text-xl font-bold text-blue-600" id="summaryTotalIncome">0 THB</div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-600">총 지출</div>
+                    <div class="text-xl font-bold text-red-600" id="summaryTotalExpense">0 THB</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-600">순 수익</div>
+                    <div class="text-xl font-bold text-green-600" id="summaryNetProfit">0 THB</div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-600">투자자 배분</div>
+                    <div class="text-xl font-bold text-purple-600" id="summaryInvestorShare">0 THB</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 테이블 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold">회계 내역</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">숙소</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">구분</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">금액</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">설명</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountingTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 디버그 정보 -->
+        <div class="bg-gray-100 rounded-lg p-4 mt-6">
+            <h4 class="font-semibold mb-2">디버그 정보</h4>
+            <div id="debugInfo" class="text-sm text-gray-600">
+                페이지 로딩 중...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 전역 변수 ===
+        let accountingData = [];
+        let accommodations = [];
+        let investors = [];
+
+        // === 샘플 데이터 생성 ===
+        function generateSampleData() {
+            console.log('🔧 샘플 데이터 생성 시작');
+            
+            // 샘플 숙소 데이터
+            accommodations = [
+                { id: 'acc1', accommodationName: 'Beach Villa A' },
+                { id: 'acc2', accommodationName: 'Mountain Lodge B' },
+                { id: 'acc3', accommodationName: 'City Apartment C' }
+            ];
+            
+            // 샘플 투자자 데이터
+            investors = [
+                { 
+                    id: 'inv1', 
+                    name: '김투자', 
+                    accommodations: ['acc1', 'acc2'],
+                    investorRatio: 70 
+                },
+                { 
+                    id: 'inv2', 
+                    name: '박자본', 
+                    accommodations: ['acc3'],
+                    investorRatio: 60 
+                }
+            ];
+            
+            // 샘플 회계 데이터
+            const now = new Date();
+            accountingData = [
+                {
+                    id: 'acc_1',
+                    accommodationId: 'acc1',
+                    type: 'income',
+                    category: 'accommodation',
+                    amount: 120000,
+                    transactionDate: new Date(now.getTime() - 7*24*60*60*1000).toISOString(),
+                    description: '숙박 수입'
+                },
+                {
+                    id: 'acc_2',
+                    accommodationId: 'acc1',
+                    type: 'expense',
+                    category: 'maintenance',
+                    amount: 25000,
+                    transactionDate: new Date(now.getTime() - 5*24*60*60*1000).toISOString(),
+                    description: '청소비'
+                },
+                {
+                    id: 'acc_3',
+                    accommodationId: 'acc2',
+                    type: 'income',
+                    category: 'accommodation',
+                    amount: 95000,
+                    transactionDate: new Date(now.getTime() - 3*24*60*60*1000).toISOString(),
+                    description: '숙박 수입'
+                },
+                {
+                    id: 'acc_4',
+                    accommodationId: 'acc3',
+                    type: 'income',
+                    category: 'accommodation',
+                    amount: 80000,
+                    transactionDate: new Date(now.getTime() - 1*24*60*60*1000).toISOString(),
+                    description: '숙박 수입'
+                },
+                {
+                    id: 'acc_5',
+                    accommodationId: 'acc2',
+                    type: 'expense',
+                    category: 'maintenance',
+                    amount: 15000,
+                    transactionDate: new Date(now.getTime() - 2*24*60*60*1000).toISOString(),
+                    description: '수리비'
+                }
+            ];
+            
+            console.log('✅ 샘플 데이터 생성 완료:', accountingData.length + '건');
+        }
+
+        // === 필터링 함수 ===
+        function getFilteredAccountingData() {
+            let filtered = [...accountingData];
+            
+            // 선택된 투자자 필터
+            const selectedInvestorId = document.getElementById('selectedInvestor').value;
+            if (selectedInvestorId) {
+                const investor = investors.find(inv => inv.id === selectedInvestorId);
+                if (investor && investor.accommodations) {
+                    filtered = filtered.filter(item => 
+                        investor.accommodations.includes(item.accommodationId)
+                    );
+                }
+            }
+            
+            // 월별 필터
+            const monthFilter = document.getElementById('monthFilter').value;
+            if (monthFilter) {
+                filtered = filtered.filter(item => {
+                    const date = new Date(item.transactionDate);
+                    const itemMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    return itemMonth === monthFilter;
+                });
+            }
+            
+            // 숙소 필터
+            const accommodationFilter = document.getElementById('accommodationFilter').value;
+            if (accommodationFilter) {
+                filtered = filtered.filter(item => item.accommodationId === accommodationFilter);
+            }
+            
+            // 구분 필터
+            const typeFilter = document.getElementById('typeFilter').value;
+            if (typeFilter) {
+                filtered = filtered.filter(item => item.type === typeFilter);
+            }
+            
+            // 정렬
+            const sortBy = document.getElementById('accountingSortBy').value;
+            switch (sortBy) {
+                case 'date_desc':
+                    filtered.sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+                    break;
+                case 'date_asc':
+                    filtered.sort((a, b) => new Date(a.transactionDate) - new Date(b.transactionDate));
+                    break;
+                case 'amount_desc':
+                    filtered.sort((a, b) => b.amount - a.amount);
+                    break;
+            }
+            
+            return filtered;
+        }
+
+        // === UI 업데이트 함수들 ===
+        function populateInvestorSelect() {
+            const select = document.getElementById('selectedInvestor');
+            select.innerHTML = '<option value="">투자자를 선택하세요</option>';
+            
+            investors.forEach(investor => {
+                const option = document.createElement('option');
+                option.value = investor.id;
+                option.textContent = investor.name;
+                select.appendChild(option);
+            });
+        }
+
+        function populateFilterOptions() {
+            // 월별 필터
+            const monthFilter = document.getElementById('monthFilter');
+            const months = [...new Set(accountingData.map(item => {
+                const date = new Date(item.transactionDate);
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            }))].sort().reverse();
+            
+            monthFilter.innerHTML = '<option value="">전체 월</option>';
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = `${month.split('-')[0]}년 ${month.split('-')[1]}월`;
+                monthFilter.appendChild(option);
+            });
+
+            // 숙소 필터
+            const accommodationFilter = document.getElementById('accommodationFilter');
+            accommodationFilter.innerHTML = '<option value="">전체 숙소</option>';
+            
+            accommodations.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc.id;
+                option.textContent = acc.accommodationName;
+                accommodationFilter.appendChild(option);
+            });
+        }
+
+        function updateInvestorSummary() {
+            const selectedInvestorId = document.getElementById('selectedInvestor').value;
+            const summaryDiv = document.getElementById('investorSummary');
+            
+            if (!selectedInvestorId) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+            
+            summaryDiv.style.display = 'block';
+            
+            const investor = investors.find(inv => inv.id === selectedInvestorId);
+            if (!investor) return;
+            
+            // 투자자 정보 표시
+            document.getElementById('investorInfo').textContent = `${investor.name} 투자자 | 보유 숙소: ${investor.accommodations.length}개`;
+            
+            // 해당 투자자의 숙소 데이터 필터링
+            const investorData = accountingData.filter(item => 
+                investor.accommodations && investor.accommodations.includes(item.accommodationId)
+            );
+            
+            // 수입/지출 계산
+            const totalIncome = investorData.filter(item => item.type === 'income').reduce((sum, item) => sum + (item.amount || 0), 0);
+            const totalExpense = investorData.filter(item => item.type === 'expense').reduce((sum, item) => sum + (item.amount || 0), 0);
+            const netProfit = totalIncome - totalExpense;
+            const investorShare = Math.round(netProfit * ((investor.investorRatio || 70) / 100));
+            
+            // 요약 정보 업데이트
+            document.getElementById('summaryTotalIncome').textContent = totalIncome.toLocaleString() + ' THB';
+            document.getElementById('summaryTotalExpense').textContent = totalExpense.toLocaleString() + ' THB';
+            document.getElementById('summaryNetProfit').textContent = netProfit.toLocaleString() + ' THB';
+            document.getElementById('summaryInvestorShare').textContent = investorShare.toLocaleString() + ' THB';
+        }
+
+        function renderAccountingTable() {
+            const tableBody = document.getElementById('accountingTableBody');
+            const filteredData = getFilteredAccountingData();
+            
+            console.log('📋 테이블 렌더링:', filteredData.length + '건');
+            
+            if (filteredData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            조건에 맞는 내역이 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            filteredData.forEach(item => {
+                const accommodation = accommodations.find(acc => acc.id === item.accommodationId);
+                const accommodationName = accommodation ? accommodation.accommodationName : '알 수 없음';
+                
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const typeClass = item.type === 'income' ? 'text-green-600' : 'text-red-600';
+                const typeText = item.type === 'income' ? '수입' : '지출';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4">${formatDate(item.transactionDate)}</td>
+                    <td class="px-6 py-4">${accommodationName}</td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium ${typeClass}">${typeText}</span>
+                    </td>
+                    <td class="px-6 py-4 font-medium">${item.amount.toLocaleString()} THB</td>
+                    <td class="px-6 py-4">${item.description}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR');
+        }
+
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.innerHTML = `
+                <div>회계 데이터: ${accountingData.length}건</div>
+                <div>숙소 데이터: ${accommodations.length}개</div>
+                <div>투자자 데이터: ${investors.length}명</div>
+                <div>마지막 조회: ${new Date().toLocaleTimeString()}</div>
+            `;
+        }
+
+        // === 메인 조회 함수 ===
+        function performSearch() {
+            console.log('🔍 조회 시작...');
+            
+            const selectedInvestorId = document.getElementById('selectedInvestor').value;
+            console.log('선택된 투자자 ID:', selectedInvestorId);
+            
+            // 투자자 요약 업데이트
+            updateInvestorSummary();
+            
+            // 테이블 렌더링
+            renderAccountingTable();
+            
+            // 디버그 정보 업데이트
+            updateDebugInfo();
+            
+            console.log('✅ 조회 완료');
+        }
+
+        // 자동 테스트 함수
+        window.autoTest = function() {
+            console.log('🤖 자동 테스트 시작');
+            
+            // 첫 번째 투자자 선택
+            const investorSelect = document.getElementById('selectedInvestor');
+            if (investorSelect.options.length > 1) {
+                investorSelect.selectedIndex = 1; // 첫 번째 투자자 선택
+                console.log('👤 투자자 선택:', investorSelect.value);
+                
+                // 조회 실행
+                performSearch();
+                
+                setTimeout(() => {
+                    // 정렬 변경 테스트
+                    document.getElementById('accountingSortBy').value = 'amount_desc';
+                    performSearch();
+                    console.log('💰 금액 내림차순 정렬 테스트');
+                    
+                    setTimeout(() => {
+                        // 구분 필터 테스트
+                        document.getElementById('typeFilter').value = 'income';
+                        performSearch();
+                        console.log('📈 수입만 필터링 테스트');
+                    }, 1000);
+                }, 1000);
+            }
+        };
+        
+        // 페이지 로드 후 3초 뒤 자동 테스트 실행
+        setTimeout(() => {
+            console.log('⏰ 자동 테스트 준비 완료');
+            window.autoTest();
+        }, 3000);
+
+        // === 페이지 초기화 ===
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 테스트 페이지 초기화 시작');
+            
+            // 샘플 데이터 생성
+            generateSampleData();
+            
+            // UI 초기화
+            populateInvestorSelect();
+            populateFilterOptions();
+            
+            // 초기 데이터 표시
+            renderAccountingTable();
+            updateDebugInfo();
+            
+            console.log('✅ 테스트 페이지 초기화 완료');
+        });
+
+        // === 전역 디버그 함수 ===
+        window.debugTest = function() {
+            console.log('=== 디버그 테스트 ===');
+            console.log('accountingData:', accountingData);
+            console.log('accommodations:', accommodations);
+            console.log('investors:', investors);
+            console.log('필터링된 데이터:', getFilteredAccountingData());
+        };
+    </script>
+</body>
+</html>

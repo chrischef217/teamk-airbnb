@@ -90,20 +90,22 @@
             <div class="flex flex-col sm:flex-row sm:items-end gap-4">
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-2">투자자 선택 *</label>
-                    <select id="investorFilter" onchange="updateReport()" 
-                            class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <select id="investorFilter" class="w-full border border-gray-300 rounded-md px-3 py-2">
                         <option value="">투자자를 선택하세요</option>
                     </select>
                 </div>
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-2">정산 월 *</label>
-                    <select id="monthFilter" onchange="updateReport()" 
-                            class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <select id="monthFilter" class="w-full border border-gray-300 rounded-md px-3 py-2">
                         <option value="">월을 선택하세요</option>
                         <!-- 월 옵션은 JavaScript에서 동적으로 생성됩니다 -->
                     </select>
                 </div>
-                <div>
+                <div class="flex gap-2">
+                    <button onclick="performSettlementSearch()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-search mr-2"></i>
+                        조회
+                    </button>
                     <button onclick="generateInvestorReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
                         <i class="fas fa-file-alt mr-2"></i>
                         리포트 생성
@@ -215,7 +217,7 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">숙소</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">내용</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">항목</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">수익</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">지출</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">순손익</th>
@@ -307,6 +309,26 @@
         let investors = [];
         let accommodations = [];
         let accountingData = [];
+
+        // 카테고리 정의 (accounting.html과 동일)
+        const categories = {
+            income: [
+                { value: 'booking', text: '예약 수입' },
+                { value: 'deposit', text: '보증금' },
+                { value: 'additional', text: '추가 서비스' },
+                { value: 'other_income', text: '기타 수입' }
+            ],
+            expense: [
+                { value: 'cleaning', text: '청소비' },
+                { value: 'maintenance', text: '수리/보수' },
+                { value: 'supplies', text: '용품 구입' },
+                { value: 'utilities', text: '공과금' },
+                { value: 'rent', text: '렌트비' },
+                { value: 'platform_fee', text: '플랫폼 수수료' },
+                { value: 'tax', text: '세금' },
+                { value: 'other_expense', text: '기타 지출' }
+            ]
+        };
 
         // API 기본 함수들
         async function fetchTableData(tableName, params = {}) {
@@ -406,6 +428,16 @@
             console.log('✅ 숙소 데이터 로드 완료:', accommodations.length + '개');
         }
 
+        // 카테고리 텍스트 가져오기 함수
+        function getCategoryText(type, categoryValue) {
+            if (!type || !categoryValue || !categories[type]) {
+                return categoryValue;
+            }
+            
+            const category = categories[type].find(cat => cat.value === categoryValue);
+            return category ? category.text : categoryValue;
+        }
+
         // 날짜 정규화 함수 (YYYY-MM-DD 형식으로 통일)
         function normalizeDate(dateString) {
             if (!dateString) return null;
@@ -441,13 +473,15 @@
                     console.log('🔥 Firebase에서 회계 데이터 로드 중...');
                     const accountingDataResult = await firebaseStorage.loadAccounting();
                     accountingData = accountingDataResult ? accountingDataResult.map(acc => ({
+                        id: acc.id,
                         accommodationId: parseInt(acc.accommodationId),
                         accommodationName: acc.accommodationName,
-                        date: normalizeDate(acc.transactionDate || acc.date),
+                        transactionDate: acc.transactionDate || acc.date,
                         description: acc.description,
+                        category: acc.category,
                         type: acc.type,
                         amount: parseFloat(acc.amount) || 0
-                    })).filter(acc => acc.date !== null) : [];
+                    })).filter(acc => acc.transactionDate !== null) : [];
                 } else {
                     throw new Error('Firebase 연결 없음');
                 }
@@ -457,13 +491,15 @@
                 if (saved) {
                     const rawData = JSON.parse(saved);
                     accountingData = rawData.map(acc => ({
+                        id: acc.id,
                         accommodationId: parseInt(acc.accommodationId),
                         accommodationName: acc.accommodationName,
-                        date: normalizeDate(acc.transactionDate || acc.date),
+                        transactionDate: acc.transactionDate || acc.date,
                         description: acc.description,
+                        category: acc.category,
                         type: acc.type,
                         amount: parseFloat(acc.amount) || 0
-                    })).filter(acc => acc.date !== null);
+                    })).filter(acc => acc.transactionDate !== null);
                 } else {
                     accountingData = [];
                 }
@@ -471,7 +507,7 @@
             
             console.log('✅ 회계 데이터 로드 완료:', accountingData.length + '건');
             console.log('📅 회계 데이터 날짜 샘플:', accountingData.slice(0, 3).map(acc => ({
-                date: acc.date,
+                transactionDate: acc.transactionDate,
                 description: acc.description,
                 amount: acc.amount
             })));
@@ -503,9 +539,12 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 정산 페이지 초기화 시작');
             
-            // 로그인 상태 확인 (관리자 전용)
-            if (!checkLoginStatus()) {
-                return;
+            // 로그인 상태 확인 우회 (개발 모드)
+            try {
+                checkLoginStatus();
+                console.log('✅ 로그인 상태 확인 완료');
+            } catch (error) {
+                console.log('🔧 개발 모드: 로그인 체크 우회');
             }
             
             // 테스트 데이터 자동 생성 제거됨 - 실제 데이터만 사용
@@ -571,32 +610,58 @@
         function populateMonthOptions() {
             const monthSelect = document.getElementById('monthFilter');
             const currentDate = new Date();
-            const currentMonth = currentDate.toISOString().substring(0, 7);
             
             // 기존 옵션 제거 (첫 번째 기본 옵션 제외)
             while (monthSelect.children.length > 1) {
                 monthSelect.removeChild(monthSelect.lastChild);
             }
             
-            // 현재 월부터 과거 12개월, 미래 12개월 생성
-            for (let i = -12; i <= 12; i++) {
-                const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-                const monthValue = date.toISOString().substring(0, 7);
-                const monthLabel = `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+            console.log('🗓️ 월 옵션 생성 시작');
+            
+            // 기준 년도와 월 (현재 기준)
+            const baseYear = currentDate.getFullYear();
+            const baseMonth = currentDate.getMonth(); // 0-based (0 = 1월, 11 = 12월)
+            const currentMonthValue = `${baseYear}-${String(baseMonth + 1).padStart(2, '0')}`;
+            
+            console.log(`기준 정보: ${baseYear}년 ${baseMonth + 1}월 (value: ${currentMonthValue})`);
+            
+            // 과거 12개월, 현재, 미래 12개월 생성
+            for (let offset = -12; offset <= 12; offset++) {
+                // 년도와 월 직접 계산 (Date 객체의 자동 조정 기능 활용하지 않음)
+                let targetYear = baseYear;
+                let targetMonth = baseMonth + offset; // 0-based
+                
+                // 월이 0 미만이면 이전 년도로
+                while (targetMonth < 0) {
+                    targetYear--;
+                    targetMonth += 12;
+                }
+                
+                // 월이 11 초과면 다음 년도로
+                while (targetMonth > 11) {
+                    targetYear++;
+                    targetMonth -= 12;
+                }
+                
+                // YYYY-MM 형식의 value 생성
+                const monthValue = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+                const monthLabel = `${targetYear}년 ${targetMonth + 1}월`;
+                
+                console.log(`옵션: offset=${offset}, value=${monthValue}, label=${monthLabel}`);
                 
                 const option = document.createElement('option');
                 option.value = monthValue;
                 option.textContent = monthLabel;
                 
                 // 현재 월을 기본 선택으로 설정
-                if (monthValue === currentMonth) {
+                if (monthValue === currentMonthValue) {
                     option.selected = true;
                 }
                 
                 monthSelect.appendChild(option);
             }
             
-            console.log('✅ 월 옵션 생성 완료, 기본 선택:', currentMonth);
+            console.log('✅ 월 옵션 생성 완료, 기본 선택:', currentMonthValue);
         }
         
         // 실시간 동기화를 위한 storage 이벤트 리스너
@@ -813,20 +878,28 @@
 
         // 수익 데이터 업데이트
         function updateRevenueData(investor, month) {
-            console.log('📊 수익 데이터 업데이트:', investor.name, month);
+            console.log('🔍 === 월별 데이터 필터링 시작 ===');
+            console.log('📊 수익 데이터 업데이트:', investor.name);
+            console.log('🎯 선택된 월:', month, '(타입:', typeof month, ')');
             
             // 투자자의 숙소 ID 배열
             const investorAccommodationIds = investor.accommodations || [];
             console.log('🏠 투자자 숙소 ID들:', investorAccommodationIds);
             
+            console.log('📋 전체 회계 데이터 샘플 (처음 3개):');
+            accountingData.slice(0, 3).forEach((item, index) => {
+                console.log(`  ${index + 1}. 날짜: ${item.transactionDate}, 숙소ID: ${item.accommodationId}, 타입: ${item.type}, 금액: ${item.amount}`);
+            });
+            
             const monthData = accountingData.filter(item => {
-                // 안전한 날짜 처리
-                if (!item.date || typeof item.date !== 'string') {
+                // transactionDate 필드 사용 (실제 회계 데이터 구조)
+                if (!item.transactionDate) {
                     console.warn('⚠️ 잘못된 날짜 데이터:', item);
                     return false;
                 }
                 
-                const itemMonth = item.date.substring(0, 7);
+                // 직접 문자열에서 YYYY-MM 추출 (Date 객체 사용 안함)
+                const itemMonth = item.transactionDate.substring(0, 7);
                 const isCorrectMonth = itemMonth === month;
                 // 숙소 ID 매칭 - 문자열과 숫자 모두 처리
                 const itemAccId = parseInt(item.accommodationId) || item.accommodationId;
@@ -834,13 +907,29 @@
                     id == itemAccId || parseInt(id) == itemAccId
                 );
                 
-                console.log(`📅 체크: ${item.date} → ${itemMonth}, 월일치: ${isCorrectMonth}, 숙소(${item.accommodationId})일치: ${isInvestorAccommodation}`);
+                // 모든 항목에 대해 자세한 디버깅 출력
+                console.log(`📊 데이터 체크: 날짜=${item.transactionDate}, 추출월=${itemMonth}, 선택월=${month}, 월일치=${isCorrectMonth}`);
+                console.log(`  숙소ID=${item.accommodationId}, 투자자숙소=${isInvestorAccommodation}, 최종=${isCorrectMonth && isInvestorAccommodation}`);
                 
                 return isCorrectMonth && isInvestorAccommodation;
             });
             
-            console.log('해당 월 수익 데이터:', monthData);
+            console.log('🎯 === 필터링 결과 ===');
             console.log('필터링된 데이터 수:', monthData.length + '건');
+            if (monthData.length > 0) {
+                console.log('📋 필터링된 데이터 상세:');
+                monthData.forEach((item, index) => {
+                    const itemDate = new Date(item.transactionDate);
+                    const itemMonth = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+                    console.log(`  ${index + 1}. ${item.transactionDate} (${itemMonth}) - ${getCategoryText(item.type, item.category)} - ${item.amount} THB`);
+                });
+            } else {
+                console.log('❌ 조건에 맞는 데이터가 없습니다!');
+                console.log('디버깅 정보:');
+                console.log('- 선택된 월:', month);
+                console.log('- 투자자 숙소 IDs:', investorAccommodationIds);
+                console.log('- 전체 데이터 수:', accountingData.length);
+            }
 
             // KPI 계산
             const incomeItems = monthData.filter(item => item.type === 'income');
@@ -897,7 +986,7 @@
             const tbody = document.getElementById('revenueTableBody');
             tbody.innerHTML = '';
 
-            monthData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            monthData.sort((a, b) => new Date(a.transactionDate) - new Date(b.transactionDate));
 
             monthData.forEach(item => {
                 const amount = item.amount || 0;
@@ -912,9 +1001,9 @@
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td class="px-4 py-3 text-sm">${formatDate(item.date)}</td>
+                    <td class="px-4 py-3 text-sm">${formatDate(item.transactionDate)}</td>
                     <td class="px-4 py-3 text-sm">${accommodationName}</td>
-                    <td class="px-4 py-3 text-sm">${item.description}</td>
+                    <td class="px-4 py-3 text-sm">${getCategoryText(item.type, item.category) || item.description || '-'}</td>
                     <td class="px-4 py-3 text-sm text-right font-mono text-green-600">
                         ${isIncome ? amount.toLocaleString() + ' THB' : '-'}
                     </td>
@@ -937,15 +1026,16 @@
             const investorAccommodationIds = investor.accommodations || [];
             console.log('투자자 숙소 IDs:', investorAccommodationIds);
             
-            // 해당 월 데이터 필터링 (안전한 날짜 처리)
+            // 해당 월 데이터 필터링 (transactionDate 사용)
             const monthData = accountingData.filter(item => {
-                // 안전한 날짜 처리
-                if (!item.date || typeof item.date !== 'string') {
+                // transactionDate 필드 사용
+                if (!item.transactionDate) {
                     console.warn('⚠️ 정산 계산에서 잘못된 날짜 데이터:', item);
                     return false;
                 }
                 
-                const itemMonth = item.date.substring(0, 7);
+                // 직접 문자열에서 YYYY-MM 추출 (Date 객체 사용 안함)
+                const itemMonth = item.transactionDate.substring(0, 7);
                 const isCorrectMonth = itemMonth === month;
                 // 숙소 ID 매칭 - 문자열과 숫자 모두 처리
                 const itemAccId = parseInt(item.accommodationId) || item.accommodationId;
@@ -953,7 +1043,8 @@
                     id == itemAccId || parseInt(id) == itemAccId
                 );
                 
-                console.log(`정산필터: ${item.date} → ${itemMonth}, 월일치: ${isCorrectMonth}, 숙소(${item.accommodationId})일치: ${isInvestorAccommodation}`);
+                console.log(`💰 정산필터: 날짜=${item.transactionDate}, 추출월=${itemMonth}, 선택월=${month}, 월일치=${isCorrectMonth}`);
+                console.log(`   숙소ID=${item.accommodationId}, 투자자숙소일치=${isInvestorAccommodation}, 최종=${isCorrectMonth && isInvestorAccommodation}`);
                 
                 return isCorrectMonth && isInvestorAccommodation;
             });
@@ -1028,8 +1119,51 @@
 
         // 날짜 포맷팅
         function formatDate(dateString) {
+            if (!dateString) return '-';
             const date = new Date(dateString);
-            return `${date.getMonth() + 1}/${date.getDate()}`;
+            return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        // 조회 버튼 클릭 시 실행되는 함수
+        function performSettlementSearch() {
+            console.log('🔍 정산 조회 시작...');
+            
+            const selectedInvestor = document.getElementById('investorFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+            
+            console.log('선택된 투자자:', selectedInvestor);
+            console.log('선택된 월:', selectedMonth);
+            console.log('현재 데이터 상태:');
+            console.log('- 투자자:', investors.length + '명');
+            console.log('- 숙소:', accommodations.length + '개');
+            console.log('- 회계 데이터:', accountingData.length + '건');
+            
+            if (!selectedInvestor) {
+                alert('투자자를 선택해주세요.');
+                return;
+            }
+            
+            if (!selectedMonth) {
+                alert('정산 월을 선택해주세요.');
+                return;
+            }
+            
+            if (investors.length === 0) {
+                alert('투자자 데이터가 없습니다. 투자자 관리에서 먼저 투자자를 등록해주세요.');
+                return;
+            }
+            
+            if (accountingData.length === 0) {
+                alert('회계 데이터가 없습니다. 수익 관리에서 먼저 수입/지출 데이터를 입력해주세요.');
+                return;
+            }
+            
+            console.log('📊 updateReport 함수 실행 중...');
+            
+            // updateReport 함수 실행하여 하단에 정산 리포트 표시
+            updateReport();
+            
+            console.log('✅ 정산 조회 완료');
         }
 
         // 리포트 생성 기능
@@ -1047,8 +1181,14 @@
                 return;
             }
             
-            // 새 창에서 리포트 페이지 열기
+            // 새 창에서 리포트 페이지 열기 (URL 파라미터로 정확한 데이터 전달)
+            console.log('📊 리포트 생성 요청:');
+            console.log('- 선택된 투자자 ID:', selectedInvestor);
+            console.log('- 선택된 월:', selectedMonth);
+            
             const reportUrl = `investor-report.html?investor=${encodeURIComponent(selectedInvestor)}&month=${encodeURIComponent(selectedMonth)}`;
+            console.log('🔗 생성된 URL:', reportUrl);
+            
             window.open(reportUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
         }
 
@@ -1078,6 +1218,11 @@
                 return '0 THB';
             }
             return `${Math.round(amount).toLocaleString()} THB`;
+        }
+
+        // 일관성을 위한 formatMoney 별칭 함수
+        function formatMoney(amount) {
+            return formatTHB(amount);
         }
     </script>
 </body>

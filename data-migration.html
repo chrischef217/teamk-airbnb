@@ -115,11 +115,23 @@
                 데이터 마이그레이션
             </h2>
 
-            <div class="text-center">
-                <button onclick="migrateAll()" 
+            <div class="text-center space-y-4">
+                <button onclick="migrateLocalToFirebase()" 
                         class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-medium transition-all transform hover:scale-105">
-                    <i class="fas fa-rocket mr-2"></i>
-                    🚀 전체 데이터 마이그레이션
+                    <i class="fas fa-upload mr-2"></i>
+                    📤 로컬 → Firebase 마이그레이션
+                </button>
+                
+                <button onclick="migrateFirebaseToLocal()" 
+                        class="w-full bg-gradient-to-r from-green-800 to-green-600 hover:from-green-900 hover:to-green-700 text-white px-8 py-4 rounded-lg font-medium transition-all transform hover:scale-105">
+                    <i class="fas fa-download mr-2"></i>
+                    📥 Firebase → 로컬 마이그레이션
+                </button>
+                
+                <button onclick="clearLocalDataOnly()" 
+                        class="w-full bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-trash-alt mr-2"></i>
+                    🗑️ 로컬 데이터 (localStorage)만 삭제
                 </button>
             </div>
         </div>
@@ -408,21 +420,78 @@
             }
         }
 
-        // 투자자 마이그레이션 (양방향)
-        async function migrateInvestors() {
+
+
+        // 로컬 → Firebase 마이그레이션
+        async function migrateLocalToFirebase() {
+            // 비밀번호 확인
+            const password = prompt('🔒 보안 확인\\n\\n관리자 비밀번호를 입력하세요:');
+            if (password !== '881114') {
+                alert('❌ 비밀번호가 올바르지 않습니다.');
+                log('❌ 로컬→Firebase 마이그레이션 접근 거부: 잘못된 비밀번호', 'error');
+                return;
+            }
+
+            if (!confirm('로컬 데이터를 Firebase로 업로드하시겠습니까?\\n\\n이 작업은 몇 분이 소요될 수 있습니다.\\n\\n⚠️ Firebase의 기존 데이터는 덮어쓰기됩니다.')) {
+                return;
+            }
+
+            log('=== 📤 로컬 → Firebase 마이그레이션 시작 ===', 'info');
+            
+            await migrateLocalInvestorsToFirebase();
+            await migrateLocalAccommodationsToFirebase();
+            await migrateLocalReservationsToFirebase();
+            await migrateLocalAccountingToFirebase();
+            
+            log('=== ✅ 로컬 → Firebase 마이그레이션 완료! ===', 'success');
+            log('로컬 데이터가 Firebase로 성공적으로 업로드되었습니다! 🎉', 'success');
+            
+            // 데이터 현황 업데이트
+            await checkLocalData();
+            await checkFirebaseData();
+        }
+
+        // Firebase → 로컬 마이그레이션
+        async function migrateFirebaseToLocal() {
+            // 비밀번호 확인
+            const password = prompt('🔒 보안 확인\\n\\n관리자 비밀번호를 입력하세요:');
+            if (password !== '881114') {
+                alert('❌ 비밀번호가 올바르지 않습니다.');
+                log('❌ Firebase→로컬 마이그레이션 접근 거부: 잘못된 비밀번호', 'error');
+                return;
+            }
+
+            if (!confirm('Firebase 데이터를 로컬로 다운로드하시겠습니까?\\n\\n이 작업은 몇 분이 소요될 수 있습니다.\\n\\n⚠️ 로컬의 기존 데이터는 덮어쓰기됩니다.')) {
+                return;
+            }
+
+            log('=== 📥 Firebase → 로컬 마이그레이션 시작 ===', 'info');
+            
+            await migrateFirebaseInvestorsToLocal();
+            await migrateFirebaseAccommodationsToLocal();
+            await migrateFirebaseReservationsToLocal();
+            await migrateFirebaseAccountingToLocal();
+            
+            log('=== ✅ Firebase → 로컬 마이그레이션 완료! ===', 'success');
+            log('Firebase 데이터가 로컬로 성공적으로 다운로드되었습니다! 🎉', 'success');
+            
+            // 데이터 현황 업데이트
+            await checkLocalData();
+            await checkFirebaseData();
+        }
+
+        // 로컬 → Firebase 개별 마이그레이션 함수들
+        async function migrateLocalInvestorsToFirebase() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
                 return;
             }
 
             const localData = JSON.parse(localStorage.getItem('investorData') || '[]');
-            const firebaseData = await firebaseStorage.loadInvestors();
-            
-            log(`📊 현재 상태: 로컬 ${localData.length}명, Firebase ${firebaseData.length}명`, 'info');
+            log(`📊 로컬 투자자 데이터: ${localData.length}명`, 'info');
 
-            // 1단계: localStorage → Firebase
             if (localData.length > 0) {
-                log(`📤 로컬 → Firebase: ${localData.length}명 업로드 중...`, 'info');
+                log(`📤 로컬 투자자 → Firebase: ${localData.length}명 업로드 중...`, 'info');
                 for (const investor of localData) {
                     try {
                         await firebaseStorage.saveInvestor(investor);
@@ -431,33 +500,24 @@
                         log(`❌ "${investor.name}" Firebase 저장 실패: ${error.message}`, 'error');
                     }
                 }
+            } else {
+                log('📊 로컬에 투자자 데이터가 없습니다.', 'warning');
             }
 
-            // 2단계: Firebase → localStorage (동기화)
-            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
-            const updatedFirebaseData = await firebaseStorage.loadInvestors();
-            localStorage.setItem('investorData', JSON.stringify(updatedFirebaseData));
-            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}명`, 'success');
-
-            log('🎉 투자자 양방향 마이그레이션 완료!', 'success');
-            await checkFirebaseData();
+            log('🎉 투자자 로컬→Firebase 마이그레이션 완료!', 'success');
         }
 
-        // 숙소 마이그레이션 (양방향)
-        async function migrateAccommodations() {
+        async function migrateLocalAccommodationsToFirebase() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
                 return;
             }
 
             const localData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
-            const firebaseData = await firebaseStorage.loadAccommodations();
-            
-            log(`🏠 현재 상태: 로컬 ${localData.length}개, Firebase ${firebaseData.length}개`, 'info');
+            log(`🏠 로컬 숙소 데이터: ${localData.length}개`, 'info');
 
-            // 1단계: localStorage → Firebase
             if (localData.length > 0) {
-                log(`📤 로컬 → Firebase: ${localData.length}개 업로드 중...`, 'info');
+                log(`📤 로컬 숙소 → Firebase: ${localData.length}개 업로드 중...`, 'info');
                 for (const accommodation of localData) {
                     try {
                         await firebaseStorage.saveAccommodation(accommodation);
@@ -466,33 +526,24 @@
                         log(`❌ "${accommodation.name}" Firebase 저장 실패: ${error.message}`, 'error');
                     }
                 }
+            } else {
+                log('🏠 로컬에 숙소 데이터가 없습니다.', 'warning');
             }
 
-            // 2단계: Firebase → localStorage (동기화)
-            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
-            const updatedFirebaseData = await firebaseStorage.loadAccommodations();
-            localStorage.setItem('accommodationData', JSON.stringify(updatedFirebaseData));
-            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}개`, 'success');
-
-            log('🎉 숙소 양방향 마이그레이션 완료!', 'success');
-            await checkFirebaseData();
+            log('🎉 숙소 로컬→Firebase 마이그레이션 완료!', 'success');
         }
 
-        // 예약 마이그레이션 (양방향)
-        async function migrateReservations() {
+        async function migrateLocalReservationsToFirebase() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
                 return;
             }
 
             const localData = JSON.parse(localStorage.getItem('reservationData') || '[]');
-            const firebaseData = await firebaseStorage.loadReservations();
-            
-            log(`📅 현재 상태: 로컬 ${localData.length}건, Firebase ${firebaseData.length}건`, 'info');
+            log(`📅 로컬 예약 데이터: ${localData.length}건`, 'info');
 
-            // 1단계: localStorage → Firebase
             if (localData.length > 0) {
-                log(`📤 로컬 → Firebase: ${localData.length}건 업로드 중...`, 'info');
+                log(`📤 로컬 예약 → Firebase: ${localData.length}건 업로드 중...`, 'info');
                 for (const reservation of localData) {
                     try {
                         await firebaseStorage.saveReservation(reservation);
@@ -501,33 +552,24 @@
                         log(`❌ 예약 Firebase 저장 실패: ${error.message}`, 'error');
                     }
                 }
+            } else {
+                log('📅 로컬에 예약 데이터가 없습니다.', 'warning');
             }
 
-            // 2단계: Firebase → localStorage (동기화)
-            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
-            const updatedFirebaseData = await firebaseStorage.loadReservations();
-            localStorage.setItem('reservationData', JSON.stringify(updatedFirebaseData));
-            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}건`, 'success');
-
-            log('🎉 예약 양방향 마이그레이션 완료!', 'success');
-            await checkFirebaseData();
+            log('🎉 예약 로컬→Firebase 마이그레이션 완료!', 'success');
         }
 
-        // 회계 마이그레이션 (양방향)
-        async function migrateAccounting() {
+        async function migrateLocalAccountingToFirebase() {
             if (!firebaseStorage.isConfigured()) {
                 log('❌ Firebase 설정이 필요합니다.', 'error');
                 return;
             }
 
             const localData = JSON.parse(localStorage.getItem('accountingData') || '[]');
-            const firebaseData = await firebaseStorage.loadAccounting();
-            
-            log(`💰 현재 상태: 로컬 ${localData.length}건, Firebase ${firebaseData.length}건`, 'info');
+            log(`💰 로컬 회계 데이터: ${localData.length}건`, 'info');
 
-            // 1단계: localStorage → Firebase
             if (localData.length > 0) {
-                log(`📤 로컬 → Firebase: ${localData.length}건 업로드 중...`, 'info');
+                log(`📤 로컬 회계 → Firebase: ${localData.length}건 업로드 중...`, 'info');
                 for (const accounting of localData) {
                     try {
                         await firebaseStorage.saveAccounting(accounting);
@@ -536,33 +578,181 @@
                         log(`❌ 회계 Firebase 저장 실패: ${error.message}`, 'error');
                     }
                 }
+            } else {
+                log('💰 로컬에 회계 데이터가 없습니다.', 'warning');
             }
 
-            // 2단계: Firebase → localStorage (동기화)
-            log(`📥 Firebase → 로컬: 최신 데이터 동기화 중...`, 'info');
-            const updatedFirebaseData = await firebaseStorage.loadAccounting();
-            localStorage.setItem('accountingData', JSON.stringify(updatedFirebaseData));
-            log(`✅ 로컬 저장소 동기화 완료: ${updatedFirebaseData.length}건`, 'success');
-
-            log('🎉 회계 양방향 마이그레이션 완료!', 'success');
-            await checkFirebaseData();
+            log('🎉 회계 로컬→Firebase 마이그레이션 완료!', 'success');
         }
 
-        // 전체 마이그레이션
-        async function migrateAll() {
-            if (!confirm('전체 데이터를 Firebase로 마이그레이션하시겠습니까?\\n\\n이 작업은 몇 분이 소요될 수 있습니다.')) {
+        // Firebase → 로컬 개별 마이그레이션 함수들
+        async function migrateFirebaseInvestorsToLocal() {
+            if (!firebaseStorage.isConfigured()) {
+                log('❌ Firebase 설정이 필요합니다.', 'error');
                 return;
             }
 
-            log('=== 🚀 전체 데이터 마이그레이션 시작 ===', 'info');
+            try {
+                const firebaseData = await firebaseStorage.loadInvestors();
+                log(`📊 Firebase 투자자 데이터: ${firebaseData.length}명`, 'info');
+
+                if (firebaseData.length > 0) {
+                    log(`📥 Firebase 투자자 → 로컬: ${firebaseData.length}명 다운로드 중...`, 'info');
+                    localStorage.setItem('investorData', JSON.stringify(firebaseData));
+                    log(`✅ 투자자 데이터 로컬 저장 완료: ${firebaseData.length}명`, 'success');
+                } else {
+                    log('📊 Firebase에 투자자 데이터가 없습니다.', 'warning');
+                }
+            } catch (error) {
+                log(`❌ Firebase 투자자 데이터 로드 실패: ${error.message}`, 'error');
+            }
+
+            log('🎉 투자자 Firebase→로컬 마이그레이션 완료!', 'success');
+        }
+
+        async function migrateFirebaseAccommodationsToLocal() {
+            if (!firebaseStorage.isConfigured()) {
+                log('❌ Firebase 설정이 필요합니다.', 'error');
+                return;
+            }
+
+            try {
+                const firebaseData = await firebaseStorage.loadAccommodations();
+                log(`🏠 Firebase 숙소 데이터: ${firebaseData.length}개`, 'info');
+
+                if (firebaseData.length > 0) {
+                    log(`📥 Firebase 숙소 → 로컬: ${firebaseData.length}개 다운로드 중...`, 'info');
+                    localStorage.setItem('accommodationData', JSON.stringify(firebaseData));
+                    log(`✅ 숙소 데이터 로컬 저장 완료: ${firebaseData.length}개`, 'success');
+                } else {
+                    log('🏠 Firebase에 숙소 데이터가 없습니다.', 'warning');
+                }
+            } catch (error) {
+                log(`❌ Firebase 숙소 데이터 로드 실패: ${error.message}`, 'error');
+            }
+
+            log('🎉 숙소 Firebase→로컬 마이그레이션 완료!', 'success');
+        }
+
+        async function migrateFirebaseReservationsToLocal() {
+            if (!firebaseStorage.isConfigured()) {
+                log('❌ Firebase 설정이 필요합니다.', 'error');
+                return;
+            }
+
+            try {
+                const firebaseData = await firebaseStorage.loadReservations();
+                log(`📅 Firebase 예약 데이터: ${firebaseData.length}건`, 'info');
+
+                if (firebaseData.length > 0) {
+                    log(`📥 Firebase 예약 → 로컬: ${firebaseData.length}건 다운로드 중...`, 'info');
+                    localStorage.setItem('reservationData', JSON.stringify(firebaseData));
+                    log(`✅ 예약 데이터 로컬 저장 완료: ${firebaseData.length}건`, 'success');
+                } else {
+                    log('📅 Firebase에 예약 데이터가 없습니다.', 'warning');
+                }
+            } catch (error) {
+                log(`❌ Firebase 예약 데이터 로드 실패: ${error.message}`, 'error');
+            }
+
+            log('🎉 예약 Firebase→로컬 마이그레이션 완료!', 'success');
+        }
+
+        async function migrateFirebaseAccountingToLocal() {
+            if (!firebaseStorage.isConfigured()) {
+                log('❌ Firebase 설정이 필요합니다.', 'error');
+                return;
+            }
+
+            try {
+                const firebaseData = await firebaseStorage.loadAccounting();
+                log(`💰 Firebase 회계 데이터: ${firebaseData.length}건`, 'info');
+
+                if (firebaseData.length > 0) {
+                    log(`📥 Firebase 회계 → 로컬: ${firebaseData.length}건 다운로드 중...`, 'info');
+                    localStorage.setItem('accountingData', JSON.stringify(firebaseData));
+                    log(`✅ 회계 데이터 로컬 저장 완료: ${firebaseData.length}건`, 'success');
+                } else {
+                    log('💰 Firebase에 회계 데이터가 없습니다.', 'warning');
+                }
+            } catch (error) {
+                log(`❌ Firebase 회계 데이터 로드 실패: ${error.message}`, 'error');
+            }
+
+            log('🎉 회계 Firebase→로컬 마이그레이션 완료!', 'success');
+        }
+
+        // 로컬 데이터만 삭제
+        async function clearLocalDataOnly() {
+            // 비밀번호 확인
+            const password = prompt('🔒 보안 확인\\n\\n관리자 비밀번호를 입력하세요:');
+            if (password !== '881114') {
+                alert('❌ 비밀번호가 올바르지 않습니다.');
+                log('❌ 로컬 데이터 삭제 접근 거부: 잘못된 비밀번호', 'error');
+                return;
+            }
+
+            const confirmMessage = '⚠️ 경고!\\n\\n로컬 저장소(localStorage)의 모든 데이터가 삭제됩니다.\\n\\n삭제될 데이터:\\n• 투자자 데이터\\n• 숙소 데이터\\n• 예약 데이터\\n• 회계 데이터\\n\\nFirebase 데이터는 그대로 유지됩니다.\\n\\n정말로 삭제하시겠습니까?';
             
-            await migrateInvestors();
-            await migrateAccommodations();
-            await migrateReservations();
-            await migrateAccounting();
-            
-            log('=== ✅ 전체 데이터 마이그레이션 완료! ===', 'success');
-            log('이제 PC와 모바일에서 데이터가 실시간 동기화됩니다! 🎉', 'success');
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // 한 번 더 확인
+            if (!confirm('정말 확실하신가요? 로컬 데이터는 완전히 삭제됩니다!')) {
+                return;
+            }
+
+            log('=== 🗑️ 로컬 데이터 삭제 시작 ===', 'warning');
+
+            try {
+                // 삭제 전 현재 데이터 개수 확인
+                const investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+                const accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+                const reservationData = JSON.parse(localStorage.getItem('reservationData') || '[]');
+                const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+
+                log(`📊 삭제 예정: 투자자 ${investorData.length}명, 숙소 ${accommodationData.length}개, 예약 ${reservationData.length}건, 회계 ${accountingData.length}건`, 'info');
+
+                // 긴급 백업 생성
+                const emergencyBackup = {
+                    investorData: investorData,
+                    accommodationData: accommodationData,
+                    reservationData: reservationData,
+                    accountingData: accountingData,
+                    timestamp: new Date().toISOString(),
+                    reason: 'manual_local_data_clear'
+                };
+                localStorage.setItem('emergency_backup_manual_clear', JSON.stringify(emergencyBackup));
+                log('🔒 긴급 백업 생성 완료', 'info');
+
+                // 로컬 데이터 삭제
+                localStorage.removeItem('investorData');
+                log('✅ 투자자 데이터 삭제 완료', 'success');
+
+                localStorage.removeItem('accommodationData');
+                log('✅ 숙소 데이터 삭제 완료', 'success');
+
+                localStorage.removeItem('reservationData');
+                log('✅ 예약 데이터 삭제 완료', 'success');
+
+                localStorage.removeItem('accountingData');
+                log('✅ 회계 데이터 삭제 완료', 'success');
+
+                // 화면 업데이트
+                await checkLocalData();
+
+                log('=== ✅ 로컬 데이터 삭제 완료! ===', 'success');
+                log('💡 Firebase 데이터는 그대로 유지됩니다.', 'info');
+                log('🔄 Firebase에서 데이터를 다시 불러오려면 각 페이지를 새로고침하세요.', 'info');
+
+                // 성공 알림
+                alert('✅ 로컬 데이터 삭제가 완료되었습니다!\\n\\nFirebase 데이터는 그대로 유지됩니다.\\n각 페이지를 새로고침하면 Firebase에서 데이터가 다시 로드됩니다.');
+
+            } catch (error) {
+                log('❌ 로컬 데이터 삭제 중 오류: ' + error.message, 'error');
+                console.error('로컬 데이터 삭제 오류:', error);
+            }
         }
 
         // 로그 출력
@@ -606,6 +796,14 @@
         }
 
         function downloadBackup() {
+            // 비밀번호 확인
+            const password = prompt('🔒 보안 확인\\n\\n관리자 비밀번호를 입력하세요:');
+            if (password !== '881114') {
+                alert('❌ 비밀번호가 올바르지 않습니다.');
+                log('❌ 전체 데이터 백업 다운로드 접근 거부: 잘못된 비밀번호', 'error');
+                return;
+            }
+
             const progress = document.getElementById('backupProgress');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
@@ -760,6 +958,14 @@
         async function restoreData() {
             if (!selectedFile) {
                 alert('복원할 파일을 먼저 선택해주세요.');
+                return;
+            }
+
+            // 비밀번호 확인
+            const password = prompt('🔒 보안 확인\\n\\n관리자 비밀번호를 입력하세요:');
+            if (password !== '881114') {
+                alert('❌ 비밀번호가 올바르지 않습니다.');
+                log('❌ 데이터 복원 접근 거부: 잘못된 비밀번호', 'error');
                 return;
             }
 

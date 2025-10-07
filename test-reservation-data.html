@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예약률 분석 테스트 데이터</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">예약률 분석 테스트 데이터 생성</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">테스트 데이터 생성</h2>
+            <button onclick="generateTestData()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                테스트 데이터 생성
+            </button>
+            <button onclick="clearAllData()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 ml-2">
+                모든 데이터 삭제
+            </button>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">생성된 데이터</h2>
+            <pre id="dataOutput" class="bg-gray-100 p-4 rounded text-sm overflow-auto"></pre>
+        </div>
+        
+        <div class="mt-6 text-center">
+            <a href="settlement.html" class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700">
+                정산 페이지로 이동
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function generateTestData() {
+            const currentMonth = '2025-10';
+            
+            // 투자자 데이터
+            const investorData = [{
+                id: 'investor1',
+                name: '김투자',
+                phone: '010-1234-5678',
+                email: 'investor1@test.com',
+                accommodations: ['acc1', 'acc2'],
+                ownershipPercentage: 100,
+                investorRatio: 70,  // 투자자 지분 70%
+                companyRatio: 30    // 회사 지분 30%
+            }];
+            
+            // 숙소 데이터
+            const accommodationData = [
+                {
+                    id: 'acc1',
+                    name: '방콕 시티 아파트',
+                    location: '방콕 중심가',
+                    monthlyRent: 45000,
+                    investorId: 'investor1'
+                },
+                {
+                    id: 'acc2', 
+                    name: '푸켓 비치 콘도',
+                    location: '푸켓 해변가',
+                    monthlyRent: 38000,
+                    investorId: 'investor1'
+                }
+            ];
+            
+            // 예약 데이터 (2025년 10월)
+            const reservationData = [
+                {
+                    id: 'res1',
+                    accommodationId: 'acc1',
+                    accommodationName: '방콕 시티 아파트',
+                    checkIn: '2025-10-05',
+                    checkOut: '2025-10-08',
+                    guestName: '홍길동',
+                    totalAmount: 12000,
+                    platform: '에어비앤비'
+                },
+                {
+                    id: 'res2',
+                    accommodationId: 'acc1',
+                    accommodationName: '방콕 시티 아파트',
+                    checkIn: '2025-10-12',
+                    checkOut: '2025-10-15',
+                    guestName: '김여행',
+                    totalAmount: 15000,
+                    platform: '부킹닷컴'
+                },
+                {
+                    id: 'res3',
+                    accommodationId: 'acc2',
+                    accommodationName: '푸켓 비치 콘도',
+                    checkIn: '2025-10-08',
+                    checkOut: '2025-10-12',
+                    guestName: '박휴가',
+                    totalAmount: 18000,
+                    platform: '에어비앤비'
+                },
+                {
+                    id: 'res4',
+                    accommodationId: 'acc2',
+                    accommodationName: '푸켓 비치 콘도',
+                    checkIn: '2025-10-20',
+                    checkOut: '2025-10-25',
+                    guestName: '이관광',
+                    totalAmount: 22500,
+                    platform: '에어비앤비'
+                }
+            ];
+            
+            // 회계 데이터 (예약과 연동)
+            const accountingData = [
+                {
+                    id: 'acc_income1',
+                    accommodationId: 'acc1',
+                    accommodationName: '방콕 시티 아파트',
+                    transactionDate: '2025-10-05',
+                    type: 'income',
+                    category: 'booking',
+                    amount: 12000,
+                    description: '숙박 수입 (홍길동)'
+                },
+                {
+                    id: 'acc_income2',
+                    accommodationId: 'acc1',
+                    accommodationName: '방콕 시티 아파트',
+                    transactionDate: '2025-10-12',
+                    type: 'income',
+                    category: 'booking',
+                    amount: 15000,
+                    description: '숙박 수입 (김여행)'
+                },
+                {
+                    id: 'acc_income3',
+                    accommodationId: 'acc2',
+                    accommodationName: '푸켓 비치 콘도',
+                    transactionDate: '2025-10-08',
+                    type: 'income',
+                    category: 'booking',
+                    amount: 18000,
+                    description: '숙박 수입 (박휴가)'
+                },
+                {
+                    id: 'acc_income4',
+                    accommodationId: 'acc2',
+                    accommodationName: '푸켓 비치 콘도',
+                    transactionDate: '2025-10-20',
+                    type: 'income',
+                    category: 'booking',
+                    amount: 22500,
+                    description: '숙박 수입 (이관광)'
+                }
+            ];
+            
+            // localStorage에 저장
+            localStorage.setItem('investorData', JSON.stringify(investorData));
+            localStorage.setItem('accommodationData', JSON.stringify(accommodationData));
+            localStorage.setItem('reservationData', JSON.stringify(reservationData));
+            localStorage.setItem('accountingData', JSON.stringify(accountingData));
+            
+            document.getElementById('dataOutput').textContent = 
+                `투자자: ${investorData.length}명\n` +
+                `숙소: ${accommodationData.length}개\n` +
+                `예약: ${reservationData.length}건\n` +
+                `회계: ${accountingData.length}건\n\n` +
+                `예약 상세:\n` +
+                reservationData.map(res => 
+                    `- ${res.accommodationName}: ${res.checkIn}~${res.checkOut} (${res.totalAmount} THB)`
+                ).join('\n') +
+                `\n\n예상 결과:\n` +
+                `- 방콕 시티 아파트: 6박, 27,000 THB → 4,500 THB/일\n` +
+                `- 푸켓 비치 콘도: 9박, 40,500 THB → 4,500 THB/일\n` +
+                `- 전체 예약률: 15박 / (31일 × 2숙소) = 24.2%\n` +
+                `- 총 수익: 67,500 THB, 총 지출: 0 THB\n` +
+                `- 순이익: 67,500 THB\n` +
+                `- 투자자 지분: 70%, 배당금: 47,250 THB`;
+        }
+        
+        function clearAllData() {
+            localStorage.removeItem('investorData');
+            localStorage.removeItem('accommodationData');
+            localStorage.removeItem('reservationData');
+            localStorage.removeItem('accountingData');
+            
+            document.getElementById('dataOutput').textContent = '모든 데이터가 삭제되었습니다.';
+        }
+    </script>
+</body>
+</html>

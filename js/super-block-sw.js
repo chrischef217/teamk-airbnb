@@ -4,7 +4,7 @@
 (function() {
     'use strict';
     
-    console.log('🛡️ SUPER SERVICE WORKER BLOCKER 활성화');
+    // Service Worker 보호 시스템 활성화 (조용한 모드)
     
     // === 1. 즉시 실행 완전 제거 ===
     if ('serviceWorker' in navigator) {
@@ -59,11 +59,11 @@
         // ServiceWorker 자체를 undefined로 만들기
         Object.defineProperty(navigator, 'serviceWorker', {
             get: function() {
-                console.warn('🚫 navigator.serviceWorker 접근이 차단됨');
+                // 완전히 조용한 차단
                 return undefined;
             },
             set: function() {
-                console.warn('🚫 navigator.serviceWorker 설정 시도가 차단됨');
+                // 완전히 조용한 차단
             },
             configurable: false,
             enumerable: false
@@ -79,27 +79,78 @@
         'swReg',
         'serviceWorkerRegistration',
         'registration',
-        'sw'
+        'sw',
+        'workboxSW',
+        'WorkboxSW',
+        '__workbox',
+        'wb',
+        'WB'
     ];
     
-    blockedGlobals.forEach(globalName => {
-        Object.defineProperty(window, globalName, {
-            get: function() {
-                console.error(`🚫 ${globalName} 접근 차단됨 - SUPER BLOCKER`);
-                return undefined;
-            },
-            set: function(value) {
-                console.error(`🚫 ${globalName} 설정 차단됨 - SUPER BLOCKER`);
-                // 설정 무시
-            },
-            configurable: false,
-            enumerable: false
-        });
+    blockedGlobals.forEach((globalName) => {
+        // 즉시 삭제
+        if (window[globalName]) {
+            delete window[globalName];
+        }
+        
+        // 클로저로 변수명 캡처
+        (function(varName) {
+            Object.defineProperty(window, varName, {
+                get: function() {
+                    // 전역 로그 제한 - 모든 차단된 변수에 대해 총 3번만 로그
+                    if (!window.__global_block_logged) {
+                        window.__global_block_logged = 0;
+                    }
+                    if (window.__global_block_logged < 1) {
+                        console.warn('🛡️ Service Worker 관련 변수 차단됨');
+                        window.__global_block_logged++;
+                    }
+                    return undefined;
+                },
+                set: function(value) {
+                    // 조용히 무시 - 로그 없음
+                },
+                configurable: false,
+                enumerable: false
+            });
+        })(globalName);
+    });
+    
+    // === 4.1. 모든 workbox 관련 함수 차단 ===
+    const workboxMethods = [
+        'precaching',
+        'routing', 
+        'strategies',
+        'expiration',
+        'backgroundSync',
+        'cacheableResponse',
+        'broadcastUpdate',
+        'rangeRequests',
+        'googleAnalytics',
+        'core'
+    ];
+    
+    workboxMethods.forEach((method) => {
+        (function(methodName) {
+            Object.defineProperty(window, methodName, {
+                get: function() {
+                    // 조용히 차단 - 로그 없음
+                    return undefined;
+                },
+                set: function() {
+                    // 조용히 차단 - 로그 없음
+                },
+                configurable: false,
+                enumerable: false
+            });
+        })(method);
     });
     
     // === 5. DOM API 감시 및 차단 ===
     // createElement 감시
     const originalCreateElement = document.createElement;
+    let blockedScriptCount = 0;
+    
     document.createElement = function(tagName) {
         const element = originalCreateElement.call(this, tagName);
         
@@ -113,7 +164,7 @@
                     ];
                     
                     if (blocked.some(term => value.toLowerCase().includes(term))) {
-                        console.error('🚫 차단된 스크립트:', value);
+                        // 조용히 차단
                         return; // 속성 설정 무시
                     }
                 }
@@ -144,12 +195,14 @@
     
     // === 6. Fetch API 감시 및 차단 ===
     const originalFetch = window.fetch;
+    let blockedRequestCount = 0;
+    
     window.fetch = function(url, options) {
         if (typeof url === 'string') {
             const blocked = ['workbox', 'sw.js', 'service-worker', 'precache', 'manifest.json'];
             if (blocked.some(term => url.toLowerCase().includes(term))) {
-                console.error('🚫 차단된 네트워크 요청:', url);
-                return Promise.reject(new Error('SUPER BLOCKER: 요청이 차단됨'));
+                // 조용히 차단
+                return Promise.reject(new Error('Request blocked'));
             }
         }
         return originalFetch.call(this, url, options);
@@ -157,22 +210,28 @@
     
     // === 7. 이벤트 리스너 감시 ===
     const originalAddEventListener = EventTarget.prototype.addEventListener;
+    let blockedEventCount = 0;
+    
     EventTarget.prototype.addEventListener = function(type, listener, options) {
         if (type === 'install' || type === 'activate' || type === 'fetch') {
-            console.error(`🚫 Service Worker 이벤트 리스너 차단됨: ${type}`);
+            // 조용히 차단
             return;
         }
         return originalAddEventListener.call(this, type, listener, options);
     };
     
-    // === 8. 주기적 감시 및 정리 ===
+    // === 8. 주기적 감시 및 정리 (로그 최적화) ===
+    let swDetectionCount = 0;
+    let workboxDetectionCount = 0;
+    let cacheDetectionCount = 0;
+    
     setInterval(() => {
         // Service Worker 재등록 감지 (안전 검사 포함)
         if ('serviceWorker' in navigator && navigator.serviceWorker && typeof navigator.serviceWorker.getRegistrations === 'function') {
             try {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
                     if (registrations && registrations.length > 0) {
-                        console.error('🚨 Service Worker 재등록 감지! 즉시 제거');
+                        // 조용히 제거
                         registrations.forEach(reg => reg.unregister());
                     }
                 }).catch(() => {});
@@ -183,18 +242,18 @@
         
         // workbox 전역 변수 재등장 감지
         if (window.workbox) {
-            console.error('🚨 workbox 재등장 감지! 즉시 삭제');
+            // 조용히 삭제
             delete window.workbox;
         }
         
-        // 캐시 재생성 감지
-        if ('caches' in window) {
+        // 캐시 재생성 감지 (덜 빈번하게 확인)
+        if (Date.now() % 5000 < 1000 && 'caches' in window) { // 5초마다 한번만
             caches.keys().then(cacheNames => {
                 const workboxCaches = cacheNames.filter(name => 
                     name.includes('workbox') || name.includes('precache')
                 );
                 if (workboxCaches.length > 0) {
-                    console.error('🚨 workbox 캐시 재생성 감지! 즉시 삭제');
+                    // 조용히 삭제
                     workboxCaches.forEach(name => caches.delete(name));
                 }
             });
@@ -237,7 +296,7 @@
             console.log('✅ SUPER BLOCKER 성공! navigator.serviceWorker 존재하지 않음');
         }
         
-        console.log('🛡️ SUPER SERVICE WORKER BLOCKER 100% 활성화 완료');
+        // Service Worker 보호 시스템 활성화 완료
     }, 100);
     
 })();

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실제 데이터 테스트</title>
+    <script src="js/super-block-sw.js"></script>
+    <script src="js/firebase-storage.js"></script>
+</head>
+<body>
+    <div style="padding: 20px;">
+        <h1>실제 데이터 확인</h1>
+        <div id="results"></div>
+        
+        <script>
+            async function checkRealData() {
+                const results = document.getElementById('results');
+                
+                results.innerHTML += '<h2>Firebase 데이터 확인</h2>';
+                
+                // Firebase 데이터 확인
+                try {
+                    if (typeof firebaseStorage !== 'undefined' && firebaseStorage.isConfigured()) {
+                        const investorData = await firebaseStorage.loadInvestors();
+                        const accountingData = await firebaseStorage.loadAccounting();
+                        const accommodationData = await firebaseStorage.loadAccommodations();
+                        
+                        results.innerHTML += `<p>Firebase 투자자: ${investorData?.length || 0}명</p>`;
+                        results.innerHTML += `<p>Firebase 회계: ${accountingData?.length || 0}건</p>`;
+                        results.innerHTML += `<p>Firebase 숙소: ${accommodationData?.length || 0}개</p>`;
+                        
+                        if (accountingData?.length > 0) {
+                            results.innerHTML += '<h3>Firebase 회계 데이터 샘플:</h3>';
+                            accountingData.slice(0, 3).forEach(item => {
+                                results.innerHTML += `<p>- ${item.transactionDate || item.date}: ${item.accommodationName || item.accommodationId} - ${item.type} - ${item.amount} THB</p>`;
+                            });
+                        }
+                    } else {
+                        results.innerHTML += '<p>❌ Firebase 설정 안됨</p>';
+                    }
+                } catch (e) {
+                    results.innerHTML += `<p>❌ Firebase 오류: ${e.message}</p>`;
+                }
+                
+                results.innerHTML += '<h2>localStorage 데이터 확인</h2>';
+                
+                // localStorage 데이터 확인
+                const localInvestors = localStorage.getItem('investorData');
+                const localAccounting = localStorage.getItem('accountingData');
+                const localAccommodations = localStorage.getItem('accommodationData');
+                
+                if (localInvestors) {
+                    const investors = JSON.parse(localInvestors);
+                    results.innerHTML += `<p>localStorage 투자자: ${investors.length}명</p>`;
+                    if (investors.length > 0) {
+                        results.innerHTML += `<p>첫 번째 투자자: ${investors[0].name} (ID: ${investors[0].id})</p>`;
+                    }
+                } else {
+                    results.innerHTML += '<p>localStorage 투자자 없음</p>';
+                }
+                
+                if (localAccounting) {
+                    const accounting = JSON.parse(localAccounting);
+                    results.innerHTML += `<p>localStorage 회계: ${accounting.length}건</p>`;
+                    if (accounting.length > 0) {
+                        results.innerHTML += '<h3>localStorage 회계 데이터 샘플:</h3>';
+                        accounting.slice(0, 3).forEach(item => {
+                            results.innerHTML += `<p>- ${item.transactionDate || item.date}: ${item.accommodationName || item.accommodationId} - ${item.type} - ${item.amount} THB</p>`;
+                        });
+                    }
+                } else {
+                    results.innerHTML += '<p>localStorage 회계 없음</p>';
+                }
+                
+                if (localAccommodations) {
+                    const accommodations = JSON.parse(localAccommodations);
+                    results.innerHTML += `<p>localStorage 숙소: ${accommodations.length}개</p>`;
+                    if (accommodations.length > 0) {
+                        results.innerHTML += '<h3>localStorage 숙소 데이터 샘플:</h3>';
+                        accommodations.slice(0, 3).forEach(item => {
+                            results.innerHTML += `<p>- ID: ${item.id}, 이름: ${item.accommodationName || item.name}</p>`;
+                        });
+                    }
+                } else {
+                    results.innerHTML += '<p>localStorage 숙소 없음</p>';
+                }
+            }
+            
+            document.addEventListener('DOMContentLoaded', checkRealData);
+        </script>
+    </div>
+</body>
+</html>

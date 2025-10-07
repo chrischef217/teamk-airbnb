@@ -136,8 +136,9 @@
                                     <i class="fas fa-key mr-1"></i>
                                     Web API Key
                                 </label>
-                                <input type="password" id="firebaseApiKey" 
+                                <input type="text" id="firebaseApiKey" 
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                       value="AIzaSyDyZVJn5-MFuxFzBc3OaKwnsJgvCHE20P8"
                                        placeholder="AIzaSy...">
                                 <p class="text-xs text-gray-500 mt-1">Firebase 프로젝트 설정에서 복사한 Web API 키</p>
                             </div>
@@ -149,6 +150,7 @@
                                 </label>
                                 <input type="text" id="firebaseProjectId" 
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                       value="teamk-airbnb"
                                        placeholder="teamk-data-xxxxx">
                                 <p class="text-xs text-gray-500 mt-1">Firebase 프로젝트 ID</p>
                             </div>
@@ -242,13 +244,32 @@
             }
         }
 
-        // 저장된 설정 로드
+        // 저장된 설정 로드 (기본값 자동 설정)
         function loadSavedSettings() {
-            const apiKey = localStorage.getItem('firebase_api_key');
-            const projectId = localStorage.getItem('firebase_project_id');
+            // 기본값 설정
+            const defaultApiKey = 'AIzaSyDyZVJn5-MFuxFzBc3OaKwnsJgvCHE20P8';
+            const defaultProjectId = 'teamk-airbnb';
+            
+            // localStorage에서 저장된 값 가져오기 (없으면 기본값 사용)
+            const apiKey = localStorage.getItem('firebase_api_key') || defaultApiKey;
+            const projectId = localStorage.getItem('firebase_project_id') || defaultProjectId;
 
-            if (apiKey) document.getElementById('firebaseApiKey').value = apiKey;
-            if (projectId) document.getElementById('firebaseProjectId').value = projectId;
+            // 입력 필드에 값 설정
+            document.getElementById('firebaseApiKey').value = apiKey;
+            document.getElementById('firebaseProjectId').value = projectId;
+            
+            // 처음 접속하는 경우 기본값을 localStorage에 저장
+            if (!localStorage.getItem('firebase_api_key')) {
+                localStorage.setItem('firebase_api_key', defaultApiKey);
+            }
+            if (!localStorage.getItem('firebase_project_id')) {
+                localStorage.setItem('firebase_project_id', defaultProjectId);
+            }
+            
+            // Firebase Storage에도 기본 설정 저장
+            if (!firebaseStorage.isConfigured()) {
+                firebaseStorage.saveConfig(apiKey, projectId);
+            }
         }
 
         // 연결 테스트
