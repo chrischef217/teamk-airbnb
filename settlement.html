@@ -65,9 +65,7 @@
                     <button onclick="window.location.href='reservation.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
                         <i class="fas fa-calendar-check mr-1"></i> 예약 관리
                     </button>
-                    <button onclick="window.location.href='analytics.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-chart-bar mr-1"></i> 지표 관리
-                    </button>
+
                     <button onclick="window.location.href='accounting.html'" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-800">
                         <i class="fas fa-coins mr-1"></i> 수익 관리
                     </button>
@@ -217,10 +215,10 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">숙소</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">구분</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">항목</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">수익</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">지출</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">순손익</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">비고</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">금액</th>
                             </tr>
                         </thead>
                         <tbody id="revenueTableBody" class="divide-y divide-gray-200">
@@ -1003,15 +1001,19 @@
                 row.innerHTML = `
                     <td class="px-4 py-3 text-sm">${formatDate(item.transactionDate)}</td>
                     <td class="px-4 py-3 text-sm">${accommodationName}</td>
-                    <td class="px-4 py-3 text-sm">${getCategoryText(item.type, item.category) || item.description || '-'}</td>
-                    <td class="px-4 py-3 text-sm text-right font-mono text-green-600">
-                        ${isIncome ? amount.toLocaleString() + ' THB' : '-'}
+                    <td class="px-4 py-3 text-sm">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            item.type === 'income' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                        }">
+                            ${item.type === 'income' ? '수익' : '비용'}
+                        </span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-right font-mono text-red-600">
-                        ${!isIncome ? amount.toLocaleString() + ' THB' : '-'}
-                    </td>
-                    <td class="px-4 py-3 text-sm text-right font-mono font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}">
-                        ${isIncome ? '+' : '-'}${amount.toLocaleString()} THB
+                    <td class="px-4 py-3 text-sm">${getCategoryText(item.type, item.category) || item.category || '-'}</td>
+                    <td class="px-4 py-3 text-sm">${item.description || '-'}</td>
+                    <td class="px-4 py-3 text-sm text-right font-semibold ${item.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+                        ${item.type === 'income' ? '+' : '-'}${amount.toLocaleString()} THB
                     </td>
                 `;
                 tbody.appendChild(row);

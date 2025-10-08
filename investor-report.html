@@ -54,6 +54,16 @@
             .chart-container {
                 break-inside: avoid;
                 page-break-inside: avoid;
+                text-align: center;
+                margin: 0 auto;
+                width: 100% !important;
+            }
+            
+            /* PDF에서 차트 캔버스 중앙 정렬 */
+            .chart-container canvas {
+                margin: 0 auto !important;
+                display: block !important;
+                max-width: 100% !important;
             }
             
             /* 테이블 페이지 브레이크 방지 */
@@ -64,6 +74,53 @@
             .summary-table tr {
                 break-inside: avoid;
                 page-break-inside: avoid;
+            }
+            
+            /* KPI 카드 레이아웃 PDF 최적화 */
+            .kpi-cards-container {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                width: 100% !important;
+            }
+            
+            .kpi-card-revenue,
+            .kpi-card-expense,
+            .kpi-card-profit {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            
+            .grid.grid-cols-2 {
+                display: flex !important;
+                width: 100% !important;
+                gap: 1.5rem !important;
+            }
+            
+            .grid.grid-cols-2 > div {
+                flex: 1 !important;
+                width: calc(50% - 0.75rem) !important;
+            }
+            
+            /* PDF 생성 시 도넛 차트 원형 유지 */
+            .chart-container canvas[id*="Chart"] {
+                width: 300px !important;
+                height: 300px !important;
+                max-width: 300px !important;
+                max-height: 300px !important;
+                aspect-ratio: 1 / 1 !important;
+            }
+            
+            /* 도넛 차트 컨테이너 정사각형 강제 */
+            .bg-white .chart-container {
+                width: 300px !important;
+                height: 300px !important;
+                margin: 0 auto !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
         }
         
@@ -83,7 +140,15 @@
         .chart-container {
             position: relative;
             height: 300px;
+            width: 100%;
             margin: 20px 0;
+        }
+        
+        .chart-container canvas {
+            width: 100% !important;
+            height: 300px !important;
+            margin: 0 auto;
+            display: block;
         }
         
         .kpi-card {
@@ -281,52 +346,64 @@
             </div>
         </div>
 
-        <!-- KPI 카드들 -->
-        <div class="grid md:grid-cols-4 gap-6 mb-8">
-            <div class="kpi-card profit-positive bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
+        <!-- 배당 계산 섹션 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                <i class="fas fa-calculator text-blue-600 mr-2"></i>
+                배당 계산
+            </h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="flex items-center justify-between bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                    <span class="text-gray-700 font-medium">투자자 지분 (70%):</span>
+                    <span id="investorShareAmount" class="text-blue-600 font-bold text-xl">20,294 THB</span>
+                </div>
+                <div class="flex items-center justify-between bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+                    <span class="text-gray-700 font-medium">회사 지분 (30%):</span>
+                    <span id="companyShareAmount" class="text-green-600 font-bold text-xl">8,697 THB</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 카드들 - 업로드된 이미지와 같은 2-1 배치 레이아웃 -->
+        <div class="kpi-cards-container mb-8">
+            <!-- 첫 번째 행: 총 수익 카드 (중앙 정렬) -->
+            <div class="flex justify-center mb-6">
+                <div class="kpi-card-revenue w-full max-w-sm bg-green-50 rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                    <div class="text-center">
                         <h3 class="text-sm font-medium text-gray-600 mb-1">총 수익</h3>
-                        <div id="totalRevenue" class="text-2xl font-bold text-green-600">0 THB</div>
-                    </div>
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-coins text-green-600 text-xl"></i>
+                        <div id="totalRevenue" class="text-3xl font-bold text-green-600 mb-3">35,733 THB</div>
+                        <div class="flex justify-center">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-coins text-green-600 text-xl"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="kpi-card profit-negative bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
+            <!-- 두 번째 행: 총 비용과 순 이익 카드 (나란히 배치) -->
+            <div class="grid grid-cols-2 gap-6">
+                <div class="kpi-card-expense bg-red-50 rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+                    <div class="text-center">
                         <h3 class="text-sm font-medium text-gray-600 mb-1">총 비용</h3>
-                        <div id="totalExpenses" class="text-2xl font-bold text-red-600">0 THB</div>
-                    </div>
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-receipt text-red-600 text-xl"></i>
+                        <div id="totalExpenses" class="text-2xl font-bold text-red-600 mb-3">6,742 THB</div>
+                        <div class="flex justify-center">
+                            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-receipt text-red-600 text-xl"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="kpi-card profit-positive bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
+                
+                <div class="kpi-card-profit bg-blue-50 rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                    <div class="text-center">
                         <h3 class="text-sm font-medium text-gray-600 mb-1">순 이익</h3>
-                        <div id="netProfit" class="text-2xl font-bold text-blue-600">0 THB</div>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-chart-line text-blue-600 text-xl"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="kpi-card profit-neutral bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-600 mb-1">투자자 배당</h3>
-                        <div id="investorDividend" class="text-2xl font-bold text-purple-600">0 THB</div>
-                    </div>
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-hand-holding-usd text-purple-600 text-xl"></i>
+                        <div id="netProfit" class="text-2xl font-bold text-blue-600 mb-3">28,991 THB</div>
+                        <div class="flex justify-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -334,7 +411,7 @@
 
         <!-- 수익 차트 -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8 page-break-before">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 text-center">
                 <i class="fas fa-chart-bar text-blue-600 mr-2"></i>
                 월별 수익 추이
             </h2>
@@ -371,7 +448,7 @@
         <!-- 수익 분석 -->
         <div class="grid md:grid-cols-2 gap-8 mb-8">
             <!-- 수익 구조 파이차트 -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
                 <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
                     <i class="fas fa-chart-pie text-blue-600 mr-2"></i>
                     수익 구조 분석
@@ -382,7 +459,7 @@
             </div>
             
             <!-- 비용 구조 파이차트 -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
                 <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
                     <i class="fas fa-chart-pie text-red-600 mr-2"></i>
                     비용 구조 분석
@@ -407,6 +484,7 @@
                             <th class="text-left">숙소</th>
                             <th class="text-left">구분</th>
                             <th class="text-left">항목</th>
+                            <th class="text-left">비고</th>
                             <th>금액</th>
                         </tr>
                     </thead>
@@ -481,8 +559,39 @@
                     <div class="text-sm text-gray-600">월 수익률</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-3xl font-bold text-purple-600 mb-2" id="paybackPeriod">0.0%</div>
-                    <div class="text-sm text-gray-600">고정비 비율</div>
+                    <div class="text-3xl font-bold text-purple-600 mb-2" id="paybackPeriod">0개월</div>
+                    <div class="text-sm text-gray-600">투자회수기간</div>
+                </div>
+            </div>
+            
+            <!-- 투자 성과 지표 계산 방식 설명 -->
+            <div class="bg-gray-50 rounded-lg p-4 mt-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    투자 성과 지표 계산 방식
+                </h3>
+                <div class="grid md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-white p-3 rounded">
+                        <h4 class="font-semibold text-blue-600 mb-2">연환산 수익률</h4>
+                        <p class="text-gray-600 text-xs leading-relaxed">
+                            (월 순수익 ÷ 보증금 합계) × 12개월 × 100<br>
+                            <span class="text-gray-500">※ 월 수익률을 연단위로 환산한 수치</span>
+                        </p>
+                    </div>
+                    <div class="bg-white p-3 rounded">
+                        <h4 class="font-semibold text-green-600 mb-2">월 수익률</h4>
+                        <p class="text-gray-600 text-xs leading-relaxed">
+                            (해당월 순수익 ÷ 보증금 합계) × 100<br>
+                            <span class="text-gray-500">※ 보증금 대비 해당 월의 실제 수익률</span>
+                        </p>
+                    </div>
+                    <div class="bg-white p-3 rounded">
+                        <h4 class="font-semibold text-purple-600 mb-2">투자회수기간</h4>
+                        <p class="text-gray-600 text-xs leading-relaxed">
+                            보증금 합계 ÷ 월 순수익<br>
+                            <span class="text-gray-500">※ 현재 수익률 유지 시 보증금 회수에 필요한 개월 수</span>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -553,6 +662,11 @@
         let settlementData = null;
         let accountingData = [];  // 전역 변수로 선언
         let reservationData = [];  // 예약 데이터 전역 변수
+        
+        // Chart.js 인스턴스들 저장
+        let revenueChart = null;
+        let revenueStructureChart = null;
+        let expenseStructureChart = null;
 
         // 페이지 로드 시 실행
         document.addEventListener('DOMContentLoaded', function() {
@@ -1152,7 +1266,6 @@
             document.getElementById('totalRevenue').textContent = formatMoney(totalRevenue);
             document.getElementById('totalExpenses').textContent = formatMoney(totalExpenses);
             document.getElementById('netProfit').textContent = formatMoney(netProfit);
-            document.getElementById('investorDividend').textContent = formatMoney(investorDividend);
             
             // 색상 업데이트
             updateKPIColors(netProfit);
@@ -1160,17 +1273,13 @@
 
         function updateKPIColors(netProfit) {
             const netProfitElement = document.getElementById('netProfit');
-            const dividendElement = document.getElementById('investorDividend');
             
             if (netProfit > 0) {
                 netProfitElement.className = 'text-2xl font-bold text-green-600';
-                dividendElement.className = 'text-2xl font-bold text-green-600';
             } else if (netProfit < 0) {
                 netProfitElement.className = 'text-2xl font-bold text-red-600';
-                dividendElement.className = 'text-2xl font-bold text-red-600';
             } else {
                 netProfitElement.className = 'text-2xl font-bold text-gray-600';
-                dividendElement.className = 'text-2xl font-bold text-gray-600';
             }
         }
 
@@ -1239,6 +1348,11 @@
             if (ownershipElement) {
                 ownershipElement.textContent = investorSharePercentage.toFixed(1) + '%';
             }
+            
+            // 배당 계산 카드 업데이트
+            const companyDividend = netProfit * (companySharePercentage / 100);
+            document.getElementById('investorShareAmount').textContent = formatMoney(Math.max(0, dividendAmount));
+            document.getElementById('companyShareAmount').textContent = formatMoney(Math.max(0, companyDividend));
             
             // 배당금이 음수인 경우 스타일 조정
             const settlementElement = document.getElementById('settlementAmount');
@@ -1360,7 +1474,7 @@
             console.log('- 수익:', revenueData.map(v => Math.round(v)));
             console.log('- 지출:', expenseData.map(v => Math.round(v)));
             
-            new Chart(ctx, {
+            revenueChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -1424,7 +1538,7 @@
                     revenueStructure[categoryText] = (revenueStructure[categoryText] || 0) + parseFloat(transaction.amount || 0);
                 });
             
-            new Chart(ctx, {
+            revenueStructureChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(revenueStructure),
@@ -1460,7 +1574,7 @@
                     expenseStructure[categoryText] = (expenseStructure[categoryText] || 0) + parseFloat(transaction.amount || 0);
                 });
             
-            new Chart(ctx, {
+            expenseStructureChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(expenseStructure),
@@ -1688,6 +1802,7 @@
                         </span>
                     </td>
                     <td class="text-left">${getCategoryText(transaction.type, transaction.category) || transaction.category || '-'}</td>
+                    <td class="text-left">${transaction.description || '-'}</td>
                     <td class="font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
                         ${transaction.type === 'income' ? '+' : '-'}${formatMoney(Math.abs(parseFloat(transaction.amount || 0)))}
                     </td>
@@ -1881,6 +1996,10 @@
         }
 
         function calculateInvestmentPerformance() {
+            console.log('🎯🎯🎯 calculateInvestmentPerformance 함수 시작!');
+            console.log('📊 settlementData:', settlementData);
+            console.log('💰 investorData:', investorData);
+            
             const transactions = settlementData.transactions;
             
             let totalRevenue = 0;
@@ -1907,28 +2026,163 @@
             const investorShare = (investorData.ownershipPercentage || 100) / 100;
             const investorProfit = netProfit * investorShare;
             
-            // 매출 대비 수익률
-            const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
+            // 해당 투자자가 보유한 숙소들의 보증금 합계 계산
+            let totalDeposit = 0;
             
-            // 고정비 비율
-            const fixedCostRatio = totalRevenue > 0 ? (rentExpenses / totalRevenue * 100) : 0;
+            console.log('🏦🏦🏦 보증금 계산 시작!!! 이 로그가 보이나요?');
+            console.log('🔍 현재 위치: calculateInvestmentPerformance 함수 내부');
+            console.log('📋 settlementData.accommodations:', settlementData.accommodations);
             
-            // 연환산 수익률 (매월 누적 기준)
-            // 실제로는 12개월 데이터가 필요하지만, 현재 월 데이터로 추정
+            // 먼저 localStorage에서 전체 숙소 데이터를 가져와서 보증금 정보 확보
+            console.log('🔍 localStorage에서 숙소 데이터 확인 중...');
+            const accommodationDataRaw = localStorage.getItem('accommodationData');
+            const allAccommodations = JSON.parse(accommodationDataRaw || '[]');
+            console.log('📦 localStorage 전체 숙소 데이터:', allAccommodations.length + '개');
+            
+            if (settlementData.accommodations && settlementData.accommodations.length > 0) {
+                settlementData.accommodations.forEach((accommodation, index) => {
+                    console.log(`숙소 ${index + 1} 데이터:`, accommodation);
+                    console.log(`- 이름: ${accommodation.name || accommodation.accommodationName || '미정'}`);
+                    console.log(`- 보증금: ${accommodation.deposit}`);
+                    
+                    // settlementData에 보증금 정보가 없으면 localStorage에서 찾기
+                    let depositAmount = 0;
+                    if (accommodation.deposit && accommodation.deposit > 0) {
+                        depositAmount = parseFloat(accommodation.deposit);
+                        console.log(`✅ settlementData에서 보증금 발견: ${depositAmount} THB`);
+                    } else {
+                        // localStorage에서 해당 숙소의 보증금 정보 찾기
+                        console.log(`🔍 localStorage에서 보증금 정보 검색 중...`);
+                        const matchedAccommodation = allAccommodations.find(acc => 
+                            acc.id === accommodation.id ||
+                            acc.name === accommodation.name ||
+                            acc.accommodationName === accommodation.name
+                        );
+                        
+                        if (matchedAccommodation && matchedAccommodation.deposit && matchedAccommodation.deposit > 0) {
+                            depositAmount = parseFloat(matchedAccommodation.deposit);
+                            console.log(`✅ localStorage에서 보증금 발견: ${depositAmount} THB`);
+                        } else {
+                            console.log(`❌ localStorage에서도 보증금 없음`);
+                        }
+                    }
+                    
+                    if (depositAmount > 0) {
+                        totalDeposit += depositAmount;
+                        console.log(`💰 누적 보증금: ${totalDeposit} THB`);
+                    }
+                });
+            } else {
+                console.log('❌ settlementData.accommodations가 없거나 비어있음');
+                
+                // 대안: localStorage에서 직접 숙소 데이터 가져오기
+                console.log('🔄🔄🔄 대안 로직 실행 중!');
+                const accommodationDataRaw = localStorage.getItem('accommodationData');
+                console.log('📦 localStorage raw data:', accommodationDataRaw);
+                
+                const allAccommodations = JSON.parse(accommodationDataRaw || '[]');
+                console.log('🔄 localStorage에서 파싱된 숙소 데이터:', allAccommodations.length + '개');
+                console.log('📋 전체 숙소 목록:', allAccommodations);
+                
+                if (allAccommodations.length > 0) {
+                    // 현재 투자자의 숙소만 필터링
+                    console.log('🔍 투자자 ID 확인:', investorData.id);
+                    console.log('🔍 투자자 데이터:', investorData);
+                    
+                    const investorAccommodations = allAccommodations.filter(acc => {
+                        console.log(`숙소 ${acc.name || acc.accommodationName} - investorId: ${acc.investorId}, 비교대상: ${investorData.id}`);
+                        return acc.investorId === investorData.id || 
+                               String(acc.investorId) === String(investorData.id) ||
+                               acc.investorId === investorData.name ||
+                               acc.investorName === investorData.name;
+                    });
+                    
+                    console.log('👤 현재 투자자의 숙소:', investorAccommodations.length + '개');
+                    console.log('🏠 필터링된 숙소 목록:', investorAccommodations);
+                    
+                    investorAccommodations.forEach((accommodation, index) => {
+                        console.log(`대안 숙소 ${index + 1} 데이터:`, accommodation);
+                        if (accommodation.deposit && accommodation.deposit > 0) {
+                            const depositAmount = parseFloat(accommodation.deposit);
+                            totalDeposit += depositAmount;
+                            console.log(`✅ 대안 보증금 추가: ${depositAmount} THB`);
+                        }
+                    });
+                }
+            }
+            
+            console.log(`🎯 총 투자금(보증금 합계): ${totalDeposit} THB`);
+            
+            // 보증금이 0일 경우 사용자에게 안내
+            if (totalDeposit === 0) {
+                console.warn('⚠️ 보증금 데이터가 0입니다. 다음 사항을 확인해주세요:');
+                console.warn('1. 숙소관리에서 보증금 정보가 올바르게 입력되어 있는지 확인');
+                console.warn('2. 투자자와 숙소의 연결이 올바른지 확인');
+                console.warn('3. 데이터 동기화를 위해 페이지 새로고침');
+                
+                // HTML에 경고 메시지 표시
+                setTimeout(() => {
+                    const performanceSection = document.querySelector('#annualizedReturn')?.closest('.bg-white');
+                    if (performanceSection && !performanceSection.querySelector('.deposit-warning')) {
+                        const warningDiv = document.createElement('div');
+                        warningDiv.className = 'deposit-warning bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4';
+                        warningDiv.innerHTML = `
+                            <div class="flex">
+                                <i class="fas fa-exclamation-triangle text-yellow-400 mr-3 mt-1"></i>
+                                <div>
+                                    <h4 class="text-yellow-800 font-semibold">보증금 데이터 확인 필요</h4>
+                                    <p class="text-yellow-700 text-sm mt-1">
+                                        투자 성과 계산을 위한 보증금 정보를 찾을 수 없습니다.
+                                        <strong>숙소관리</strong>에서 각 숙소의 보증금 정보를 확인하고 입력해주세요.
+                                    </p>
+                                </div>
+                            </div>
+                        `;
+                        performanceSection.insertBefore(warningDiv, performanceSection.firstChild);
+                    }
+                }, 100);
+            }
+            
+            // 투자 대비 수익률 (월 순수익 / 투자원금 * 100)
+            const monthlyProfit = netProfit;
+            let profitMargin = 0;
+            let paybackMonths = 0;
+            
+            if (totalDeposit > 0) {
+                profitMargin = (monthlyProfit / totalDeposit * 100);
+                // 투자회수기간 계산 (개월 수)
+                paybackMonths = monthlyProfit > 0 ? Math.ceil(totalDeposit / monthlyProfit) : 0;
+            } else {
+                console.warn('⚠️ 보증금이 0이므로 수익률 계산이 불가능합니다.');
+                profitMargin = 0;
+                paybackMonths = 0;
+            }
+            
+            // 연환산 수익률 (월 수익률 × 12개월)
             const annualizedReturn = profitMargin * 12;
             
             // 표시
-            document.getElementById('monthlyReturn').textContent = profitMargin.toFixed(1) + '%';
-            document.getElementById('annualizedReturn').textContent = annualizedReturn.toFixed(1) + '%';
-            
-            // "투자회수 예상기간" 텍스트를 "고정비 비율"로 변경
-            const paybackElement = document.querySelector('#paybackPeriod')?.previousElementSibling;
-            if (paybackElement) {
-                paybackElement.textContent = '고정비 비율';
-            }
-            const paybackPeriodElement = document.getElementById('paybackPeriod');
-            if (paybackPeriodElement) {
-                paybackPeriodElement.textContent = fixedCostRatio.toFixed(1) + '%';
+            if (totalDeposit > 0) {
+                document.getElementById('monthlyReturn').textContent = profitMargin.toFixed(1) + '%';
+                document.getElementById('annualizedReturn').textContent = annualizedReturn.toFixed(1) + '%';
+                
+                const paybackPeriodElement = document.getElementById('paybackPeriod');
+                if (paybackPeriodElement) {
+                    if (paybackMonths > 0 && monthlyProfit > 0) {
+                        paybackPeriodElement.textContent = paybackMonths + '개월';
+                    } else {
+                        paybackPeriodElement.textContent = '∞';
+                    }
+                }
+            } else {
+                // 보증금이 0일 경우 계산 불가 표시
+                document.getElementById('monthlyReturn').textContent = 'N/A';
+                document.getElementById('annualizedReturn').textContent = 'N/A';
+                
+                const paybackPeriodElement = document.getElementById('paybackPeriod');
+                if (paybackPeriodElement) {
+                    paybackPeriodElement.textContent = 'N/A';
+                }
             }
         }
 
@@ -2204,11 +2458,142 @@
             return new Date(dateString).toLocaleDateString('ko-KR');
         }
 
+        // PDF용 차트 재생성 함수
+        function recreateChartsForPDF() {
+            console.log('📊 PDF용 차트 재생성 시작');
+            
+            // 도넛 차트들을 PDF용 정사각형 비율로 재생성
+            if (revenueStructureChart) {
+                const ctx = document.getElementById('revenueStructureChart').getContext('2d');
+                const data = revenueStructureChart.data;
+                revenueStructureChart.destroy();
+                
+                // 컨테이너 크기 임시 고정
+                const container = ctx.canvas.parentElement;
+                container.style.width = '300px';
+                container.style.height = '300px';
+                ctx.canvas.style.width = '300px';
+                ctx.canvas.style.height = '300px';
+                
+                revenueStructureChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+            
+            if (expenseStructureChart) {
+                const ctx = document.getElementById('expenseStructureChart').getContext('2d');
+                const data = expenseStructureChart.data;
+                expenseStructureChart.destroy();
+                
+                // 컨테이너 크기 임시 고정
+                const container = ctx.canvas.parentElement;
+                container.style.width = '300px';
+                container.style.height = '300px';
+                ctx.canvas.style.width = '300px';
+                ctx.canvas.style.height = '300px';
+                
+                expenseStructureChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+            
+            console.log('✅ PDF용 차트 재생성 완료');
+        }
+        
+        // 원래 차트로 복원하는 함수
+        function restoreOriginalCharts() {
+            console.log('🔄 원본 차트 복원 시작');
+            
+            // 원래 responsive 설정으로 복원
+            setTimeout(() => {
+                if (revenueStructureChart) {
+                    const ctx = document.getElementById('revenueStructureChart').getContext('2d');
+                    const data = revenueStructureChart.data;
+                    revenueStructureChart.destroy();
+                    
+                    // 컨테이너 크기 원복
+                    const container = ctx.canvas.parentElement;
+                    container.style.width = '';
+                    container.style.height = '';
+                    ctx.canvas.style.width = '';
+                    ctx.canvas.style.height = '';
+                    
+                    revenueStructureChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                if (expenseStructureChart) {
+                    const ctx = document.getElementById('expenseStructureChart').getContext('2d');
+                    const data = expenseStructureChart.data;
+                    expenseStructureChart.destroy();
+                    
+                    // 컨테이너 크기 원복
+                    const container = ctx.canvas.parentElement;
+                    container.style.width = '';
+                    container.style.height = '';
+                    ctx.canvas.style.width = '';
+                    ctx.canvas.style.height = '';
+                    
+                    expenseStructureChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                console.log('✅ 원본 차트 복원 완료');
+            }, 500);
+        }
+
         // PDF 다운로드 함수
         function downloadPDF() {
             // 버튼 숨기기
             const button = document.querySelector('.no-print');
             button.style.display = 'none';
+            
+            // PDF용 차트로 재생성
+            recreateChartsForPDF();
             
             // PDF 생성 옵션
             const opt = {
@@ -2219,7 +2604,8 @@
                     scale: 2, 
                     useCORS: true,
                     scrollX: 0,
-                    scrollY: 0 
+                    scrollY: 0,
+                    allowTaint: true
                 },
                 jsPDF: { 
                     unit: 'in', 
@@ -2232,16 +2618,22 @@
                 }
             };
 
-            // PDF 생성 및 다운로드
-            html2pdf().from(document.body).set(opt).save().then(function() {
-                // PDF 생성 완료 후 버튼 다시 보이기
-                button.style.display = 'block';
-                console.log('✅ PDF 저장 완료');
-            }).catch(function(error) {
-                console.error('❌ PDF 생성 오류:', error);
-                button.style.display = 'block';
-                alert('PDF 생성 중 오류가 발생했습니다.');
-            });
+            // 차트가 완전히 렌더링된 후 PDF 생성
+            setTimeout(() => {
+                html2pdf().from(document.body).set(opt).save().then(function() {
+                    // PDF 생성 완료 후 버튼 다시 보이기
+                    button.style.display = 'block';
+                    // 원본 차트로 복원
+                    restoreOriginalCharts();
+                    console.log('✅ PDF 저장 완료');
+                }).catch(function(error) {
+                    console.error('❌ PDF 생성 오류:', error);
+                    button.style.display = 'block';
+                    // 원본 차트로 복원
+                    restoreOriginalCharts();
+                    alert('PDF 생성 중 오류가 발생했습니다.');
+                });
+            }, 1000); // 차트 렌더링 대기
         }
     </script>
 </body>

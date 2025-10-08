@@ -8,7 +8,7 @@ const translations = {
         dashboard: "대시보드",
         accommodations: "숙소 관리", 
         reservations: "예약 관리",
-        analytics: "지표 관리",
+
         accounting: "수익 관리",
         investors: "투자자 관리",
         settlement: "투자자 정산",
@@ -75,8 +75,7 @@ const translations = {
         specialRequests: "특별 요청",
         
         // 지표 관리
-        analyticsManagement: "지표 관리",
-        analyticsManagementSubtitle: "데이터 기반 수익성 분석",
+
         analysisMode: "분석 모드",
         byInvestor: "투자자별 분석",
         byAccommodation: "숙소별 분석", 
@@ -204,7 +203,7 @@ const translations = {
         dashboard: "แดชบอร์ด",
         accommodations: "จัดการที่พัก",
         reservations: "จัดการการจอง",
-        analytics: "จัดการดัชนี",
+
         accounting: "จัดการรายได้",
         investors: "จัดการนักลงทุน",
         settlement: "การชำระเงินนักลงทุน",
@@ -271,8 +270,7 @@ const translations = {
         specialRequests: "คำขอพิเศษ",
         
         // 지표 관리
-        analyticsManagement: "จัดการดัชนี",
-        analyticsManagementSubtitle: "การวิเคราะห์ความสามารถในการทำกำไรจากข้อมูล",
+
         analysisMode: "โหมดการวิเคราะห์",
         byInvestor: "วิเคราะห์ตามนักลงทุน",
         byAccommodation: "วิเคราะห์ตามที่พัก",
@@ -400,7 +398,7 @@ const translations = {
         dashboard: "Dashboard",
         accommodations: "Accommodation Mgmt",
         reservations: "Reservation Mgmt",
-        analytics: "Analytics Mgmt",
+
         accounting: "Revenue Mgmt",
         investors: "Investor Mgmt",
         settlement: "Investor Settlement",
@@ -466,8 +464,7 @@ const translations = {
         specialRequests: "Special Requests",
         
         // 지표 관리
-        analyticsManagement: "Analytics Management",
-        analyticsManagementSubtitle: "Data-driven Profitability Analysis",
+
         analysisMode: "Analysis Mode",
         byInvestor: "By Investor Analysis",
         byAccommodation: "By Accommodation Analysis",
