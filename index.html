@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/firebase-storage.js"></script>
     <script src="js/translations.js"></script>
 
     <style>
@@ -442,6 +443,172 @@
         // 더미 함수들 (기존 시스템과 호환성)
         // 로그인 체크는 auth.js에서 처리
 
+        // 신규 환경 체크 및 자동 Firebase 설정
+        async function checkAndSetupNewEnvironment() {
+            console.log('🔍 신규 환경 체크 시작...');
+            
+            // 로컬 데이터 체크
+            const localDataExists = checkLocalDataExists();
+            
+            if (!localDataExists) {
+                console.log('📱 신규 접속 환경 감지: 로컬 데이터가 없습니다.');
+                
+                // Firebase 설정 파일이 있는지 확인
+                if (typeof firebaseStorage === 'undefined') {
+                    // Firebase Storage 스크립트 동적 로드
+                    await loadFirebaseStorageScript();
+                }
+                
+                // Firebase 자동 설정 및 데이터 마이그레이션
+                await autoSetupFirebaseAndMigrate();
+            } else {
+                console.log('✅ 기존 사용자: 로컬 데이터가 존재합니다.');
+            }
+        }
+
+        // 로컬 데이터 존재 여부 체크
+        function checkLocalDataExists() {
+            const investorData = JSON.parse(localStorage.getItem('investorData') || '[]');
+            const accommodationData = JSON.parse(localStorage.getItem('accommodationData') || '[]');
+            const reservationData = JSON.parse(localStorage.getItem('reservationData') || '[]');
+            const accountingData = JSON.parse(localStorage.getItem('accountingData') || '[]');
+            
+            const totalRecords = investorData.length + accommodationData.length + reservationData.length + accountingData.length;
+            
+            console.log(`📊 로컬 데이터 현황: 투자자 ${investorData.length}, 숙소 ${accommodationData.length}, 예약 ${reservationData.length}, 회계 ${accountingData.length} (총 ${totalRecords}건)`);
+            
+            return totalRecords > 0;
+        }
+
+        // Firebase Storage 스크립트 동적 로드
+        function loadFirebaseStorageScript() {
+            return new Promise((resolve, reject) => {
+                if (typeof firebaseStorage !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'js/firebase-storage.js';
+                script.onload = () => {
+                    console.log('🔥 Firebase Storage 스크립트 로드 완료');
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error('❌ Firebase Storage 스크립트 로드 실패');
+                    reject(new Error('Firebase Storage script failed to load'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // Firebase 자동 설정 및 데이터 마이그레이션
+        async function autoSetupFirebaseAndMigrate() {
+            try {
+                console.log('🔧 Firebase 자동 설정 시작...');
+                
+                // Firebase 기본 설정값
+                const defaultApiKey = 'AIzaSyDyZVJn5-MFuxFzBc3OaKwnsJgvCHE20P8';
+                const defaultProjectId = 'teamk-airbnb';
+                
+                // Firebase 설정 저장
+                firebaseStorage.saveConfig(defaultApiKey, defaultProjectId);
+                console.log('✅ Firebase 설정 저장 완료');
+                
+                // 연결 테스트
+                console.log('🔌 Firebase 연결 테스트 중...');
+                const connectionResult = await firebaseStorage.testConnection();
+                
+                if (connectionResult.success) {
+                    console.log('✅ Firebase 연결 성공:', connectionResult.message);
+                    
+                    // Firebase → 로컬 데이터 마이그레이션 시작
+                    console.log('📥 Firebase → 로컬 데이터 마이그레이션 시작...');
+                    
+                    await autoMigrateFirebaseToLocal();
+                    
+                    console.log('🎉 신규 환경 설정 완료!');
+                    
+                    // 성공 알림 (선택적)
+                    showAutoSetupNotification();
+                    
+                } else {
+                    console.error('❌ Firebase 연결 실패:', connectionResult.error);
+                    console.log('💡 Firebase 연결에 실패했지만, 로컬 환경으로 계속 진행합니다.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Firebase 자동 설정 중 오류:', error);
+                console.log('💡 오류가 발생했지만, 로컬 환경으로 계속 진행합니다.');
+            }
+        }
+
+        // Firebase → 로컬 자동 마이그레이션
+        async function autoMigrateFirebaseToLocal() {
+            try {
+                // 투자자 데이터 마이그레이션
+                const investors = await firebaseStorage.loadInvestors();
+                if (investors.length > 0) {
+                    localStorage.setItem('investorData', JSON.stringify(investors));
+                    console.log(`✅ 투자자 데이터 마이그레이션 완료: ${investors.length}명`);
+                }
+
+                // 숙소 데이터 마이그레이션
+                const accommodations = await firebaseStorage.loadAccommodations();
+                if (accommodations.length > 0) {
+                    localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+                    console.log(`✅ 숙소 데이터 마이그레이션 완료: ${accommodations.length}개`);
+                }
+
+                // 예약 데이터 마이그레이션
+                const reservations = await firebaseStorage.loadReservations();
+                if (reservations.length > 0) {
+                    localStorage.setItem('reservationData', JSON.stringify(reservations));
+                    console.log(`✅ 예약 데이터 마이그레이션 완료: ${reservations.length}건`);
+                }
+
+                // 회계 데이터 마이그레이션
+                const accounting = await firebaseStorage.loadAccounting();
+                if (accounting.length > 0) {
+                    localStorage.setItem('accountingData', JSON.stringify(accounting));
+                    console.log(`✅ 회계 데이터 마이그레이션 완료: ${accounting.length}건`);
+                }
+
+                console.log('🎉 모든 데이터 마이그레이션 완료!');
+                
+            } catch (error) {
+                console.error('❌ 자동 마이그레이션 중 오류:', error);
+            }
+        }
+
+        // 자동 설정 완료 알림 (선택적)
+        function showAutoSetupNotification() {
+            // 페이지 우상단에 간단한 알림 표시 (5초간)
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <div>
+                        <div class="font-semibold">신규 환경 설정 완료</div>
+                        <div class="text-sm opacity-90">Firebase 데이터가 자동으로 동기화되었습니다.</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            // 5초 후 자동 제거
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
         // 페이지 로드 시 실행
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Index 페이지 로드 시작');
@@ -452,8 +619,9 @@
             }
             initializePagePermissions();
             
-            // 1초 후 대시보드 초기화 (DOM 완전 로드 대기)
-            setTimeout(() => {
+            // 1초 후 대시보드 초기화 및 신규 환경 체크 (DOM 완전 로드 대기)
+            setTimeout(async () => {
+                await checkAndSetupNewEnvironment();
                 initializeIndexDashboard();
             }, 1000);
         });
