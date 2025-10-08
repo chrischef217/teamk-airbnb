@@ -1420,8 +1420,8 @@
             settlementData.transactions
                 .filter(t => t.type === 'income')
                 .forEach(transaction => {
-                    const category = transaction.category || '기타';
-                    revenueStructure[category] = (revenueStructure[category] || 0) + parseFloat(transaction.amount || 0);
+                    const categoryText = getCategoryText('income', transaction.category) || transaction.category || '기타';
+                    revenueStructure[categoryText] = (revenueStructure[categoryText] || 0) + parseFloat(transaction.amount || 0);
                 });
             
             new Chart(ctx, {
@@ -1456,8 +1456,8 @@
             settlementData.transactions
                 .filter(t => t.type === 'expense')
                 .forEach(transaction => {
-                    const category = transaction.category || '기타';
-                    expenseStructure[category] = (expenseStructure[category] || 0) + parseFloat(transaction.amount || 0);
+                    const categoryText = getCategoryText('expense', transaction.category) || transaction.category || '기타';
+                    expenseStructure[categoryText] = (expenseStructure[categoryText] || 0) + parseFloat(transaction.amount || 0);
                 });
             
             new Chart(ctx, {
@@ -1709,9 +1709,11 @@
                     { value: 'cleaning', text: '청소비' },
                     { value: 'maintenance', text: '수리/보수' },
                     { value: 'supplies', text: '용품 구입' },
-                    { value: 'utilities', text: '공과금' },
+                    { value: 'electricity', text: '전기세' },
+                    { value: 'water', text: '수도세' },
+                    { value: 'telecom', text: '통신비' },
                     { value: 'rent', text: '렌트비' },
-                    { value: 'platform_fee', text: '플랫폼 수수료' },
+                    { value: 'platform_fee', text: '수수료' },
                     { value: 'tax', text: '세금' },
                     { value: 'other_expense', text: '기타 지출' }
                 ]
