@@ -77,6 +77,21 @@
             </div>
         </div>
 
+        <!-- 자동 동기화 상태 알림 -->
+        <div id="syncStatusAlert" class="hidden mb-6 p-4 rounded-lg shadow-sm border-l-4 border-blue-500 bg-blue-50">
+            <div class="flex items-center">
+                <i id="syncIcon" class="fas fa-sync-alt animate-spin text-blue-600 mr-3"></i>
+                <div class="flex-1">
+                    <h4 class="text-blue-800 font-semibold">데이터 동기화 진행 중</h4>
+                    <p id="syncMessage" class="text-blue-600 text-sm">Firebase에서 최신 데이터를 가져오고 있습니다...</p>
+                </div>
+                <button id="manualSyncBtn" onclick="performAutoSync()" 
+                        class="ml-4 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-redo mr-1"></i> 수동 동기화
+                </button>
+            </div>
+        </div>
+
         <!-- Key Metrics Summary - 6개 완전 KPI 카드 -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <!-- 총 숙소 수 카드 -->
@@ -579,23 +594,44 @@
             }
         }
 
-        // 자동 설정 완료 알림 (선택적)
-        function showAutoSetupNotification() {
-            // 페이지 우상단에 간단한 알림 표시 (5초간)
+        // 범용 알림 표시 함수
+        function showNotification(title, message, type = 'info') {
             const notification = document.createElement('div');
-            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';
+            
+            let bgColor, iconClass;
+            switch(type) {
+                case 'success':
+                    bgColor = 'bg-green-600';
+                    iconClass = 'fas fa-check-circle';
+                    break;
+                case 'error':
+                    bgColor = 'bg-red-600';
+                    iconClass = 'fas fa-exclamation-triangle';
+                    break;
+                case 'warning':
+                    bgColor = 'bg-yellow-600';
+                    iconClass = 'fas fa-exclamation-circle';
+                    break;
+                default:
+                    bgColor = 'bg-blue-600';
+                    iconClass = 'fas fa-info-circle';
+                    break;
+            }
+            
+            notification.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300`;
             notification.innerHTML = `
                 <div class="flex items-center">
-                    <i class="fas fa-check-circle mr-2"></i>
+                    <i class="${iconClass} mr-2"></i>
                     <div>
-                        <div class="font-semibold">신규 환경 설정 완료</div>
-                        <div class="text-sm opacity-90">Firebase 데이터가 자동으로 동기화되었습니다.</div>
+                        <div class="font-semibold">${title}</div>
+                        <div class="text-sm opacity-90">${message}</div>
                     </div>
                 </div>
             `;
             document.body.appendChild(notification);
             
-            // 5초 후 자동 제거
+            // 자동 제거
+            const duration = type === 'error' ? 7000 : 5000; // 오류는 7초, 나머지는 5초
             setTimeout(() => {
                 notification.style.opacity = '0';
                 notification.style.transform = 'translateX(100%)';
@@ -604,7 +640,186 @@
                         notification.parentNode.removeChild(notification);
                     }
                 }, 300);
-            }, 5000);
+            }, duration);
+        }
+
+        // 자동 설정 완료 알림 (선택적)
+        function showAutoSetupNotification() {
+            showNotification('신규 환경 설정 완료', 'Firebase 데이터가 자동으로 동기화되었습니다.', 'success');
+        }
+
+        // Firebase 자동 동기화 함수
+        async function performAutoSync() {
+            console.log('🔄 자동 Firebase 동기화 시작');
+            
+            const syncAlert = document.getElementById('syncStatusAlert');
+            const syncIcon = document.getElementById('syncIcon');
+            const syncMessage = document.getElementById('syncMessage');
+            const manualSyncBtn = document.getElementById('manualSyncBtn');
+            
+            // 동기화 상태 표시
+            syncAlert.classList.remove('hidden');
+            syncAlert.className = 'mb-6 p-4 rounded-lg shadow-sm border-l-4 border-blue-500 bg-blue-50';
+            syncIcon.className = 'fas fa-sync-alt animate-spin text-blue-600 mr-3';
+            syncMessage.textContent = 'Firebase에서 최신 데이터를 가져오고 있습니다...';
+            
+            // 수동 동기화 버튼 비활성화
+            if (manualSyncBtn) {
+                manualSyncBtn.disabled = true;
+                manualSyncBtn.className = 'ml-4 px-3 py-1 text-xs bg-gray-400 text-white rounded cursor-not-allowed';
+            }
+            
+            try {
+                // Firebase 연결 상태 확인
+                if (typeof firebaseStorage === 'undefined') {
+                    throw new Error('Firebase Storage 모듈이 로드되지 않았습니다.');
+                }
+                
+                if (!firebaseStorage.isConfigured()) {
+                    throw new Error('Firebase 설정이 완료되지 않았습니다. 데이터 관리 탭에서 Firebase를 설정해주세요.');
+                }
+                
+                console.log('✅ Firebase 연결 확인됨, 데이터 동기화 시작');
+                
+                let syncCount = 0;
+                let totalItems = 0;
+                
+                // 1. 숙소 데이터 동기화
+                try {
+                    syncMessage.textContent = '숙소 데이터 동기화 중...';
+                    const accommodations = await firebaseStorage.loadAccommodations();
+                    if (accommodations && accommodations.length > 0) {
+                        localStorage.setItem('accommodationData', JSON.stringify(accommodations));
+                        syncCount++;
+                        totalItems += accommodations.length;
+                        console.log(`✅ 숙소 데이터 동기화 완료: ${accommodations.length}개`);
+                    } else {
+                        console.log('ℹ️ 동기화할 숙소 데이터가 없습니다.');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ 숙소 데이터 동기화 실패:', error.message);
+                }
+                
+                // 2. 투자자 데이터 동기화
+                try {
+                    syncMessage.textContent = '투자자 데이터 동기화 중...';
+                    const investors = await firebaseStorage.loadInvestors();
+                    if (investors && investors.length > 0) {
+                        localStorage.setItem('investorData', JSON.stringify(investors));
+                        syncCount++;
+                        totalItems += investors.length;
+                        console.log(`✅ 투자자 데이터 동기화 완료: ${investors.length}개`);
+                    } else {
+                        console.log('ℹ️ 동기화할 투자자 데이터가 없습니다.');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ 투자자 데이터 동기화 실패:', error.message);
+                }
+                
+                // 3. 예약 데이터 동기화
+                try {
+                    syncMessage.textContent = '예약 데이터 동기화 중...';
+                    const reservations = await firebaseStorage.loadReservations();
+                    if (reservations && reservations.length > 0) {
+                        localStorage.setItem('reservationData', JSON.stringify(reservations));
+                        syncCount++;
+                        totalItems += reservations.length;
+                        console.log(`✅ 예약 데이터 동기화 완료: ${reservations.length}개`);
+                    } else {
+                        console.log('ℹ️ 동기화할 예약 데이터가 없습니다.');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ 예약 데이터 동기화 실패:', error.message);
+                }
+                
+                // 4. 회계 데이터 동기화
+                try {
+                    syncMessage.textContent = '회계 데이터 동기화 중...';
+                    const accounting = await firebaseStorage.loadAccounting();
+                    if (accounting && accounting.length > 0) {
+                        localStorage.setItem('accountingData', JSON.stringify(accounting));
+                        syncCount++;
+                        totalItems += accounting.length;
+                        console.log(`✅ 회계 데이터 동기화 완료: ${accounting.length}개`);
+                    } else {
+                        console.log('ℹ️ 동기화할 회계 데이터가 없습니다.');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ 회계 데이터 동기화 실패:', error.message);
+                }
+                
+                // 5. 정산 데이터는 다른 데이터로부터 계산되므로 별도 동기화 불필요
+                console.log('ℹ️ 정산 데이터는 실시간 계산으로 처리됩니다.');
+                
+                // 성공 상태 표시
+                if (totalItems > 0) {
+                    syncIcon.className = 'fas fa-check-circle text-green-600 mr-3';
+                    syncAlert.className = 'mb-6 p-4 rounded-lg shadow-sm border-l-4 border-green-500 bg-green-50';
+                    syncMessage.innerHTML = `
+                        <span class="text-green-800 font-semibold">동기화 완료!</span><br>
+                        <span class="text-green-600 text-sm">${syncCount}개 데이터 타입, 총 ${totalItems}개 항목이 동기화되었습니다.</span>
+                    `;
+                    
+                    // 대시보드 데이터 새로고침
+                    console.log('🔄 대시보드 데이터 새로고침');
+                    initializeIndexDashboard();
+                    
+                    showNotification('✅ 동기화 완료', `${totalItems}개 데이터가 성공적으로 동기화되었습니다.`, 'success');
+                } else if (syncCount > 0) {
+                    // 일부 데이터는 동기화되었지만 새 데이터가 없음
+                    syncIcon.className = 'fas fa-info-circle text-blue-600 mr-3';
+                    syncAlert.className = 'mb-6 p-4 rounded-lg shadow-sm border-l-4 border-blue-500 bg-blue-50';
+                    syncMessage.innerHTML = `
+                        <span class="text-blue-800 font-semibold">동기화 확인 완료</span><br>
+                        <span class="text-blue-600 text-sm">${syncCount}개 데이터 타입을 확인했지만 새로운 데이터가 없습니다.</span>
+                    `;
+                    showNotification('ℹ️ 동기화 확인 완료', 'Firebase에 새로운 데이터가 없습니다.', 'info');
+                } else {
+                    // 동기화할 데이터가 전혀 없음
+                    syncIcon.className = 'fas fa-exclamation-circle text-yellow-600 mr-3';
+                    syncAlert.className = 'mb-6 p-4 rounded-lg shadow-sm border-l-4 border-yellow-500 bg-yellow-50';
+                    syncMessage.innerHTML = `
+                        <span class="text-yellow-800 font-semibold">동기화할 데이터 없음</span><br>
+                        <span class="text-yellow-600 text-sm">Firebase에 등록된 데이터가 없거나 연결에 문제가 있을 수 있습니다.</span>
+                    `;
+                    showNotification('⚠️ 데이터 없음', 'Firebase를 확인하거나 데이터를 먼저 등록해주세요.', 'warning');
+                }
+                
+                // 3초 후 알림 숨기기
+                setTimeout(() => {
+                    syncAlert.classList.add('hidden');
+                }, 3000);
+                
+                // 수동 동기화 버튼 재활성화
+                if (manualSyncBtn) {
+                    manualSyncBtn.disabled = false;
+                    manualSyncBtn.className = 'ml-4 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors';
+                }
+                
+            } catch (error) {
+                console.error('❌ 자동 동기화 실패:', error);
+                
+                // 오류 상태 표시
+                syncIcon.className = 'fas fa-exclamation-triangle text-red-600 mr-3';
+                syncAlert.className = 'mb-6 p-4 rounded-lg shadow-sm border-l-4 border-red-500 bg-red-50';
+                syncMessage.innerHTML = `
+                    <span class="text-red-800 font-semibold">동기화 실패</span><br>
+                    <span class="text-red-600 text-sm">${error.message}</span>
+                `;
+                
+                showNotification('⚠️ 동기화 실패', 'Firebase 연결을 확인해주세요.', 'error');
+                
+                // 5초 후 알림 숨기기
+                setTimeout(() => {
+                    syncAlert.classList.add('hidden');
+                }, 5000);
+            }
+            
+            // 수동 동기화 버튼 재활성화
+            if (manualSyncBtn) {
+                manualSyncBtn.disabled = false;
+                manualSyncBtn.className = 'ml-4 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors';
+            }
         }
 
         // 페이지 로드 시 실행
@@ -612,15 +827,39 @@
             console.log('🚀 Index 페이지 로드 시작');
             
             // 로그인 상태 확인 (관리자 전용)
-            if (!checkLoginStatus()) {
+            const isLoggedIn = checkLoginStatus();
+            console.log('🔐 로그인 상태:', isLoggedIn);
+            
+            if (!isLoggedIn) {
+                console.log('❌ 로그인되지 않음 - 동기화 건너뜀');
                 return;
             }
+            
+            console.log('✅ 로그인 확인됨 - 페이지 초기화 시작');
             initializePagePermissions();
             
             // 1초 후 대시보드 초기화 및 신규 환경 체크 (DOM 완전 로드 대기)
             setTimeout(async () => {
-                await checkAndSetupNewEnvironment();
-                initializeIndexDashboard();
+                console.log('⏰ 1초 대기 완료 - 초기화 시작');
+                
+                try {
+                    await checkAndSetupNewEnvironment();
+                    console.log('✅ 신규 환경 체크 완료');
+                    
+                    // **🔄 자동 Firebase 동기화 실행 (무조건 실행)**
+                    console.log('🚀 로그인 후 자동 Firebase 동기화 시작');
+                    await performAutoSync();
+                    console.log('✅ 자동 동기화 완료');
+                    
+                    // 동기화 후 대시보드 초기화
+                    console.log('📊 대시보드 초기화 시작');
+                    initializeIndexDashboard();
+                    console.log('✅ 전체 초기화 완료');
+                    
+                } catch (error) {
+                    console.error('❌ 초기화 중 오류 발생:', error);
+                    showNotification('초기화 오류', '페이지 초기화 중 문제가 발생했습니다.', 'error');
+                }
             }, 1000);
         });
     </script>
